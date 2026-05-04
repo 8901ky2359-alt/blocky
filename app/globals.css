@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-brand-bg text-black;
+}
+
+.card {
+  @apply rounded-2xl border border-black/10 bg-white p-4 shadow-sm;
+}
