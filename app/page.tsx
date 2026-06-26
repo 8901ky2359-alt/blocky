@@ -16,16 +16,20 @@ const toUpdateLabel = (iso: string) => {
 export default function Home() {
   const [filter, setFilter] = useState<Filter>('すべて');
 
-  const grouped = useMemo(() => {
-    const matched = jobs
-      .filter((job) => {
-        if (filter === 'すべて') return true;
-        if (filter === '募集中') return job.status === '募集中';
-        return job.category === filter;
-      })
-      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const matched = useMemo(
+    () =>
+      jobs
+        .filter((job) => {
+          if (filter === 'すべて') return true;
+          if (filter === '募集中') return job.status === '募集中';
+          return job.category === filter;
+        })
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+    [filter],
+  );
 
-    // 更新日ごとにまとめる（新しい順）
+  // 更新日ごとにまとめる（新しい順）
+  const grouped = useMemo(() => {
     const map = new Map<string, typeof matched>();
     for (const job of matched) {
       const key = job.updatedAt;
@@ -33,7 +37,9 @@ export default function Home() {
       map.get(key)!.push(job);
     }
     return [...map.entries()];
-  }, [filter]);
+  }, [matched]);
+
+  const lastUpdated = jobs.reduce((a, b) => (a > b.updatedAt ? a : b.updatedAt), '');
 
   return (
     <div className="space-y-5 pb-10">
@@ -48,7 +54,34 @@ export default function Home() {
         >
           {siteConfig.lineButtonLabel}
         </a>
+        {lastUpdated && (
+          <p className="text-center text-xs text-brand-primary/80">
+            最終更新：{toUpdateLabel(lastUpdated)}
+          </p>
+        )}
       </header>
+
+      <section className="card space-y-3">
+        <h2 className="text-base font-bold">ご利用の流れ</h2>
+        <ol className="space-y-2">
+          {siteConfig.flow.map((f) => (
+            <li key={f.step} className="flex gap-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-primary text-xs font-bold text-white">
+                {f.step}
+              </span>
+              <div>
+                <p className="text-sm font-semibold">{f.title}</p>
+                <p className="text-xs text-black/60">{f.desc}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-bold">募集中・継続中のお仕事</h2>
+        <span className="text-xs text-black/50">全 {matched.length} 件</span>
+      </div>
 
       <div className="flex flex-wrap gap-2">
         {filters.map((f) => (
@@ -86,8 +119,17 @@ export default function Home() {
         </section>
       ))}
 
-      <footer className="pt-2 text-center text-xs text-black/40">
-        © {siteConfig.title}
+      <footer className="space-y-3 border-t border-black/10 pt-5 text-center">
+        <a
+          href={siteConfig.lineUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block rounded-xl bg-brand-primary px-6 py-3 text-sm font-bold text-white"
+        >
+          {siteConfig.lineButtonLabel}
+        </a>
+        <p className="px-4 text-xs leading-relaxed text-black/40">{siteConfig.notice}</p>
+        <p className="text-xs text-black/40">© {siteConfig.title}</p>
       </footer>
     </div>
   );

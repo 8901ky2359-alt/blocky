@@ -6,6 +6,16 @@ export const siteConfig = {
   lineUrl: 'https://lin.ee/your-line-id',
   // 「相談」ボタンの文言
   lineButtonLabel: 'LINEで相談・応募する',
+  // 運営者名（最初のご挨拶を担当）
+  ownerName: '山田',
+  // 「ご利用の流れ」3ステップ
+  flow: [
+    { step: '1', title: '気になる案件を選ぶ', desc: '草刈り・副業から、ご自身に合うものを探します。' },
+    { step: '2', title: 'LINEで相談', desc: '「相談」ボタンから気軽にメッセージ。応募も質問もOK。' },
+    { step: '3', title: '山田がご案内', desc: 'はじめのご挨拶は山田が対応。その後スタッフがサポートします。' },
+  ],
+  // フッターの注意書き
+  notice: '掲載内容は予告なく変更・終了する場合があります。最新情報はLINEでご確認ください。',
 };
 
 export type JobCategory = '草刈り' | '副業';
