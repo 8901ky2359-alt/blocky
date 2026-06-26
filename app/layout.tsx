@@ -2,8 +2,8 @@ import './globals.css';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'SNS集客トレーニング',
-  description: 'アフィリエイター向けSNS集客トレーニングMVP',
+  title: '山田お仕事案内',
+  description: '草刈り現場・オンライン副業の最新募集をまとめた案内サイト',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
