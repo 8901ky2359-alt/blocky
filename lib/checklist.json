@@ -1,0 +1,1124 @@
+[
+  {
+    "no": "No.3",
+    "priority": "-",
+    "badgeKind": "none",
+    "badgeLabel": "点検継続",
+    "gid": "ガリー調査ID ①50",
+    "title": "変状なし（点検箇所）",
+    "other": "No.3斜面下方のパネルエリアはガリーが拡大している",
+    "chips": [],
+    "note": "ガリーが深い区域で拡大傾向がある",
+    "action": "土のう積の追加（写真③-1）",
+    "photos": [
+      {
+        "id": "3-1",
+        "alt": "写真3-1",
+        "caption": "洗堀が拡大している。土のう積の追加が必要。",
+        "src": "/photos/3-1.jpg"
+      },
+      {
+        "id": "3-2",
+        "alt": "写真3-2",
+        "caption": "土のう積で効果が認められる例。",
+        "src": "/photos/3-2.jpg"
+      },
+      {
+        "id": "3-3",
+        "alt": "写真3-3",
+        "caption": "土のう積で効果が認められる例。",
+        "src": "/photos/3-3.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.5",
+    "priority": "高",
+    "badgeKind": "high",
+    "badgeLabel": "優先度 高",
+    "gid": null,
+    "title": "管理道沿いの水路工にクラックあり",
+    "other": null,
+    "chips": [
+      {
+        "kind": "crack",
+        "label": "クラック 52m"
+      }
+    ],
+    "note": "管理道沿いの水路工で流域が大きい",
+    "action": "クラック補修（ポリマー系セメント）",
+    "photos": [
+      {
+        "id": "5-1",
+        "alt": "写真5-1",
+        "caption": "水路工にクラックあり。",
+        "src": "/photos/5-1.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.8",
+    "priority": "-",
+    "badgeKind": "none",
+    "badgeLabel": "点検継続",
+    "gid": null,
+    "title": "枯草の堆積は解消されていた",
+    "other": null,
+    "chips": [],
+    "note": "点検継続",
+    "action": null,
+    "photos": [
+      {
+        "id": "8-1",
+        "alt": "写真8-1",
+        "caption": "枯草の詰まりは解消している。",
+        "src": "/photos/8-1.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.10",
+    "priority": "高",
+    "badgeKind": "high",
+    "badgeLabel": "優先度 高",
+    "gid": null,
+    "title": "湧水あり。クラックと洗掘が新たに発生",
+    "other": "資料③の3号調整池周辺水路の補修箇所",
+    "chips": [
+      {
+        "kind": "crack",
+        "label": "クラック 5m"
+      },
+      {
+        "kind": "scour",
+        "label": "洗掘 5m"
+      }
+    ],
+    "note": "調整池に接続する縦排水工であり優先度が高い",
+    "action": "埋め戻し再実施＋水圧低減工（砕石竪排水工・鉄根打設等）",
+    "photos": [
+      {
+        "id": "10-1",
+        "alt": "写真10-1",
+        "caption": "湧水があり、内部侵食が発生しやすい。",
+        "src": "/photos/10-1.jpg"
+      },
+      {
+        "id": "10-2",
+        "alt": "写真10-2",
+        "caption": "水路工に部分的なクラックあり。",
+        "src": "/photos/10-2.jpg"
+      },
+      {
+        "id": "10-3",
+        "alt": "写真10-3",
+        "caption": "対策済の埋め戻し箇所に再度洗掘が発生している。",
+        "src": "/photos/10-3.jpg"
+      },
+      {
+        "id": "10-4",
+        "alt": "写真10-4",
+        "caption": "補修部の水路にクラックはない。",
+        "src": "/photos/10-4.jpg"
+      },
+      {
+        "id": "10-5",
+        "alt": "写真10-5",
+        "caption": "対策済箇所は緑化が良好。",
+        "src": "/photos/10-5.jpg"
+      },
+      {
+        "id": "10-6",
+        "alt": "写真10-6",
+        "caption": "コンクリート水路にクラックあり。",
+        "src": "/photos/10-6.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.11",
+    "priority": "-",
+    "badgeKind": "none",
+    "badgeLabel": "点検継続",
+    "gid": null,
+    "title": "変状なし",
+    "other": null,
+    "chips": [],
+    "note": "点検継続",
+    "action": null,
+    "photos": [
+      {
+        "id": "11-1",
+        "alt": "写真11-1",
+        "caption": "変状なし。",
+        "src": "/photos/11-1.jpg"
+      },
+      {
+        "id": "11-2",
+        "alt": "写真11-2",
+        "caption": "変状なし。",
+        "src": "/photos/11-2.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.13",
+    "priority": "低",
+    "badgeKind": "low",
+    "badgeLabel": "優先度 低",
+    "gid": null,
+    "title": "小段排水工に土砂堆積。管理用道路に雨水流下跡あり",
+    "other": null,
+    "chips": [
+      {
+        "kind": "sand",
+        "label": "土砂堆積 32m"
+      }
+    ],
+    "note": "法面の緑化不良による土砂流出。発電設備は隣接しない",
+    "action": "浚渫＋法面植生シート",
+    "photos": [
+      {
+        "id": "13-1",
+        "alt": "写真13-1",
+        "caption": "緑化不良で土砂流出あり。",
+        "src": "/photos/13-1.jpg"
+      },
+      {
+        "id": "13-2",
+        "alt": "写真13-2",
+        "caption": "小段排水工の浚渫が必要。",
+        "src": "/photos/13-2.jpg"
+      },
+      {
+        "id": "13-3",
+        "alt": "写真13-3",
+        "caption": "雨水が管理道を流下している。",
+        "src": "/photos/13-3.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.14",
+    "priority": "-",
+    "badgeKind": "none",
+    "badgeLabel": "点検継続",
+    "gid": null,
+    "title": "変状なし",
+    "other": null,
+    "chips": [],
+    "note": "点検継続",
+    "action": null,
+    "photos": [
+      {
+        "id": "14-1",
+        "alt": "写真14-1",
+        "caption": "変状なし。",
+        "src": "/photos/14-1.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.15",
+    "priority": "高",
+    "badgeKind": "high",
+    "badgeLabel": "優先度 高",
+    "gid": "ガリー調査ID ①58",
+    "title": "管理道沿いの水路工にクラックあり",
+    "other": null,
+    "chips": [
+      {
+        "kind": "crack",
+        "label": "クラック 36m"
+      }
+    ],
+    "note": "補修履歴が多い水路工",
+    "action": "クラック補修（ポリマー系セメント）",
+    "photos": [
+      {
+        "id": "15-1",
+        "alt": "写真15-1",
+        "caption": "クラックと洗掘が認められる。",
+        "src": "/photos/15-1.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.17",
+    "priority": "中",
+    "badgeKind": "mid",
+    "badgeLabel": "優先度 中",
+    "gid": "ガリー調査ID ①15",
+    "title": "法尻の水路工に土砂堆積",
+    "other": null,
+    "chips": [
+      {
+        "kind": "sand",
+        "label": "土砂堆積 40m"
+      }
+    ],
+    "note": "法面の緑化不良による土砂流出",
+    "action": "浚渫（浚渫土は植生土のうで防災小堤に利用）",
+    "photos": [
+      {
+        "id": "17-1",
+        "alt": "写真17-1",
+        "caption": "排水工の浚渫が必要。",
+        "src": "/photos/17-1.jpg"
+      },
+      {
+        "id": "17-2",
+        "alt": "写真17-2",
+        "caption": "排水工の浚渫が必要。",
+        "src": "/photos/17-2.jpg"
+      },
+      {
+        "id": "17-3",
+        "alt": "写真17-3",
+        "caption": "緑化不良で土砂流出している。",
+        "src": "/photos/17-3.jpg"
+      },
+      {
+        "id": "17-4",
+        "alt": "写真17-4",
+        "caption": "排水工の浚渫が必要。",
+        "src": "/photos/17-4.jpg"
+      },
+      {
+        "id": "17-5",
+        "alt": "写真17-5",
+        "caption": "閉塞により排水不良あり。",
+        "src": "/photos/17-5.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.22",
+    "priority": "-",
+    "badgeKind": "none",
+    "badgeLabel": "点検継続",
+    "gid": null,
+    "title": "変状なし",
+    "other": null,
+    "chips": [],
+    "note": "点検継続",
+    "action": null,
+    "photos": [
+      {
+        "id": "22-1",
+        "alt": "写真22-1",
+        "caption": "小段排水工の土砂の堆積は軽微。",
+        "src": "/photos/22-1.jpg"
+      },
+      {
+        "id": "22-2",
+        "alt": "写真22-2",
+        "caption": "小段排水工の土砂の堆積は軽微。",
+        "src": "/photos/22-2.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.24",
+    "priority": "-",
+    "badgeKind": "none",
+    "badgeLabel": "点検継続",
+    "gid": null,
+    "title": "変状なし",
+    "other": null,
+    "chips": [],
+    "note": "点検継続",
+    "action": null,
+    "photos": [
+      {
+        "id": "24-1",
+        "alt": "写真24-1",
+        "caption": "排水工に閉塞なし。",
+        "src": "/photos/24-1.jpg"
+      },
+      {
+        "id": "24-2",
+        "alt": "写真24-2",
+        "caption": "排水工に閉塞なし。",
+        "src": "/photos/24-2.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.25",
+    "priority": "中",
+    "badgeKind": "mid",
+    "badgeLabel": "優先度 中",
+    "gid": "ガリー調査ID ②2・②3",
+    "title": "法尻の水路工に土砂堆積",
+    "other": null,
+    "chips": [
+      {
+        "kind": "sand",
+        "label": "土砂堆積 27m"
+      }
+    ],
+    "note": "水路の屈曲部で土砂が堆積。ガリーからの土砂流出あり",
+    "action": "浚渫＋ガリー対策（土のう堰堤積み・水通し）",
+    "photos": [
+      {
+        "id": "25-1",
+        "alt": "写真25-1",
+        "caption": "排水工の閉塞による排水不良あり。",
+        "src": "/photos/25-1.jpg"
+      },
+      {
+        "id": "25-2",
+        "alt": "写真25-2",
+        "caption": "排水工の直線部に土砂なし。",
+        "src": "/photos/25-2.jpg"
+      },
+      {
+        "id": "25-3",
+        "alt": "写真25-3",
+        "caption": "排水工の屈曲部に閉塞あり。",
+        "src": "/photos/25-3.jpg"
+      },
+      {
+        "id": "25-4",
+        "alt": "写真25-4",
+        "caption": "排水工の浚渫が必要。ガリーによる土砂流出で閉塞している。",
+        "src": "/photos/25-4.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.26",
+    "priority": "中",
+    "badgeKind": "mid",
+    "badgeLabel": "優先度 中",
+    "gid": "ガリー調査ID ④1",
+    "title": "法尻の水路工に土砂堆積",
+    "other": null,
+    "chips": [
+      {
+        "kind": "sand",
+        "label": "土砂堆積 26m"
+      },
+      {
+        "kind": "light",
+        "label": "軽微な堆積 48m"
+      }
+    ],
+    "note": "法面の緑化不良による土砂流出",
+    "action": "浚渫＋植生シート敷設",
+    "photos": [
+      {
+        "id": "26-1",
+        "alt": "写真26-1",
+        "caption": "排水工の浚渫が必要。",
+        "src": "/photos/26-1.jpg"
+      },
+      {
+        "id": "26-2",
+        "alt": "写真26-2",
+        "caption": "法尻排水工の浚渫が必要。",
+        "src": "/photos/26-2.jpg"
+      },
+      {
+        "id": "26-3",
+        "alt": "写真26-3",
+        "caption": "小段排水工の土砂堆積は軽微。",
+        "src": "/photos/26-3.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.27",
+    "priority": "中",
+    "badgeKind": "mid",
+    "badgeLabel": "優先度 中",
+    "gid": "ガリー調査ID ④2・④3",
+    "title": "法尻の水路工に土砂堆積",
+    "other": null,
+    "chips": [
+      {
+        "kind": "sand",
+        "label": "土砂堆積 25m"
+      },
+      {
+        "kind": "light",
+        "label": "軽微な堆積 25m"
+      }
+    ],
+    "note": "法面の緑化不良による土砂流出",
+    "action": "浚渫（特にP8箇所）",
+    "photos": [
+      {
+        "id": "27-1",
+        "alt": "写真27-1",
+        "caption": "排水工の浚渫が必要。",
+        "src": "/photos/27-1.jpg"
+      },
+      {
+        "id": "27-2",
+        "alt": "写真27-2",
+        "caption": "排水工の浚渫が必要。",
+        "src": "/photos/27-2.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.29",
+    "priority": "低",
+    "badgeKind": "low",
+    "badgeLabel": "優先度 低",
+    "gid": null,
+    "title": "法尻の水路工に土砂堆積",
+    "other": null,
+    "chips": [
+      {
+        "kind": "light",
+        "label": "軽微な堆積 40m"
+      }
+    ],
+    "note": "点検継続",
+    "action": null,
+    "photos": [
+      {
+        "id": "29-1",
+        "alt": "写真29-1",
+        "caption": "土砂堆積は軽微。",
+        "src": "/photos/29-1.jpg"
+      },
+      {
+        "id": "29-2",
+        "alt": "写真29-2",
+        "caption": "土砂堆積は軽微。",
+        "src": "/photos/29-2.jpg"
+      },
+      {
+        "id": "29-3",
+        "alt": "写真29-3",
+        "caption": "変状なし。",
+        "src": "/photos/29-3.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.30",
+    "priority": "-",
+    "badgeKind": "none",
+    "badgeLabel": "点検継続",
+    "gid": null,
+    "title": "土砂堆積は軽微",
+    "other": null,
+    "chips": [],
+    "note": "点検継続",
+    "action": null,
+    "photos": [
+      {
+        "id": "30-1",
+        "alt": "写真30-1",
+        "caption": "法尻に土砂堆積なし。",
+        "src": "/photos/30-1.jpg"
+      },
+      {
+        "id": "30-2",
+        "alt": "写真30-2",
+        "caption": "水路に変状なし。",
+        "src": "/photos/30-2.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.33",
+    "priority": "中",
+    "badgeKind": "mid",
+    "badgeLabel": "優先度 中",
+    "gid": "ガリー調査ID ④5",
+    "title": "法尻の水路工に土砂堆積",
+    "other": null,
+    "chips": [
+      {
+        "kind": "sand",
+        "label": "土砂堆積 23m"
+      },
+      {
+        "kind": "light",
+        "label": "軽微な堆積 22m"
+      }
+    ],
+    "note": "法面の緑化不良による土砂流出",
+    "action": "浚渫＋植生シート敷設",
+    "photos": [
+      {
+        "id": "33-1",
+        "alt": "写真33-1",
+        "caption": "排水工の土砂堆積は軽微。",
+        "src": "/photos/33-1.jpg"
+      },
+      {
+        "id": "33-2",
+        "alt": "写真33-2",
+        "caption": "排水工の土砂堆積は軽微。",
+        "src": "/photos/33-2.jpg"
+      },
+      {
+        "id": "33-3",
+        "alt": "写真33-3",
+        "caption": "排水工の浚渫が必要。",
+        "src": "/photos/33-3.jpg"
+      },
+      {
+        "id": "33-4",
+        "alt": "写真33-4",
+        "caption": "緑化不良で土砂流出している。",
+        "src": "/photos/33-4.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.34",
+    "priority": "-",
+    "badgeKind": "none",
+    "badgeLabel": "点検継続",
+    "gid": null,
+    "title": "変状なし",
+    "other": null,
+    "chips": [],
+    "note": "点検継続",
+    "action": null,
+    "photos": [
+      {
+        "id": "34-1",
+        "alt": "写真34-1",
+        "caption": "変状なし。",
+        "src": "/photos/34-1.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.35",
+    "priority": "低",
+    "badgeKind": "low",
+    "badgeLabel": "優先度 低",
+    "gid": null,
+    "title": "小段排水工に軽微な土砂堆積あり",
+    "other": null,
+    "chips": [
+      {
+        "kind": "light",
+        "label": "軽微な堆積 32m"
+      }
+    ],
+    "note": "点検継続",
+    "action": null,
+    "photos": [
+      {
+        "id": "35-1",
+        "alt": "写真35-1",
+        "caption": "水路の堆砂は軽微である。",
+        "src": "/photos/35-1.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.36",
+    "priority": "低",
+    "badgeKind": "low",
+    "badgeLabel": "優先度 低",
+    "gid": null,
+    "title": "小段排水工に軽微な土砂堆積あり",
+    "other": null,
+    "chips": [
+      {
+        "kind": "light",
+        "label": "軽微な堆積 64m"
+      }
+    ],
+    "note": "点検継続",
+    "action": null,
+    "photos": [
+      {
+        "id": "36-1",
+        "alt": "写真36-1",
+        "caption": "水路の堆砂は軽微である。",
+        "src": "/photos/36-1.jpg"
+      },
+      {
+        "id": "36-2",
+        "alt": "写真36-2",
+        "caption": "水路の堆砂は軽微である。",
+        "src": "/photos/36-2.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.37",
+    "priority": "高",
+    "badgeKind": "high",
+    "badgeLabel": "優先度 高",
+    "gid": null,
+    "title": "小段排水工に土砂堆積",
+    "other": null,
+    "chips": [
+      {
+        "kind": "sand",
+        "label": "土砂堆積 17m"
+      },
+      {
+        "kind": "light",
+        "label": "軽微な堆積 43m"
+      }
+    ],
+    "note": "法面の緑化不良による土砂流出",
+    "action": "浚渫（浚渫土は植生土のうで防災小堤に利用）",
+    "photos": [
+      {
+        "id": "37-1",
+        "alt": "写真37-1",
+        "caption": "小段排水工の浚渫が必要。",
+        "src": "/photos/37-1.jpg"
+      },
+      {
+        "id": "37-2",
+        "alt": "写真37-2",
+        "caption": "小段排水工の浚渫が必要。",
+        "src": "/photos/37-2.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.39",
+    "priority": "中",
+    "badgeKind": "mid",
+    "badgeLabel": "優先度 中",
+    "gid": null,
+    "title": "枯損木の倒木でフェンスが変形。斜面に不安定化は無い",
+    "other": null,
+    "chips": [],
+    "note": "倒木の処理",
+    "action": "玉切りして除去＋フェンス修理",
+    "photos": [
+      {
+        "id": "39-1",
+        "alt": "写真39-1",
+        "caption": "ナラ枯れの倒木でフェンス破損。除去と修理が必要。",
+        "src": "/photos/39-1.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.41",
+    "priority": "高",
+    "badgeKind": "high",
+    "badgeLabel": "優先度 高",
+    "gid": "ガリー調査ID ⑦12",
+    "title": "水路工のクラック、土砂堆積",
+    "other": null,
+    "chips": [
+      {
+        "kind": "crack",
+        "label": "クラック 8m"
+      },
+      {
+        "kind": "sand",
+        "label": "土砂堆積 5m"
+      }
+    ],
+    "note": "補修履歴あり",
+    "action": "クラック補修（空洞部は埋め戻し・整形）＋浚渫",
+    "photos": [
+      {
+        "id": "41-1",
+        "alt": "写真41-1",
+        "caption": "水路補修後にクラックあり。",
+        "src": "/photos/41-1.jpg"
+      },
+      {
+        "id": "41-2",
+        "alt": "写真41-2",
+        "caption": "浚渫が必要。",
+        "src": "/photos/41-2.jpg"
+      },
+      {
+        "id": "41-3",
+        "alt": "写真41-3",
+        "caption": "法尻に変状なし。",
+        "src": "/photos/41-3.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.42",
+    "priority": "低",
+    "badgeKind": "low",
+    "badgeLabel": "優先度 低",
+    "gid": null,
+    "title": "排水工の土砂堆積は軽微",
+    "other": null,
+    "chips": [
+      {
+        "kind": "light",
+        "label": "軽微な堆積 3m"
+      }
+    ],
+    "note": "点検継続",
+    "action": null,
+    "photos": [
+      {
+        "id": "42-1",
+        "alt": "写真42-1",
+        "caption": "排水工の堆砂5cm程度で軽微である。",
+        "src": "/photos/42-1.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.43",
+    "priority": "-",
+    "badgeKind": "none",
+    "badgeLabel": "点検継続",
+    "gid": null,
+    "title": "変状なし",
+    "other": "小堤は水路工の浚渫土（未転圧）のため当面点検対応",
+    "chips": [],
+    "note": "点検継続",
+    "action": null,
+    "photos": [
+      {
+        "id": "43-1",
+        "alt": "写真43-1",
+        "caption": "小段排水工の土砂堆積は軽微。",
+        "src": "/photos/43-1.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.44",
+    "priority": "高",
+    "badgeKind": "high",
+    "badgeLabel": "優先度 高",
+    "gid": null,
+    "title": "小崩壊、洗掘が発生。土砂の堆積は軽微",
+    "other": null,
+    "chips": [
+      {
+        "kind": "light",
+        "label": "軽微な堆積 23m"
+      },
+      {
+        "kind": "scour",
+        "label": "洗掘 4m"
+      }
+    ],
+    "note": "水路の漏水が原因",
+    "action": "U字溝補修＋法面整形＋盛土排水性向上（法尻砕石置換・鉄根打設等）",
+    "photos": [
+      {
+        "id": "44-1",
+        "alt": "写真44-1",
+        "caption": "水路の補修跡あり。",
+        "src": "/photos/44-1.jpg"
+      },
+      {
+        "id": "44-2",
+        "alt": "写真44-2",
+        "caption": "堆砂は軽微である。",
+        "src": "/photos/44-2.jpg"
+      },
+      {
+        "id": "44-3",
+        "alt": "写真44-3",
+        "caption": "U字溝の継ぎ目に開口あり。法面に侵食あり。",
+        "src": "/photos/44-3.jpg"
+      },
+      {
+        "id": "44-4",
+        "alt": "写真44-4",
+        "caption": "法面の侵食箇所の近景。",
+        "src": "/photos/44-4.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.46",
+    "priority": "低",
+    "badgeKind": "low",
+    "badgeLabel": "優先度 低",
+    "gid": null,
+    "title": "土砂堆積は軽微",
+    "other": null,
+    "chips": [
+      {
+        "kind": "light",
+        "label": "軽微な堆積 27m"
+      }
+    ],
+    "note": "点検継続",
+    "action": null,
+    "photos": [
+      {
+        "id": "46-1",
+        "alt": "写真46-1",
+        "caption": "土砂堆積は軽微。",
+        "src": "/photos/46-1.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.47",
+    "priority": "低",
+    "badgeKind": "low",
+    "badgeLabel": "優先度 低",
+    "gid": null,
+    "title": "土砂堆積は軽微",
+    "other": null,
+    "chips": [
+      {
+        "kind": "light",
+        "label": "軽微な堆積 55m"
+      }
+    ],
+    "note": "点検継続",
+    "action": null,
+    "photos": [
+      {
+        "id": "47-1",
+        "alt": "写真47-1",
+        "caption": "土砂堆積は軽微。",
+        "src": "/photos/47-1.jpg"
+      },
+      {
+        "id": "47-2",
+        "alt": "写真47-2",
+        "caption": "土砂堆積は軽微。",
+        "src": "/photos/47-2.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.48",
+    "priority": "低",
+    "badgeKind": "low",
+    "badgeLabel": "優先度 低",
+    "gid": null,
+    "title": "土砂堆積は軽微",
+    "other": null,
+    "chips": [
+      {
+        "kind": "light",
+        "label": "軽微な堆積 69m"
+      }
+    ],
+    "note": "点検継続",
+    "action": null,
+    "photos": [
+      {
+        "id": "48-1",
+        "alt": "写真48-1",
+        "caption": "土砂堆積は軽微。",
+        "src": "/photos/48-1.jpg"
+      },
+      {
+        "id": "48-2",
+        "alt": "写真48-2",
+        "caption": "土砂堆積は軽微。",
+        "src": "/photos/48-2.jpg"
+      },
+      {
+        "id": "48-3",
+        "alt": "写真48-3",
+        "caption": "縦排水工に変状なし。",
+        "src": "/photos/48-3.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.49",
+    "priority": "-",
+    "badgeKind": "none",
+    "badgeLabel": "点検継続",
+    "gid": null,
+    "title": "変状なし",
+    "other": null,
+    "chips": [],
+    "note": "点検継続",
+    "action": null,
+    "photos": [
+      {
+        "id": "49-1",
+        "alt": "写真49-1",
+        "caption": "土砂堆積は局所的。",
+        "src": "/photos/49-1.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.51",
+    "priority": "高",
+    "badgeKind": "high",
+    "badgeLabel": "優先度 高",
+    "gid": null,
+    "title": "洗掘が継続。小段排水工に土砂堆積、法尻排水工に軽微な土砂堆積",
+    "other": null,
+    "chips": [
+      {
+        "kind": "sand",
+        "label": "土砂堆積 37m"
+      },
+      {
+        "kind": "light",
+        "label": "軽微な堆積 65m"
+      },
+      {
+        "kind": "scour",
+        "label": "洗掘 51m"
+      }
+    ],
+    "note": "旧道からの雨水流下が原因",
+    "action": "素掘り集水桝＋植生土のう積みで雨水導水＋浚渫",
+    "photos": [
+      {
+        "id": "51-1",
+        "alt": "写真51-1",
+        "caption": "土砂堆積は軽微。",
+        "src": "/photos/51-1.jpg"
+      },
+      {
+        "id": "51-2",
+        "alt": "写真51-2",
+        "caption": "洗掘あり。",
+        "src": "/photos/51-2.jpg"
+      },
+      {
+        "id": "51-3",
+        "alt": "写真51-3",
+        "caption": "旧道沿いに雨水が流れている。",
+        "src": "/photos/51-3.jpg"
+      },
+      {
+        "id": "51-4",
+        "alt": "写真51-4",
+        "caption": "洗掘区間が長い。",
+        "src": "/photos/51-4.jpg"
+      },
+      {
+        "id": "51-5",
+        "alt": "写真51-5",
+        "caption": "旧道から水路工へ水が集まる。",
+        "src": "/photos/51-5.jpg"
+      },
+      {
+        "id": "51-6",
+        "alt": "写真51-6",
+        "caption": "旧道から水路工へ水が集まる。",
+        "src": "/photos/51-6.jpg"
+      },
+      {
+        "id": "51-7",
+        "alt": "写真51-7",
+        "caption": "小段排水工は浚渫が必要。",
+        "src": "/photos/51-7.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.52",
+    "priority": "高",
+    "badgeKind": "high",
+    "badgeLabel": "優先度 高",
+    "gid": "ガリー調査ID ⑧18・⑧38",
+    "title": "水路工にクラック、土砂堆積",
+    "other": null,
+    "chips": [
+      {
+        "kind": "crack",
+        "label": "クラック 9m"
+      },
+      {
+        "kind": "light",
+        "label": "軽微な堆積 150m"
+      }
+    ],
+    "note": "コンクリート水路に剥離。2024年浚渫済だが再堆積。ガリーの土のう積み対策を追加すると良い",
+    "action": "クラック補修＋浚渫＋ガリー土のう積み追加",
+    "photos": [
+      {
+        "id": "52-1",
+        "alt": "写真52-1",
+        "caption": "土砂堆積は軽微。",
+        "src": "/photos/52-1.jpg"
+      },
+      {
+        "id": "52-2",
+        "alt": "写真52-2",
+        "caption": "土砂堆積あり。引き続きモニタリングが必要。",
+        "src": "/photos/52-2.jpg"
+      },
+      {
+        "id": "52-3",
+        "alt": "写真52-3",
+        "caption": "クラック、新しい土砂堆積あり。",
+        "src": "/photos/52-3.jpg"
+      },
+      {
+        "id": "52-4",
+        "alt": "写真52-4",
+        "caption": "土砂堆積は軽微。",
+        "src": "/photos/52-4.jpg"
+      },
+      {
+        "id": "52-5",
+        "alt": "写真52-5",
+        "caption": "クラックあり。",
+        "src": "/photos/52-5.jpg"
+      },
+      {
+        "id": "52-6",
+        "alt": "写真52-6",
+        "caption": "剥離、クラックあり。",
+        "src": "/photos/52-6.jpg"
+      },
+      {
+        "id": "52-7",
+        "alt": "写真52-7",
+        "caption": "排水工に剥離、クラックあり。",
+        "src": "/photos/52-7.jpg"
+      }
+    ]
+  },
+  {
+    "no": "No.53",
+    "priority": "高",
+    "badgeKind": "high",
+    "badgeLabel": "優先度 高",
+    "gid": "ガリー調査ID ⑤42 など",
+    "title": "管理道沿いの水路工に土砂堆積。管理道の山も低くなっている",
+    "other": null,
+    "chips": [
+      {
+        "kind": "sand",
+        "label": "土砂堆積 55m"
+      }
+    ],
+    "note": "管理道の山も補修する",
+    "action": "浚渫＋横断道排水の山を砂利で補修（P16付近）",
+    "photos": [
+      {
+        "id": "53-1",
+        "alt": "写真53-1",
+        "caption": "管理道の側溝は浚渫が必要。",
+        "src": "/photos/53-1.jpg"
+      },
+      {
+        "id": "53-2",
+        "alt": "写真53-2",
+        "caption": "管理用道路に侵食あり。側溝は浚渫が必要。導水用の管理用道路の山は補修が必要。",
+        "src": "/photos/53-2.jpg"
+      },
+      {
+        "id": "53-3",
+        "alt": "写真53-3",
+        "caption": "排水工の浚渫が必要。",
+        "src": "/photos/53-3.jpg"
+      }
+    ]
+  }
+]
