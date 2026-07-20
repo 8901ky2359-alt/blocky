@@ -161,6 +161,27 @@ export default function AddView({
             <option key={s} value={s} />
           ))}
         </datalist>
+        {knownSites.length > 0 && (
+          <div className="mt-2">
+            <p className="mb-1 text-xs text-black/40">過去の現場からタップで選ぶ</p>
+            <div className="flex gap-1.5 overflow-x-auto pb-1">
+              {knownSites.slice(0, 30).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setSite(s)}
+                  className={`max-w-[180px] shrink-0 truncate rounded-full border px-3 py-1 text-xs ${
+                    site === s
+                      ? 'border-brand-primary bg-brand-soft text-brand-primary'
+                      : 'border-black/15 text-black/60'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </Field>
 
       <Field label="住所（地図に登録・任意）">
