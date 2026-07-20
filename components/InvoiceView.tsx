@@ -16,7 +16,9 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
   const [profile, setProfile] = useState<Profile>({
     businessName: '',
     name: '',
-    contact: '',
+    postal: '',
+    address: '',
+    phone: '',
     lastClient: '',
   });
   const [client, setClient] = useState('');
@@ -99,12 +101,28 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
             placeholder="山田 太郎"
           />
         </Row>
-        <Row label="連絡先（住所・電話）">
+        <Row label="郵便番号">
           <input
             className="input"
-            value={profile.contact}
-            onChange={(e) => setProfile({ ...profile, contact: e.target.value })}
-            placeholder="TEL 000-0000-0000"
+            value={profile.postal}
+            onChange={(e) => setProfile({ ...profile, postal: e.target.value })}
+            placeholder="000-0000"
+          />
+        </Row>
+        <Row label="住所">
+          <input
+            className="input"
+            value={profile.address}
+            onChange={(e) => setProfile({ ...profile, address: e.target.value })}
+            placeholder="〇〇県〇〇市…"
+          />
+        </Row>
+        <Row label="電話番号">
+          <input
+            className="input"
+            value={profile.phone}
+            onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+            placeholder="000-0000-0000"
           />
         </Row>
         <div className="grid grid-cols-2 gap-3">
@@ -136,7 +154,9 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
         <div className="mb-4 text-right text-xs leading-relaxed">
           {profile.businessName && <p className="text-sm font-semibold">{profile.businessName}</p>}
           <p className="text-sm font-semibold">{profile.name || '（氏名）'}</p>
-          {profile.contact && <p>{profile.contact}</p>}
+          {profile.postal && <p>〒{profile.postal}</p>}
+          {profile.address && <p>{profile.address}</p>}
+          {profile.phone && <p>TEL {profile.phone}</p>}
         </div>
 
         <p className="mb-2">下記の通りご請求申し上げます。</p>
