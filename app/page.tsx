@@ -1,95 +1,142 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import Card from '@/components/Card';
-import { journey, onboarding, postingTypes } from '@/lib/data';
-
-type Memo = { name: string; note: string; date: string };
-
-const useLocalStorage = <T,>(key: string, fallback: T) => {
-  const [value, setValue] = useState<T>(() => {
-    if (typeof window === 'undefined') return fallback;
-    const raw = window.localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  });
-
-  const update = (next: T) => {
-    setValue(next);
-    window.localStorage.setItem(key, JSON.stringify(next));
-  };
-
-  return [value, update] as const;
-};
+import { useEntries } from '@/lib/useEntries';
+import { exportJson, importJson } from '@/lib/db';
+import { Entry } from '@/lib/types';
+import { todayStr } from '@/lib/format';
+import BottomNav, { Tab } from '@/components/BottomNav';
+import CalendarView from '@/components/CalendarView';
+import AddView from '@/components/AddView';
+import SummaryView from '@/components/SummaryView';
+import PhotosView from '@/components/PhotosView';
+import ReportView from '@/components/ReportView';
 
 export default function Home() {
-  const [type, setType] = useState(postingTypes[0].key);
-  const [keyword, setKeyword] = useState('在宅ワーク');
-  const [refCode, setRefCode] = useLocalStorage('refCode', '');
-  const [history, setHistory] = useLocalStorage<Memo[]>('history', []);
-  const [todo, setTodo] = useLocalStorage('todo', [true, false, false, false]);
+  const { entries, loading, save, remove } = useEntries();
+  const [tab, setTab] = useState<Tab>('calendar');
+  const [editing, setEditing] = useState<Entry | null>(null);
+  const [addDate, setAddDate] = useState<string>(todayStr());
+  const [showBackup, setShowBackup] = useState(false);
 
-  const selected = useMemo(() => postingTypes.find((t) => t.key === type)!, [type]);
+  const knownSites = useMemo(() => {
+    const set = new Set<string>();
+    for (const e of entries) if (e.site) set.add(e.site);
+    return [...set];
+  }, [entries]);
 
-  const threadTemplate = `【${keyword}に悩む方へ】\n私も最初は時間も自信もゼロでした。\nでも小さな行動で変化できました。\n今日できる一歩：${selected.prompt}\n気になる方はDMで「相談」と送ってください。`;
+  function goAdd(date?: string) {
+    setEditing(null);
+    setAddDate(date ?? todayStr());
+    setTab('add');
+  }
 
-  const dmTemplate = `DMありがとうございます！\n${keyword}について、今どんな状況ですか？\n無理な勧誘はしないので安心してください😊`;
+  function goEdit(e: Entry) {
+    setEditing(e);
+    setTab('add');
+  }
 
-  const lineTemplate = `もっと具体的にお伝えしたいので、LINEでやり取りしませんか？\n必要ならサポート担当も交えて3人で進められます。`;
+  function afterSave() {
+    setEditing(null);
+    setTab('calendar');
+  }
 
   return (
-    <div className="space-y-4 pb-8">
-      <header className="card bg-brand-soft">
-        <h1 className="text-xl font-bold">SNS集客トレーニングMVP</h1>
-        <p className="text-sm">副業初心者向けの発信から3人グループLINE作成までを1画面で実行。</p>
+    <>
+      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-black/5 bg-brand-bg/95 px-4 py-3 backdrop-blur">
+        <h1 className="text-base font-bold text-brand-primary">🌿 現場家計簿</h1>
+        <button onClick={() => setShowBackup(true)} className="text-xl" aria-label="バックアップ">
+          ⚙
+        </button>
       </header>
 
-      <Card title="1. オンボーディング">
-        <ul className="list-disc space-y-1 pl-5 text-sm">{onboarding.map((s) => <li key={s}>{s}</li>)}</ul>
-      </Card>
+      <main className="mx-auto min-h-screen w-full max-w-xl px-4 pb-28 pt-4">
+        {loading ? (
+          <p className="py-20 text-center text-black/40">読み込み中…</p>
+        ) : (
+          <>
+            {tab === 'calendar' && (
+              <CalendarView
+                entries={entries}
+                onAddOnDate={goAdd}
+                onEdit={goEdit}
+                onDelete={remove}
+              />
+            )}
+            {tab === 'summary' && <SummaryView entries={entries} />}
+            {tab === 'add' && (
+              <AddView
+                editing={editing}
+                defaultDate={addDate}
+                knownSites={knownSites}
+                onSave={save}
+                onSaved={afterSave}
+                onCancel={editing ? afterSave : undefined}
+              />
+            )}
+            {tab === 'photos' && <PhotosView entries={entries} />}
+            {tab === 'report' && <ReportView entries={entries} />}
+          </>
+        )}
+      </main>
 
-      <Card title="2. 紹介活動の全体像">
-        <ol className="list-decimal space-y-1 pl-5 text-sm">{journey.map((s) => <li key={s}>{s}</li>)}</ol>
-      </Card>
+      <BottomNav tab={tab} onChange={(t) => (t === 'add' ? goAdd() : setTab(t))} />
 
-      <Card title="3. 発信タイプ診断">
-        <div className="grid gap-2">{postingTypes.map((p) => <button key={p.key} onClick={() => setType(p.key)} className={`rounded-xl border p-3 text-left text-sm ${type === p.key ? 'border-brand-primary bg-brand-soft' : 'border-black/10'}`}><p className="font-semibold">{p.title}</p><p>{p.description}</p></button>)}</div>
-      </Card>
+      {showBackup && <BackupPanel onClose={() => setShowBackup(false)} onImported={() => location.reload()} />}
+    </>
+  );
+}
 
-      <Card title="4-7. 投稿/DM/LINEテンプレ生成">
-        <input value={keyword} onChange={(e) => setKeyword(e.target.value)} className="w-full rounded-lg border border-black/20 p-2" placeholder="キーワード" />
-        <textarea readOnly className="h-28 w-full rounded-lg border p-2 text-sm" value={threadTemplate} />
-        <textarea readOnly className="h-24 w-full rounded-lg border p-2 text-sm" value={dmTemplate} />
-        <textarea readOnly className="h-20 w-full rounded-lg border p-2 text-sm" value={lineTemplate} />
-      </Card>
+function BackupPanel({ onClose, onImported }: { onClose: () => void; onImported: () => void }) {
+  async function doExport() {
+    const json = await exportJson();
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `genba-backup-${todayStr()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
-      <Card title="8. 3人グループLINE作成手順">
-        <ol className="list-decimal space-y-1 pl-5 text-sm"><li>ゲストにLINE交換の同意を再確認</li><li>あなた・ゲスト・サポート担当公式LINEの3者を招待</li><li>冒頭で目的・進め方・禁止事項を共有</li></ol>
-      </Card>
+  async function doImport(file: File) {
+    const text = await file.text();
+    try {
+      const n = await importJson(text);
+      alert(`${n}件を読み込みました`);
+      onImported();
+    } catch {
+      alert('読み込みに失敗しました');
+    }
+  }
 
-      <Card title="9. NGトークチェック">
-        <ul className="list-disc pl-5 text-sm"><li>即決を迫る</li><li>収益保証を断言</li><li>相手の不安を煽る言い方</li></ul>
-      </Card>
-
-      <Card title="10. 今日やること">
-        {['投稿1本', 'ストーリー1本', 'DM返信3件', 'LINE誘導1件'].map((t, i) => (
-          <label key={t} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={todo[i]} onChange={() => {
-            const next = [...todo]; next[i] = !next[i]; setTodo(next);
-          }} />{t}</label>
-        ))}
-      </Card>
-
-      <Card title="11. 紹介コード">
-        <input value={refCode} onChange={(e) => setRefCode(e.target.value)} className="w-full rounded-lg border border-black/20 p-2" placeholder="例: AFF-1234" />
-      </Card>
-
-      <Card title="12. 投稿履歴・紹介メモ">
-        <button className="rounded-lg bg-black px-3 py-2 text-sm text-white" onClick={() => setHistory([{ name: keyword, note: `${selected.title}で投稿`, date: new Date().toLocaleDateString('ja-JP') }, ...history].slice(0, 20))}>履歴を追加</button>
-        <div className="space-y-2 text-sm">{history.map((h, idx) => <div key={`${h.date}-${idx}`} className="rounded-lg border border-black/10 p-2"><p className="font-semibold">{h.name} / {h.date}</p><p>{h.note}</p></div>)}</div>
-      </Card>
-
-      <Card title="将来拡張メモ（Supabase/OpenAI/Stripe）">
-        <ul className="list-disc pl-5 text-sm"><li>データ保存層をlocalStorage→Supabaseへ差し替え</li><li>テンプレ生成をOpenAI API呼び出しへ変更</li><li>有料講座化時にStripe Checkoutを追加</li></ul>
-      </Card>
+  return (
+    <div className="fixed inset-0 z-40 flex items-end bg-black/40" onClick={onClose}>
+      <div className="w-full rounded-t-2xl bg-white p-5 pb-8" onClick={(e) => e.stopPropagation()}>
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-black/20" />
+        <h3 className="mb-1 text-lg font-bold">バックアップ / 復元</h3>
+        <p className="mb-4 text-sm text-black/50">
+          データはこの端末内に保存されています。機種変更や万一に備え、ファイルに書き出して保管できます。
+        </p>
+        <button
+          onClick={doExport}
+          className="mb-2 w-full rounded-xl bg-brand-primary py-3 font-semibold text-white"
+        >
+          ⬇ バックアップを保存
+        </button>
+        <label className="block w-full rounded-xl border border-black/15 py-3 text-center font-semibold">
+          ⬆ バックアップから復元
+          <input
+            type="file"
+            accept="application/json"
+            className="hidden"
+            onChange={(e) => e.target.files?.[0] && doImport(e.target.files[0])}
+          />
+        </label>
+        <button onClick={onClose} className="mt-3 w-full py-2 text-sm text-black/50">
+          閉じる
+        </button>
+      </div>
     </div>
   );
 }
