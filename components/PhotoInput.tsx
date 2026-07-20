@@ -1,18 +1,20 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Photo, PhotoKind } from '@/lib/types';
+import { Photo, PhotoKind, PhotoPhase } from '@/lib/types';
 import { fileToCompressedDataUrl } from '@/lib/image';
 import { uid } from '@/lib/format';
 
 export default function PhotoInput({
   photos,
   photoKind,
+  phase,
   onChange,
   label,
 }: {
   photos: Photo[];
   photoKind: PhotoKind;
+  phase?: PhotoPhase;
   onChange: (next: Photo[]) => void;
   label: string;
 }) {
@@ -26,7 +28,7 @@ export default function PhotoInput({
       const added: Photo[] = [];
       for (const file of Array.from(files)) {
         const dataUrl = await fileToCompressedDataUrl(file);
-        added.push({ id: uid(), photoKind, dataUrl });
+        added.push({ id: uid(), photoKind, phase, dataUrl });
       }
       onChange([...photos, ...added]);
     } finally {

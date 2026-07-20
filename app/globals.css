@@ -18,3 +18,28 @@ body {
 .input:focus {
   @apply border-brand-primary ring-2 ring-brand-primary/20;
 }
+
+/* 請求書の印刷（PDF保存）: 請求書だけを表示 */
+@media print {
+  body {
+    background: #fff !important;
+  }
+  body * {
+    visibility: hidden;
+  }
+  #invoice-print,
+  #invoice-print * {
+    visibility: visible;
+  }
+  #invoice-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    border: none !important;
+    padding: 24px !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

@@ -10,9 +10,11 @@ import {
   shareFiles,
   shareText,
 } from '@/lib/report';
+import InvoiceView from './InvoiceView';
 
 export default function ReportView({ entries }: { entries: Entry[] }) {
   const [mKey, setMKey] = useState(currentMonthKey());
+  const [showInvoice, setShowInvoice] = useState(false);
   const [includeExpense, setIncludeExpense] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -84,6 +86,10 @@ export default function ReportView({ entries }: { entries: Entry[] }) {
     }
   }
 
+  if (showInvoice) {
+    return <InvoiceView entries={entries} onBack={() => setShowInvoice(false)} />;
+  }
+
   return (
     <div className="space-y-4 pb-4">
       <h2 className="text-lg font-bold">元請けへの報告</h2>
@@ -137,6 +143,12 @@ export default function ReportView({ entries }: { entries: Entry[] }) {
           className="w-full rounded-xl border border-brand-primary py-3 font-bold text-brand-primary disabled:opacity-50"
         >
           🖼 現場写真をまとめて共有（{sitePhotos.length}枚）
+        </button>
+        <button
+          onClick={() => setShowInvoice(true)}
+          className="w-full rounded-xl border border-black/15 py-3 font-bold text-black/70"
+        >
+          🧾 請求書を作る（PDF）
         </button>
       </div>
 

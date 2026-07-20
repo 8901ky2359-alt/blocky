@@ -4,10 +4,14 @@ export type EntryKind = 'income' | 'expense';
 
 export type PhotoKind = 'receipt' | 'site';
 
+// 現場写真の作業前/後（Before/After比較用）
+export type PhotoPhase = 'before' | 'after' | 'none';
+
 // 写真1枚
 export interface Photo {
   id: string;
   photoKind: PhotoKind; // レシート or 現場
+  phase?: PhotoPhase; // 現場写真のみ: 作業前/後
   dataUrl: string; // 端末内保存では画像そのもの（圧縮済みJPEG）。クラウド化時はURLが入る
   caption?: string;
 }
@@ -44,4 +48,14 @@ export const EXPENSE_CATEGORIES = [
 
 export function categoriesFor(kind: EntryKind): readonly string[] {
   return kind === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+}
+
+// 定型作業テンプレート（ボタン1つで入力を呼び出す）
+export interface Template {
+  id: string;
+  label: string; // ボタンに表示する名前
+  kind: EntryKind;
+  category: string;
+  amount: number;
+  memo: string;
 }

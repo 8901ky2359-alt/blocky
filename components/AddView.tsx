@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { Entry, EntryKind, Photo, categoriesFor } from '@/lib/types';
+import { useEffect, useMemo, useState } from 'react';
+import { Entry, EntryKind, Photo, Template, categoriesFor } from '@/lib/types';
 import { todayStr, yen } from '@/lib/format';
+import { addTemplate, loadTemplates } from '@/lib/templates';
 import PhotoInput from './PhotoInput';
 
 export default function AddView({
@@ -29,6 +30,11 @@ export default function AddView({
   const [memo, setMemo] = useState(editing?.memo ?? '');
   const [photos, setPhotos] = useState<Photo[]>(editing?.photos ?? []);
   const [saving, setSaving] = useState(false);
+  const [templates, setTemplates] = useState<Template[]>([]);
+
+  useEffect(() => {
+    if (!editing) setTemplates(loadTemplates());
+  }, [editing]);
 
   function switchKind(next: EntryKind) {
     setKind(next);
@@ -36,14 +42,32 @@ export default function AddView({
     if (!nextCats.includes(category as never)) setCategory(nextCats[0]);
   }
 
+  function applyTemplate(t: Template) {
+    setKind(t.kind);
+    setCategory(t.category);
+    if (t.amount) setAmount(String(t.amount));
+    if (t.memo) setMemo(t.memo);
+  }
+
+  function saveAsTemplate() {
+    const label = prompt('この内容を「よく使う作業」に登録します。ボタン名を入力してください', category);
+    if (!label) return;
+    const num = Number(amount.replace(/[, ¥]/g, '')) || 0;
+    setTemplates(addTemplate({ label, kind, category, amount: num, memo: memo.trim() }));
+  }
+
   const receiptPhotos = photos.filter((p) => p.photoKind === 'receipt');
-  const sitePhotos = photos.filter((p) => p.photoKind === 'site');
+  const beforePhotos = photos.filter((p) => p.photoKind === 'site' && p.phase === 'before');
+  const afterPhotos = photos.filter((p) => p.photoKind === 'site' && p.phase === 'after');
 
   function setReceipts(next: Photo[]) {
-    setPhotos([...sitePhotos, ...next]);
+    setPhotos([...beforePhotos, ...afterPhotos, ...next]);
   }
-  function setSites(next: Photo[]) {
-    setPhotos([...receiptPhotos, ...next]);
+  function setBefore(next: Photo[]) {
+    setPhotos([...receiptPhotos, ...afterPhotos, ...next]);
+  }
+  function setAfter(next: Photo[]) {
+    setPhotos([...receiptPhotos, ...beforePhotos, ...next]);
   }
 
   async function handleSubmit() {
@@ -73,6 +97,30 @@ export default function AddView({
   return (
     <div className="space-y-4 pb-4">
       <h2 className="text-lg font-bold">{editing ? '記録を編集' : '記録する'}</h2>
+
+      {/* よく使う作業（定型ボタン） */}
+      {!editing && templates.length > 0 && (
+        <div>
+          <p className="mb-1 text-sm font-medium text-black/70">よく使う作業（タップで入力）</p>
+          <div className="flex flex-wrap gap-2">
+            {templates.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => applyTemplate(t)}
+                className={`rounded-full border px-3 py-1.5 text-sm ${
+                  t.kind === 'income'
+                    ? 'border-blue-300 bg-blue-50 text-blue-700'
+                    : 'border-red-300 bg-red-50 text-red-700'
+                }`}
+              >
+                {t.label}
+                {t.amount ? ` ${yen(t.amount)}` : ''}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 収入 / 経費 切替 */}
       <div className="grid grid-cols-2 gap-2">
@@ -161,9 +209,41 @@ export default function AddView({
         </Field>
       )}
 
-      <Field label="現場写真（ビフォー/アフター）">
-        <PhotoInput photos={sitePhotos} photoKind="site" onChange={setSites} label="現場" />
-      </Field>
+      <div className="rounded-xl border border-black/10 bg-white p-3">
+        <p className="mb-2 text-sm font-medium text-black/70">現場写真</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <p className="mb-1 text-xs font-semibold text-black/50">作業前（Before）</p>
+            <PhotoInput
+              photos={beforePhotos}
+              photoKind="site"
+              phase="before"
+              onChange={setBefore}
+              label="作業前"
+            />
+          </div>
+          <div>
+            <p className="mb-1 text-xs font-semibold text-black/50">作業後（After）</p>
+            <PhotoInput
+              photos={afterPhotos}
+              photoKind="site"
+              phase="after"
+              onChange={setAfter}
+              label="作業後"
+            />
+          </div>
+        </div>
+      </div>
+
+      {!editing && (amount || memo) && (
+        <button
+          type="button"
+          onClick={saveAsTemplate}
+          className="w-full rounded-xl border border-dashed border-brand-primary/50 py-2 text-sm text-brand-primary"
+        >
+          ＋ この内容を「よく使う作業」に登録
+        </button>
+      )}
 
       <div className="flex gap-2 pt-2">
         {onCancel && (
