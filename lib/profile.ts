@@ -38,6 +38,21 @@ const DEFAULT: Profile = {
 // 旧バージョンの保存形式（連絡先が1項目だった頃）
 type LegacyProfile = Partial<Profile> & { contact?: string };
 
+// 数字・ハイフンだけ＝電話番号のような文字列（住所として不正）
+function looksLikePhone(s?: string): boolean {
+  if (!s) return false;
+  return /^[\d\-\s()＋+ー－]+$/.test(s.trim());
+}
+
+// 住所を判定：電話番号が紛れ込んでいたら既定住所に戻す
+function resolveAddress(saved: LegacyProfile): string {
+  let address = saved.address ?? '';
+  // 旧「連絡先」は住所らしい場合のみ引き継ぐ（電話番号なら無視）
+  if (!address && saved.contact && !looksLikePhone(saved.contact)) address = saved.contact;
+  if (!address || looksLikePhone(address)) address = DEFAULT.address;
+  return address;
+}
+
 export function loadProfile(): Profile {
   if (typeof window === 'undefined') return { ...DEFAULT };
   let saved: LegacyProfile = {};
@@ -51,7 +66,7 @@ export function loadProfile(): Profile {
     businessName: saved.businessName || DEFAULT.businessName,
     name: saved.name || DEFAULT.name,
     postal: saved.postal || DEFAULT.postal,
-    address: saved.address || saved.contact || DEFAULT.address,
+    address: resolveAddress(saved),
     phone: saved.phone || DEFAULT.phone,
     regNo: saved.regNo || DEFAULT.regNo,
     bankName: saved.bankName || DEFAULT.bankName,
