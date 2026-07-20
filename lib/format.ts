@@ -4,6 +4,14 @@ export function yen(n: number): string {
   return '¥' + Math.round(n).toLocaleString('ja-JP');
 }
 
+// カレンダーの狭いセル用の「万」表記（例: 20000→2万, 36000→3.6万）
+export function manYen(n: number): string {
+  if (!n) return '0';
+  const v = n / 10000;
+  const rounded = Math.round(v * 10) / 10;
+  return (Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1)) + '万';
+}
+
 export function todayStr(): string {
   return toDateStr(new Date());
 }

@@ -1,13 +1,14 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Entry } from '@/lib/types';
+import { Entry, workTypeOf } from '@/lib/types';
 import {
   WEEK_LABELS,
   calendarCells,
   currentMonthKey,
   formatJpDate,
   formatJpMonth,
+  manYen,
   shiftMonth,
   todayStr,
   yen,
@@ -29,11 +30,12 @@ export default function CalendarView({
   const [selected, setSelected] = useState<string | null>(todayStr());
 
   const byDate = useMemo(() => {
-    const map = new Map<string, { income: number; photo: boolean }>();
+    const map = new Map<string, { ukeoi: number; jouchu: number; photo: boolean }>();
     for (const e of entries) {
       if (e.kind !== 'income') continue;
-      const cur = map.get(e.date) ?? { income: 0, photo: false };
-      cur.income += e.amount;
+      const cur = map.get(e.date) ?? { ukeoi: 0, jouchu: 0, photo: false };
+      if (workTypeOf(e) === '常駐') cur.jouchu += e.amount;
+      else cur.ukeoi += e.amount;
       if (e.photos.length > 0) cur.photo = true;
       map.set(e.date, cur);
     }
@@ -100,19 +102,41 @@ export default function CalendarView({
               <button
                 key={c}
                 onClick={() => setSelected(c)}
-                className={`flex min-h-[46px] flex-col items-center rounded-lg p-1 text-xs ${
+                className={`flex min-h-[58px] flex-col items-center rounded-lg px-0.5 py-1 text-xs ${
                   isSel ? 'bg-brand-soft' : ''
                 } ${isToday ? 'ring-1 ring-brand-primary' : ''}`}
               >
-                <span className={isToday ? 'font-bold text-brand-primary' : ''}>{day}</span>
-                <span className="mt-0.5 flex gap-0.5">
-                  {info?.income ? <span className="h-1.5 w-1.5 rounded-full bg-blue-500" /> : null}
+                <span className={`flex items-center gap-0.5 ${isToday ? 'font-bold text-brand-primary' : ''}`}>
+                  {day}
                   {info?.photo ? <span className="text-[8px] leading-none">📷</span> : null}
+                </span>
+                <span className="mt-0.5 flex w-full flex-col items-center gap-px leading-none">
+                  {info?.ukeoi ? (
+                    <span className="w-full truncate text-center text-[10px] font-semibold text-blue-600">
+                      請{manYen(info.ukeoi)}
+                    </span>
+                  ) : null}
+                  {info?.jouchu ? (
+                    <span className="w-full truncate text-center text-[10px] font-semibold text-emerald-600">
+                      常{manYen(info.jouchu)}
+                    </span>
+                  ) : null}
                 </span>
               </button>
             );
           })}
         </div>
+      </div>
+
+      {/* 凡例 */}
+      <div className="flex justify-center gap-5 text-[11px] text-black/50">
+        <span>
+          <span className="font-bold text-blue-600">請</span> = 請負
+        </span>
+        <span>
+          <span className="font-bold text-emerald-600">常</span> = 常駐
+        </span>
+        <span>📷 = 写真あり</span>
       </div>
 
       {/* 選択日の詳細 */}
