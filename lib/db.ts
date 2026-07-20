@@ -2,6 +2,7 @@
 // 現状: 端末内(IndexedDB)。将来: この関数群をSupabase実装に差し替えるだけで同期化できる。
 
 import { Entry } from './types';
+import { geocodeAddress } from './geocode';
 
 const DB_NAME = 'genba-kakeibo';
 const STORE = 'entries';
@@ -70,6 +71,21 @@ export async function exportJson(): Promise<string> {
 export async function importJson(json: string): Promise<number> {
   const parsed = JSON.parse(json);
   const entries: Entry[] = parsed.entries || [];
-  for (const e of entries) await putEntry(e);
+  for (const e of entries) {
+    // 住所はあるが位置未取得の記録は、取り込み時に住所検索して地図ピンを付ける
+    if (e.address && (e.lat == null || e.lng == null)) {
+      try {
+        const r = await geocodeAddress(e.address);
+        if (r) {
+          e.lat = r.lat;
+          e.lng = r.lng;
+        }
+      } catch {
+        /* オフライン等はスキップ（後で「地図に登録」可能） */
+      }
+      await new Promise((res) => setTimeout(res, 250));
+    }
+    await putEntry(e);
+  }
   return entries.length;
 }
