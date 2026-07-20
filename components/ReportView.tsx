@@ -15,14 +15,10 @@ import InvoiceView from './InvoiceView';
 export default function ReportView({ entries }: { entries: Entry[] }) {
   const [mKey, setMKey] = useState(currentMonthKey());
   const [showInvoice, setShowInvoice] = useState(false);
-  const includeExpense = false;
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const text = useMemo(
-    () => buildReportText(mKey, entries, { includeExpense }),
-    [mKey, entries, includeExpense],
-  );
+  const text = useMemo(() => buildReportText(mKey, entries), [mKey, entries]);
 
   const sitePhotos = useMemo(
     () =>
@@ -46,7 +42,7 @@ export default function ReportView({ entries }: { entries: Entry[] }) {
   async function onShareImage() {
     setBusy(true);
     try {
-      const blob = await buildReportImage(mKey, entries, { includeExpense });
+      const blob = await buildReportImage(mKey, entries);
       if (!blob) {
         flash('画像を作れませんでした');
         return;

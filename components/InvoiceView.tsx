@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Entry } from '@/lib/types';
+import { Entry, workTypeOf } from '@/lib/types';
 import { currentMonthKey, formatJpMonth, shiftMonth, todayStr, yen } from '@/lib/format';
 import { Profile, loadProfile, saveProfile } from '@/lib/profile';
 
@@ -29,15 +29,25 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
     setClient(p.lastClient);
   }, []);
 
-  const rows = useMemo(
-    () =>
-      entries
-        .filter((e) => e.kind === 'income' && e.date.slice(0, 7) === mKey)
-        .sort((a, b) => (a.date < b.date ? -1 : 1)),
-    [entries, mKey],
-  );
+  const { displayRows, subtotal } = useMemo(() => {
+    const income = entries.filter((e) => e.kind === 'income' && e.date.slice(0, 7) === mKey);
+    const ukeoi = income.filter((e) => workTypeOf(e) === '請負').sort((a, b) => (a.date < b.date ? -1 : 1));
+    const jouchu = income.filter((e) => workTypeOf(e) === '常駐');
+    const amtMap = new Map<number, number>();
+    for (const e of jouchu) amtMap.set(e.amount, (amtMap.get(e.amount) ?? 0) + 1);
+    const rows: { date: string; label: string; amount: number }[] = [];
+    for (const e of ukeoi) {
+      const label = [e.site, e.address && e.address !== e.site ? e.address : '']
+        .filter(Boolean)
+        .join('　');
+      rows.push({ date: shortDate(e.date), label: label || '請負', amount: e.amount });
+    }
+    for (const [amt, cnt] of [...amtMap.entries()].sort((a, b) => b[0] - a[0])) {
+      rows.push({ date: '', label: `常駐　${yen(amt)} × ${cnt}件`, amount: amt * cnt });
+    }
+    return { displayRows: rows, subtotal: income.reduce((s, e) => s + e.amount, 0) };
+  }, [entries, mKey]);
 
-  const subtotal = rows.reduce((s, e) => s + e.amount, 0);
   const tax = Math.floor((subtotal * taxRate) / 100);
   const total = subtotal + tax;
 
@@ -144,22 +154,18 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 ? (
+            {displayRows.length === 0 ? (
               <tr>
                 <td colSpan={3} className="p-3 text-center text-black/40">
                   この月の売上記録がありません
                 </td>
               </tr>
             ) : (
-              rows.map((e) => (
-                <tr key={e.id} className="border-b border-black/10">
-                  <td className="p-1.5">{shortDate(e.date)}</td>
-                  <td className="p-1.5">
-                    {e.site}
-                    {e.site && e.memo && '　'}
-                    {e.memo}
-                  </td>
-                  <td className="p-1.5 text-right">{yen(e.amount)}</td>
+              displayRows.map((r, i) => (
+                <tr key={i} className="border-b border-black/10">
+                  <td className="whitespace-nowrap p-1.5">{r.date}</td>
+                  <td className="p-1.5">{r.label}</td>
+                  <td className="whitespace-nowrap p-1.5 text-right">{yen(r.amount)}</td>
                 </tr>
               ))
             )}

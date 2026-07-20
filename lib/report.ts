@@ -1,6 +1,6 @@
 // 報告テキスト・報告画像の生成、共有ヘルパー
 
-import { Entry } from './types';
+import { Entry, workTypeOf } from './types';
 import { formatJpMonth, yen } from './format';
 
 const WEEK = ['日', '月', '火', '水', '木', '金', '土'];
@@ -11,119 +11,113 @@ function shortDate(dateStr: string): string {
   return `${m}/${d}(${w})`;
 }
 
-export interface ReportOptions {
-  includeExpense: boolean;
+function byDate(a: Entry, b: Entry): number {
+  return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
 }
 
-export function buildReportText(mKey: string, entries: Entry[], opts: ReportOptions): string {
-  const rows = entries
-    .filter((e) => e.date.slice(0, 7) === mKey)
-    .filter((e) => (opts.includeExpense ? true : e.kind === 'income'))
-    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+// 月の記録を常駐/請負に分けて集計
+function buildReportData(mKey: string, entries: Entry[]) {
+  const rows = entries.filter((e) => e.date.slice(0, 7) === mKey && e.kind === 'income');
+  const ukeoi = rows.filter((e) => workTypeOf(e) === '請負').sort(byDate);
+  const jouchu = rows.filter((e) => workTypeOf(e) === '常駐').sort(byDate);
+  const ukTotal = ukeoi.reduce((s, e) => s + e.amount, 0);
+  const joTotal = jouchu.reduce((s, e) => s + e.amount, 0);
+  // 常駐は金額ごとにまとめる（例: ¥20,000 × 9件）
+  const amtMap = new Map<number, number>();
+  for (const e of jouchu) amtMap.set(e.amount, (amtMap.get(e.amount) ?? 0) + 1);
+  const jouchuByAmount = [...amtMap.entries()].sort((a, b) => b[0] - a[0]);
+  return { ukeoi, jouchu, ukTotal, joTotal, jouchuByAmount };
+}
 
-  let income = 0;
-  let expense = 0;
+// 報告本文の行（タイトルを除く）
+function reportBodyLines(mKey: string, entries: Entry[]): string[] {
+  const d = buildReportData(mKey, entries);
   const lines: string[] = [];
-  lines.push(`【作業報告】${formatJpMonth(mKey)}`);
-  lines.push('━━━━━━━━━━');
 
-  for (const e of rows) {
-    if (e.kind === 'income') income += e.amount;
-    else expense += e.amount;
-    const site = e.site ? ` ${e.site}` : '';
-    lines.push(`${shortDate(e.date)}${site}`);
-    lines.push(`　${e.memo || '作業'} ${yen(e.amount)}`);
+  if (d.ukeoi.length === 0 && d.jouchu.length === 0) {
+    lines.push('（記録なし）');
+    return lines;
   }
 
-  if (rows.length === 0) lines.push('（記録なし）');
-  lines.push('━━━━━━━━━━');
-  lines.push(`売上合計　${yen(income)}`);
-  if (opts.includeExpense) {
-    lines.push(`経費合計　${yen(expense)}`);
-    lines.push(`差引　　　${yen(income - expense)}`);
+  // 請負（明細: 日付・金額・現場名・住所）
+  if (d.ukeoi.length > 0) {
+    lines.push(`■請負（${d.ukeoi.length}件）`);
+    for (const e of d.ukeoi) {
+      lines.push(`${shortDate(e.date)}　${yen(e.amount)}`);
+      if (e.site) lines.push(`　${e.site}`);
+      if (e.address && e.address !== e.site) lines.push(`　${e.address}`);
+    }
+    lines.push(`請負計 ${yen(d.ukTotal)}`);
+    lines.push('');
   }
-  return lines.join('\n');
+
+  // 常駐（まとめ: 金額別の件数）
+  if (d.jouchu.length > 0) {
+    lines.push(`■常駐（${d.jouchu.length}件）`);
+    for (const [amt, cnt] of d.jouchuByAmount) {
+      lines.push(`${yen(amt)} × ${cnt}件`);
+    }
+    lines.push(`常駐計 ${yen(d.joTotal)}`);
+    lines.push('');
+  }
+
+  // 合計
+  lines.push('■合計');
+  lines.push(`請負　${yen(d.ukTotal)}`);
+  lines.push(`常駐　${yen(d.joTotal)}`);
+  lines.push(`総合計　${yen(d.ukTotal + d.joTotal)}`);
+  return lines;
 }
 
-// 報告書を画像(PNG Blob)に描画
-export async function buildReportImage(
-  mKey: string,
-  entries: Entry[],
-  opts: ReportOptions,
-): Promise<Blob | null> {
-  const rows = entries
-    .filter((e) => e.date.slice(0, 7) === mKey)
-    .filter((e) => (opts.includeExpense ? true : e.kind === 'income'))
-    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+export function buildReportText(mKey: string, entries: Entry[]): string {
+  return [`【作業報告】${formatJpMonth(mKey)}`, '', ...reportBodyLines(mKey, entries)].join('\n');
+}
 
+// 報告書を画像(PNG Blob)に描画（本文をそのまま描画）
+export async function buildReportImage(mKey: string, entries: Entry[]): Promise<Blob | null> {
+  const lines = reportBodyLines(mKey, entries);
   const W = 720;
   const pad = 40;
-  const lineH = 34;
-  const headerH = 150;
-  const footerH = 140;
-  const H = headerH + rows.length * lineH * 2 + footerH;
+  const lineH = 32;
+  const bandH = 96;
+  const H = bandH + 30 + lines.length * lineH + pad;
 
   const canvas = document.createElement('canvas');
   canvas.width = W;
-  canvas.height = Math.max(H, 400);
+  canvas.height = Math.max(H, 320);
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
 
-  // 背景
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, W, canvas.height);
 
   // ヘッダ帯
   ctx.fillStyle = '#1f7a4f';
-  ctx.fillRect(0, 0, W, 96);
+  ctx.fillRect(0, 0, W, bandH);
   ctx.fillStyle = '#ffffff';
+  ctx.textBaseline = 'alphabetic';
   ctx.font = 'bold 34px sans-serif';
   ctx.fillText('作業報告書', pad, 60);
   ctx.font = '22px sans-serif';
-  ctx.fillText(formatJpMonth(mKey), W - pad - ctx.measureText(formatJpMonth(mKey)).width, 60);
+  const mLabel = formatJpMonth(mKey);
+  ctx.fillText(mLabel, W - pad - ctx.measureText(mLabel).width, 60);
 
-  let y = headerH;
-  let income = 0;
-  let expense = 0;
-  ctx.textBaseline = 'alphabetic';
-  for (const e of rows) {
-    if (e.kind === 'income') income += e.amount;
-    else expense += e.amount;
-    ctx.fillStyle = '#111111';
-    ctx.font = 'bold 24px sans-serif';
-    ctx.fillText(`${shortDate(e.date)}  ${e.site || ''}`, pad, y);
+  let y = bandH + 44;
+  for (const line of lines) {
+    const isHeader = line.startsWith('■');
+    const isTotal = line.startsWith('総合計') || line.endsWith('計 ') || /計 ¥/.test(line);
+    if (isHeader) {
+      ctx.fillStyle = '#1f7a4f';
+      ctx.font = 'bold 24px sans-serif';
+    } else if (isTotal) {
+      ctx.fillStyle = '#111111';
+      ctx.font = 'bold 22px sans-serif';
+    } else {
+      ctx.fillStyle = '#222222';
+      ctx.font = '21px sans-serif';
+    }
+    ctx.fillText(line, pad, y);
     y += lineH;
-    ctx.font = '22px sans-serif';
-    ctx.fillStyle = e.kind === 'income' ? '#1d4ed8' : '#dc2626';
-    const label = e.memo || '作業';
-    ctx.fillText(label, pad + 16, y);
-    const amt = (e.kind === 'income' ? '+' : '−') + yen(e.amount);
-    ctx.fillText(amt, W - pad - ctx.measureText(amt).width, y);
-    y += lineH;
-    // 区切り
-    ctx.strokeStyle = '#eeeeee';
-    ctx.beginPath();
-    ctx.moveTo(pad, y - lineH + 10);
-    ctx.lineTo(W - pad, y - lineH + 10);
-    ctx.stroke();
-  }
-
-  // フッタ合計
-  y = canvas.height - footerH + 30;
-  ctx.strokeStyle = '#1f7a4f';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(pad, y - 20);
-  ctx.lineTo(W - pad, y - 20);
-  ctx.stroke();
-  ctx.fillStyle = '#111111';
-  ctx.font = 'bold 26px sans-serif';
-  const total = `売上合計　${yen(income)}`;
-  ctx.fillText(total, pad, y + 18);
-  if (opts.includeExpense) {
-    const exp = `経費 ${yen(expense)} / 差引 ${yen(income - expense)}`;
-    ctx.font = '22px sans-serif';
-    ctx.fillText(exp, pad, y + 54);
   }
 
   return new Promise((resolve) => canvas.toBlob((b) => resolve(b), 'image/png'));

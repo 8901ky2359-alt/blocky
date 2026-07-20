@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Entry, Photo, Template } from '@/lib/types';
+import { Entry, Photo, Template, WorkType, workTypeOf } from '@/lib/types';
 import { todayStr, yen } from '@/lib/format';
 import { addTemplate, loadTemplates } from '@/lib/templates';
 import { geocodeAddress } from '@/lib/geocode';
@@ -26,6 +26,7 @@ export default function AddView({
   onCancel?: () => void;
   onSave: (input: Omit<Entry, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => Promise<Entry>;
 }) {
+  const [workType, setWorkType] = useState<WorkType>(editing ? workTypeOf(editing) : '請負');
   const [date, setDate] = useState(editing?.date ?? defaultDate ?? todayStr());
   const [site, setSite] = useState(editing?.site ?? '');
   const [amount, setAmount] = useState(editing?.amount ? String(editing.amount) : '');
@@ -131,6 +132,7 @@ export default function AddView({
         address: address.trim() || undefined,
         lat: loc?.lat,
         lng: loc?.lng,
+        workType,
       });
       onSaved();
     } finally {
@@ -141,6 +143,32 @@ export default function AddView({
   return (
     <div className="space-y-4 pb-4">
       <h2 className="text-lg font-bold">{editing ? '記録を編集' : '売上を記録する'}</h2>
+
+      {/* 常駐 / 請負（必須） */}
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => setWorkType('常駐')}
+          className={`rounded-xl border py-3 font-bold ${
+            workType === '常駐'
+              ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+              : 'border-black/10 text-black/50'
+          }`}
+        >
+          常駐
+        </button>
+        <button
+          type="button"
+          onClick={() => setWorkType('請負')}
+          className={`rounded-xl border py-3 font-bold ${
+            workType === '請負'
+              ? 'border-blue-500 bg-blue-50 text-blue-700'
+              : 'border-black/10 text-black/50'
+          }`}
+        >
+          請負
+        </button>
+      </div>
 
       {/* よく使う作業（定型ボタン） */}
       {!editing && templates.length > 0 && (

@@ -29,8 +29,18 @@ export interface Entry {
   address?: string; // 現場の住所（地図マッピング用）
   lat?: number; // 緯度（住所検索で自動取得）
   lng?: number; // 経度
+  workType?: WorkType; // 常駐 / 請負
   createdAt: number;
   updatedAt: number;
+}
+
+export type WorkType = '常駐' | '請負';
+
+// 記録の区分を判定（未設定の旧データはメモから推定、既定は請負）
+export function workTypeOf(e: { workType?: WorkType; memo?: string }): WorkType {
+  if (e.workType) return e.workType;
+  if (e.memo && e.memo.includes('常駐')) return '常駐';
+  return '請負';
 }
 
 // 収入カテゴリ

@@ -40,6 +40,7 @@ export function useEntries() {
         address: input.address,
         lat: input.lat,
         lng: input.lng,
+        workType: input.workType,
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
       };
