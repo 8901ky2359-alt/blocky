@@ -10,6 +10,7 @@ import CalendarView from '@/components/CalendarView';
 import AddView from '@/components/AddView';
 import SummaryView from '@/components/SummaryView';
 import PhotosView from '@/components/PhotosView';
+import MapView from '@/components/MapView';
 import ReportView from '@/components/ReportView';
 
 export default function Home() {
@@ -75,6 +76,7 @@ export default function Home() {
               />
             )}
             {tab === 'photos' && <PhotosView entries={entries} />}
+            {tab === 'map' && <MapView entries={entries} />}
             {tab === 'report' && <ReportView entries={entries} />}
           </>
         )}

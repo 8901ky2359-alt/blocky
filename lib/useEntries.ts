@@ -37,6 +37,9 @@ export function useEntries() {
         amount: input.amount,
         memo: input.memo,
         photos: input.photos,
+        address: input.address,
+        lat: input.lat,
+        lng: input.lng,
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
       };

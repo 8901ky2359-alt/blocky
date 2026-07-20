@@ -26,6 +26,9 @@ export interface Entry {
   amount: number; // 円
   memo: string;
   photos: Photo[];
+  address?: string; // 現場の住所（地図マッピング用）
+  lat?: number; // 緯度（住所検索で自動取得）
+  lng?: number; // 経度
   createdAt: number;
   updatedAt: number;
 }

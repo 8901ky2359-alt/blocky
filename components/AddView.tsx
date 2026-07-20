@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Entry, EntryKind, Photo, Template, categoriesFor } from '@/lib/types';
 import { todayStr, yen } from '@/lib/format';
 import { addTemplate, loadTemplates } from '@/lib/templates';
+import { geocodeAddress } from '@/lib/geocode';
 import PhotoInput from './PhotoInput';
 
 export default function AddView({
@@ -29,6 +30,11 @@ export default function AddView({
   const [amount, setAmount] = useState(editing?.amount ? String(editing.amount) : '');
   const [memo, setMemo] = useState(editing?.memo ?? '');
   const [photos, setPhotos] = useState<Photo[]>(editing?.photos ?? []);
+  const [address, setAddress] = useState(editing?.address ?? '');
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
+    editing?.lat != null && editing?.lng != null ? { lat: editing.lat, lng: editing.lng } : null,
+  );
+  const [geoStatus, setGeoStatus] = useState<'idle' | 'searching' | 'ok' | 'fail'>('idle');
   const [saving, setSaving] = useState(false);
   const [templates, setTemplates] = useState<Template[]>([]);
 
@@ -70,6 +76,19 @@ export default function AddView({
     setPhotos([...receiptPhotos, ...beforePhotos, ...next]);
   }
 
+  async function doGeocode() {
+    if (!address.trim()) return;
+    setGeoStatus('searching');
+    const r = await geocodeAddress(address);
+    if (r) {
+      setCoords({ lat: r.lat, lng: r.lng });
+      setGeoStatus('ok');
+    } else {
+      setCoords(null);
+      setGeoStatus('fail');
+    }
+  }
+
   async function handleSubmit() {
     const num = Number(amount.replace(/[, ¥]/g, ''));
     if (!Number.isFinite(num) || num < 0) {
@@ -78,6 +97,12 @@ export default function AddView({
     }
     setSaving(true);
     try {
+      // 住所があり、まだ位置が取れていなければ保存時に自動で検索
+      let loc = coords;
+      if (address.trim() && !loc) {
+        const r = await geocodeAddress(address);
+        if (r) loc = { lat: r.lat, lng: r.lng };
+      }
       await onSave({
         id: editing?.id,
         date,
@@ -87,6 +112,9 @@ export default function AddView({
         amount: num,
         memo: memo.trim(),
         photos,
+        address: address.trim() || undefined,
+        lat: loc?.lat,
+        lng: loc?.lng,
       });
       onSaved();
     } finally {
@@ -192,6 +220,35 @@ export default function AddView({
             <option key={s} value={s} />
           ))}
         </datalist>
+      </Field>
+
+      <Field label="住所（地図に登録・任意）">
+        <div className="flex gap-2">
+          <input
+            value={address}
+            onChange={(e) => {
+              setAddress(e.target.value);
+              setCoords(null);
+              setGeoStatus('idle');
+            }}
+            placeholder="例: 山口県〇〇市△△町1-2"
+            className="input flex-1"
+          />
+          <button
+            type="button"
+            onClick={doGeocode}
+            disabled={!address.trim() || geoStatus === 'searching'}
+            className="shrink-0 rounded-xl border border-brand-primary px-3 text-sm font-semibold text-brand-primary disabled:opacity-40"
+          >
+            {geoStatus === 'searching' ? '検索中' : '地図に登録'}
+          </button>
+        </div>
+        {geoStatus === 'ok' && coords && (
+          <p className="mt-1 text-xs text-brand-primary">✓ 地図に登録できます（保存すると地図タブにピンが立ちます）</p>
+        )}
+        {geoStatus === 'fail' && (
+          <p className="mt-1 text-xs text-red-500">住所が見つかりませんでした。市区町村まで入れると見つかりやすいです</p>
+        )}
       </Field>
 
       <Field label="メモ">
