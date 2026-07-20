@@ -1,0 +1,10 @@
+# Cloudflare Workers（静的アセット配信）設定
+# `npm run build` で out/ を生成 → `npx wrangler deploy` でこの設定を読み、out/ を配信する
+
+name = "blocky"
+compatibility_date = "2025-01-01"
+
+# サーバー処理のない静的サイトとして out/ を配信する
+[assets]
+directory = "./out"
+not_found_handling = "single-page-application"
