@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Entry, Photo, Template, WorkType, workTypeOf } from '@/lib/types';
-import { todayStr, yen } from '@/lib/format';
+import { shiftDay, todayStr, yen } from '@/lib/format';
 import { addTemplate, loadTemplates } from '@/lib/templates';
 import { geocodeAddress } from '@/lib/geocode';
 import PhotoInput from './PhotoInput';
@@ -190,9 +190,31 @@ export default function AddView({
         </div>
       )}
 
-      <Field label="日付">
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="input" />
-      </Field>
+      <div className="space-y-1">
+        <span className="text-sm font-medium text-black/70">日付</span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setDate(shiftDay(date, -1))}
+            className="shrink-0 rounded-xl border border-black/15 px-3 py-3 text-sm font-semibold text-black/70"
+          >
+            ‹ 前日
+          </button>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="input flex-1"
+          />
+          <button
+            type="button"
+            onClick={() => setDate(shiftDay(date, 1))}
+            className="shrink-0 rounded-xl border border-black/15 px-3 py-3 text-sm font-semibold text-black/70"
+          >
+            翌日 ›
+          </button>
+        </div>
+      </div>
 
       <Field label="金額（円）">
         <input

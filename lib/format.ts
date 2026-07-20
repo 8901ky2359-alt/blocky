@@ -37,6 +37,12 @@ export function formatJpMonth(mKey: string): string {
   return `${y}年${m}月`;
 }
 
+// 日付を delta 日ずらす（YYYY-MM-DD）
+export function shiftDay(dateStr: string, delta: number): string {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return toDateStr(new Date(y, m - 1, d + delta));
+}
+
 // 月の前後移動
 export function shiftMonth(mKey: string, delta: number): string {
   const [y, m] = mKey.split('-').map(Number);
