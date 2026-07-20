@@ -21,10 +21,29 @@ export default function Home() {
   const [addDate, setAddDate] = useState<string>(todayStr());
   const [showBackup, setShowBackup] = useState(false);
 
+  // 現場名の候補（最近使った順・住所つき）
   const knownSites = useMemo(() => {
-    const set = new Set<string>();
-    for (const e of entries) if (e.site) set.add(e.site);
-    return [...set];
+    const map = new Map<
+      string,
+      { site: string; address?: string; lat?: number; lng?: number; t: number; addrT: number }
+    >();
+    for (const e of entries) {
+      if (!e.site) continue;
+      const t = e.updatedAt ?? e.createdAt ?? 0;
+      const cur = map.get(e.site) ?? { site: e.site, t: -1, addrT: -1 };
+      if (t > cur.t) cur.t = t; // 並び順は最新の使用時刻
+      // 住所は「住所が入っている最も新しい記録」から採用
+      if (e.address && t > cur.addrT) {
+        cur.address = e.address;
+        cur.lat = e.lat;
+        cur.lng = e.lng;
+        cur.addrT = t;
+      }
+      map.set(e.site, cur);
+    }
+    return [...map.values()]
+      .sort((a, b) => b.t - a.t)
+      .map(({ site, address, lat, lng }) => ({ site, address, lat, lng }));
   }, [entries]);
 
   function goAdd(date?: string) {

@@ -9,6 +9,8 @@ import PhotoInput from './PhotoInput';
 
 const MAX_PHOTOS = 25; // Before/After それぞれの上限
 
+type KnownSite = { site: string; address?: string; lat?: number; lng?: number };
+
 export default function AddView({
   editing,
   defaultDate,
@@ -19,7 +21,7 @@ export default function AddView({
 }: {
   editing?: Entry | null;
   defaultDate?: string;
-  knownSites: string[];
+  knownSites: KnownSite[];
   onSaved: () => void;
   onCancel?: () => void;
   onSave: (input: Omit<Entry, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => Promise<Entry>;
@@ -61,6 +63,34 @@ export default function AddView({
   }
   function setAfter(next: Photo[]) {
     setPhotos([...beforePhotos, ...next]);
+  }
+
+  // 過去の現場を選んだとき、住所（と位置）も一致させる
+  function pickSite(k: KnownSite) {
+    setSite(k.site);
+    if (k.address) {
+      setAddress(k.address);
+      if (k.lat != null && k.lng != null) {
+        setCoords({ lat: k.lat, lng: k.lng });
+        setGeoStatus('ok');
+      } else {
+        setCoords(null);
+        setGeoStatus('idle');
+      }
+    }
+  }
+
+  // 現場名を手入力/候補選択したとき、既知の現場なら住所が空欄なら自動補完
+  function onSiteInput(value: string) {
+    setSite(value);
+    const match = knownSites.find((k) => k.site === value);
+    if (match?.address && !address.trim()) {
+      setAddress(match.address);
+      if (match.lat != null && match.lng != null) {
+        setCoords({ lat: match.lat, lng: match.lng });
+        setGeoStatus('ok');
+      }
+    }
   }
 
   async function doGeocode() {
@@ -152,31 +182,32 @@ export default function AddView({
         <input
           list="known-sites"
           value={site}
-          onChange={(e) => setSite(e.target.value)}
+          onChange={(e) => onSiteInput(e.target.value)}
           placeholder="例: 〇〇様宅 / △△線 河川敷"
           className="input"
         />
         <datalist id="known-sites">
-          {knownSites.map((s) => (
-            <option key={s} value={s} />
+          {knownSites.map((k) => (
+            <option key={k.site} value={k.site} />
           ))}
         </datalist>
         {knownSites.length > 0 && (
           <div className="mt-2">
-            <p className="mb-1 text-xs text-black/40">過去の現場からタップで選ぶ</p>
+            <p className="mb-1 text-xs text-black/40">過去の現場からタップで選ぶ（最近使った順）</p>
             <div className="flex gap-1.5 overflow-x-auto pb-1">
-              {knownSites.slice(0, 30).map((s) => (
+              {knownSites.slice(0, 30).map((k) => (
                 <button
-                  key={s}
+                  key={k.site}
                   type="button"
-                  onClick={() => setSite(s)}
+                  onClick={() => pickSite(k)}
                   className={`max-w-[180px] shrink-0 truncate rounded-full border px-3 py-1 text-xs ${
-                    site === s
+                    site === k.site
                       ? 'border-brand-primary bg-brand-soft text-brand-primary'
                       : 'border-black/15 text-black/60'
                   }`}
                 >
-                  {s}
+                  {k.address ? '📍 ' : ''}
+                  {k.site}
                 </button>
               ))}
             </div>
