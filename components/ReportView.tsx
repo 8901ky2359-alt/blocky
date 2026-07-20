@@ -15,7 +15,7 @@ import InvoiceView from './InvoiceView';
 export default function ReportView({ entries }: { entries: Entry[] }) {
   const [mKey, setMKey] = useState(currentMonthKey());
   const [showInvoice, setShowInvoice] = useState(false);
-  const [includeExpense, setIncludeExpense] = useState(false);
+  const includeExpense = false;
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -103,15 +103,6 @@ export default function ReportView({ entries }: { entries: Entry[] }) {
           ›
         </button>
       </div>
-
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={includeExpense}
-          onChange={(e) => setIncludeExpense(e.target.checked)}
-        />
-        経費・差引も報告に含める
-      </label>
 
       {/* プレビュー */}
       <div className="rounded-xl border border-black/10 bg-white p-3">

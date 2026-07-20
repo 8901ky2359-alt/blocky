@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { Entry, Photo } from '@/lib/types';
 
 type Item = { photo: Photo; entry: Entry };
-type Mode = 'site' | 'ba' | 'receipt';
+type Mode = 'site' | 'ba';
 
 export default function PhotosView({ entries }: { entries: Entry[] }) {
   const [mode, setMode] = useState<Mode>('site');
@@ -13,11 +13,10 @@ export default function PhotosView({ entries }: { entries: Entry[] }) {
   // 通常のギャラリー用（site全体 / receipt）
   const items = useMemo<Item[]>(() => {
     if (mode === 'ba') return [];
-    const kind = mode === 'receipt' ? 'receipt' : 'site';
     const list: Item[] = [];
     for (const e of entries) {
       for (const p of e.photos) {
-        if (p.photoKind === kind) list.push({ photo: p, entry: e });
+        if (p.photoKind === 'site') list.push({ photo: p, entry: e });
       }
     }
     return list;
@@ -57,10 +56,9 @@ export default function PhotosView({ entries }: { entries: Entry[] }) {
     <div className="space-y-4 pb-4">
       <h2 className="text-lg font-bold">写真</h2>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         {btn('site', '🖼 現場')}
         {btn('ba', '↔ Before/After')}
-        {btn('receipt', '🧾 レシート')}
       </div>
 
       {mode === 'ba' ? (

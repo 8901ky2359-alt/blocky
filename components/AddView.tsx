@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Entry, EntryKind, Photo, Template, categoriesFor } from '@/lib/types';
+import { Entry, Photo, Template, INCOME_CATEGORIES } from '@/lib/types';
 import { todayStr, yen } from '@/lib/format';
 import { addTemplate, loadTemplates } from '@/lib/templates';
 import { geocodeAddress } from '@/lib/geocode';
@@ -22,9 +22,8 @@ export default function AddView({
   onCancel?: () => void;
   onSave: (input: Omit<Entry, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => Promise<Entry>;
 }) {
-  const [kind, setKind] = useState<EntryKind>(editing?.kind ?? 'income');
+  const cats = INCOME_CATEGORIES;
   const [date, setDate] = useState(editing?.date ?? defaultDate ?? todayStr());
-  const cats = useMemo(() => categoriesFor(kind), [kind]);
   const [category, setCategory] = useState(editing?.category ?? cats[0]);
   const [site, setSite] = useState(editing?.site ?? '');
   const [amount, setAmount] = useState(editing?.amount ? String(editing.amount) : '');
@@ -42,15 +41,8 @@ export default function AddView({
     if (!editing) setTemplates(loadTemplates());
   }, [editing]);
 
-  function switchKind(next: EntryKind) {
-    setKind(next);
-    const nextCats = categoriesFor(next);
-    if (!nextCats.includes(category as never)) setCategory(nextCats[0]);
-  }
-
   function applyTemplate(t: Template) {
-    setKind(t.kind);
-    setCategory(t.category);
+    setCategory(cats.includes(t.category as never) ? t.category : cats[0]);
     if (t.amount) setAmount(String(t.amount));
     if (t.memo) setMemo(t.memo);
   }
@@ -59,21 +51,17 @@ export default function AddView({
     const label = prompt('この内容を「よく使う作業」に登録します。ボタン名を入力してください', category);
     if (!label) return;
     const num = Number(amount.replace(/[, ¥]/g, '')) || 0;
-    setTemplates(addTemplate({ label, kind, category, amount: num, memo: memo.trim() }));
+    setTemplates(addTemplate({ label, kind: 'income', category, amount: num, memo: memo.trim() }));
   }
 
-  const receiptPhotos = photos.filter((p) => p.photoKind === 'receipt');
   const beforePhotos = photos.filter((p) => p.photoKind === 'site' && p.phase === 'before');
   const afterPhotos = photos.filter((p) => p.photoKind === 'site' && p.phase === 'after');
 
-  function setReceipts(next: Photo[]) {
-    setPhotos([...beforePhotos, ...afterPhotos, ...next]);
-  }
   function setBefore(next: Photo[]) {
-    setPhotos([...receiptPhotos, ...afterPhotos, ...next]);
+    setPhotos([...afterPhotos, ...next]);
   }
   function setAfter(next: Photo[]) {
-    setPhotos([...receiptPhotos, ...beforePhotos, ...next]);
+    setPhotos([...beforePhotos, ...next]);
   }
 
   async function doGeocode() {
@@ -97,7 +85,6 @@ export default function AddView({
     }
     setSaving(true);
     try {
-      // 住所があり、まだ位置が取れていなければ保存時に自動で検索
       let loc = coords;
       if (address.trim() && !loc) {
         const r = await geocodeAddress(address);
@@ -106,7 +93,7 @@ export default function AddView({
       await onSave({
         id: editing?.id,
         date,
-        kind,
+        kind: 'income',
         category,
         site: site.trim(),
         amount: num,
@@ -124,7 +111,7 @@ export default function AddView({
 
   return (
     <div className="space-y-4 pb-4">
-      <h2 className="text-lg font-bold">{editing ? '記録を編集' : '記録する'}</h2>
+      <h2 className="text-lg font-bold">{editing ? '記録を編集' : '売上を記録する'}</h2>
 
       {/* よく使う作業（定型ボタン） */}
       {!editing && templates.length > 0 && (
@@ -136,11 +123,7 @@ export default function AddView({
                 key={t.id}
                 type="button"
                 onClick={() => applyTemplate(t)}
-                className={`rounded-full border px-3 py-1.5 text-sm ${
-                  t.kind === 'income'
-                    ? 'border-blue-300 bg-blue-50 text-blue-700'
-                    : 'border-red-300 bg-red-50 text-red-700'
-                }`}
+                className="rounded-full border border-blue-300 bg-blue-50 px-3 py-1.5 text-sm text-blue-700"
               >
                 {t.label}
                 {t.amount ? ` ${yen(t.amount)}` : ''}
@@ -150,39 +133,8 @@ export default function AddView({
         </div>
       )}
 
-      {/* 収入 / 経費 切替 */}
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={() => switchKind('income')}
-          className={`rounded-xl border py-3 font-semibold ${
-            kind === 'income'
-              ? 'border-blue-500 bg-blue-50 text-blue-700'
-              : 'border-black/10 text-black/60'
-          }`}
-        >
-          ＋ 収入・売上
-        </button>
-        <button
-          type="button"
-          onClick={() => switchKind('expense')}
-          className={`rounded-xl border py-3 font-semibold ${
-            kind === 'expense'
-              ? 'border-red-500 bg-red-50 text-red-700'
-              : 'border-black/10 text-black/60'
-          }`}
-        >
-          − 経費・支払い
-        </button>
-      </div>
-
       <Field label="日付">
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="input"
-        />
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="input" />
       </Field>
 
       <Field label="金額（円）">
@@ -260,34 +212,16 @@ export default function AddView({
         />
       </Field>
 
-      {kind === 'expense' && (
-        <Field label="レシート写真">
-          <PhotoInput photos={receiptPhotos} photoKind="receipt" onChange={setReceipts} label="レシート" />
-        </Field>
-      )}
-
       <div className="rounded-xl border border-black/10 bg-white p-3">
         <p className="mb-2 text-sm font-medium text-black/70">現場写真</p>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <p className="mb-1 text-xs font-semibold text-black/50">作業前（Before）</p>
-            <PhotoInput
-              photos={beforePhotos}
-              photoKind="site"
-              phase="before"
-              onChange={setBefore}
-              label="作業前"
-            />
+            <PhotoInput photos={beforePhotos} photoKind="site" phase="before" onChange={setBefore} label="作業前" />
           </div>
           <div>
             <p className="mb-1 text-xs font-semibold text-black/50">作業後（After）</p>
-            <PhotoInput
-              photos={afterPhotos}
-              photoKind="site"
-              phase="after"
-              onChange={setAfter}
-              label="作業後"
-            />
+            <PhotoInput photos={afterPhotos} photoKind="site" phase="after" onChange={setAfter} label="作業後" />
           </div>
         </div>
       </div>

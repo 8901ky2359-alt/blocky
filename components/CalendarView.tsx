@@ -29,11 +29,11 @@ export default function CalendarView({
   const [selected, setSelected] = useState<string | null>(todayStr());
 
   const byDate = useMemo(() => {
-    const map = new Map<string, { income: number; expense: number; photo: boolean }>();
+    const map = new Map<string, { income: number; photo: boolean }>();
     for (const e of entries) {
-      const cur = map.get(e.date) ?? { income: 0, expense: 0, photo: false };
-      if (e.kind === 'income') cur.income += e.amount;
-      else cur.expense += e.amount;
+      if (e.kind !== 'income') continue;
+      const cur = map.get(e.date) ?? { income: 0, photo: false };
+      cur.income += e.amount;
       if (e.photos.length > 0) cur.photo = true;
       map.set(e.date, cur);
     }
@@ -42,13 +42,13 @@ export default function CalendarView({
 
   const monthTotals = useMemo(() => {
     let income = 0;
-    let expense = 0;
+    let count = 0;
     for (const e of entries) {
-      if (e.date.slice(0, 7) !== mKey) continue;
-      if (e.kind === 'income') income += e.amount;
-      else expense += e.amount;
+      if (e.date.slice(0, 7) !== mKey || e.kind !== 'income') continue;
+      income += e.amount;
+      count += 1;
     }
-    return { income, expense, profit: income - expense };
+    return { income, count };
   }, [entries, mKey]);
 
   const cells = calendarCells(mKey);
@@ -69,20 +69,14 @@ export default function CalendarView({
       </div>
 
       {/* 月サマリー */}
-      <div className="grid grid-cols-3 gap-2 rounded-xl bg-white p-3 text-center shadow-sm">
+      <div className="grid grid-cols-2 gap-2 rounded-xl bg-white p-3 text-center shadow-sm">
         <div>
-          <p className="text-xs text-black/50">売上</p>
+          <p className="text-xs text-black/50">売上合計</p>
           <p className="font-bold text-blue-600">{yen(monthTotals.income)}</p>
         </div>
         <div>
-          <p className="text-xs text-black/50">経費</p>
-          <p className="font-bold text-red-600">{yen(monthTotals.expense)}</p>
-        </div>
-        <div>
-          <p className="text-xs text-black/50">差引</p>
-          <p className={`font-bold ${monthTotals.profit >= 0 ? 'text-brand-primary' : 'text-red-600'}`}>
-            {yen(monthTotals.profit)}
-          </p>
+          <p className="text-xs text-black/50">作業件数</p>
+          <p className="font-bold text-brand-primary">{monthTotals.count}件</p>
         </div>
       </div>
 
@@ -113,7 +107,6 @@ export default function CalendarView({
                 <span className={isToday ? 'font-bold text-brand-primary' : ''}>{day}</span>
                 <span className="mt-0.5 flex gap-0.5">
                   {info?.income ? <span className="h-1.5 w-1.5 rounded-full bg-blue-500" /> : null}
-                  {info?.expense ? <span className="h-1.5 w-1.5 rounded-full bg-red-500" /> : null}
                   {info?.photo ? <span className="text-[8px] leading-none">📷</span> : null}
                 </span>
               </button>

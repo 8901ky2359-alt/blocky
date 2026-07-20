@@ -4,7 +4,7 @@ export type Tab = 'calendar' | 'add' | 'summary' | 'photos' | 'map' | 'report';
 
 const TABS: { key: Tab; label: string; icon: string }[] = [
   { key: 'calendar', label: 'カレンダー', icon: '📅' },
-  { key: 'summary', label: '収支', icon: '💰' },
+  { key: 'summary', label: '売上', icon: '💰' },
   { key: 'add', label: '記録', icon: '➕' },
   { key: 'map', label: '地図', icon: '🗺' },
   { key: 'photos', label: '写真', icon: '🖼' },
