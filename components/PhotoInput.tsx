@@ -9,24 +9,29 @@ export default function PhotoInput({
   photos,
   photoKind,
   phase,
+  maxCount,
   onChange,
   label,
 }: {
   photos: Photo[];
   photoKind: PhotoKind;
   phase?: PhotoPhase;
+  maxCount?: number;
   onChange: (next: Photo[]) => void;
   label: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
 
+  const remaining = maxCount ? Math.max(0, maxCount - photos.length) : Infinity;
+
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
     setBusy(true);
     try {
+      const pick = Array.from(files).slice(0, remaining === Infinity ? files.length : remaining);
       const added: Photo[] = [];
-      for (const file of Array.from(files)) {
+      for (const file of pick) {
         const dataUrl = await fileToCompressedDataUrl(file);
         added.push({ id: uid(), photoKind, phase, dataUrl });
       }
@@ -43,7 +48,7 @@ export default function PhotoInput({
         {photos.map((p) => (
           <div key={p.id} className="relative">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={p.dataUrl} alt="" className="h-20 w-20 rounded-lg object-cover" />
+            <img src={p.dataUrl} alt="" className="h-16 w-16 rounded-lg object-cover" />
             <button
               type="button"
               onClick={() => onChange(photos.filter((x) => x.id !== p.id))}
@@ -54,20 +59,21 @@ export default function PhotoInput({
             </button>
           </div>
         ))}
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          className="flex h-20 w-20 flex-col items-center justify-center rounded-lg border-2 border-dashed border-brand-primary/50 text-xs text-brand-primary"
-        >
-          <span className="text-2xl leading-none">＋</span>
-          <span>{busy ? '処理中…' : label}</span>
-        </button>
+        {remaining > 0 && (
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            className="flex h-16 w-16 flex-col items-center justify-center rounded-lg border-2 border-dashed border-brand-primary/50 text-xs text-brand-primary"
+          >
+            <span className="text-2xl leading-none">＋</span>
+            <span>{busy ? '処理中' : label}</span>
+          </button>
+        )}
       </div>
       <input
         ref={inputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         multiple
         className="hidden"
         onChange={(e) => handleFiles(e.target.files)}

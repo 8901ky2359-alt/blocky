@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { Entry, Photo, Template, INCOME_CATEGORIES } from '@/lib/types';
+import { useEffect, useState } from 'react';
+import { Entry, Photo, Template } from '@/lib/types';
 import { todayStr, yen } from '@/lib/format';
 import { addTemplate, loadTemplates } from '@/lib/templates';
 import { geocodeAddress } from '@/lib/geocode';
 import PhotoInput from './PhotoInput';
+
+const MAX_PHOTOS = 25; // Before/After それぞれの上限
 
 export default function AddView({
   editing,
@@ -22,9 +24,7 @@ export default function AddView({
   onCancel?: () => void;
   onSave: (input: Omit<Entry, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) => Promise<Entry>;
 }) {
-  const cats = INCOME_CATEGORIES;
   const [date, setDate] = useState(editing?.date ?? defaultDate ?? todayStr());
-  const [category, setCategory] = useState(editing?.category ?? cats[0]);
   const [site, setSite] = useState(editing?.site ?? '');
   const [amount, setAmount] = useState(editing?.amount ? String(editing.amount) : '');
   const [memo, setMemo] = useState(editing?.memo ?? '');
@@ -42,16 +42,15 @@ export default function AddView({
   }, [editing]);
 
   function applyTemplate(t: Template) {
-    setCategory(cats.includes(t.category as never) ? t.category : cats[0]);
     if (t.amount) setAmount(String(t.amount));
     if (t.memo) setMemo(t.memo);
   }
 
   function saveAsTemplate() {
-    const label = prompt('この内容を「よく使う作業」に登録します。ボタン名を入力してください', category);
+    const label = prompt('この内容を「よく使う作業」に登録します。ボタン名を入力してください', memo || '作業');
     if (!label) return;
     const num = Number(amount.replace(/[, ¥]/g, '')) || 0;
-    setTemplates(addTemplate({ label, kind: 'income', category, amount: num, memo: memo.trim() }));
+    setTemplates(addTemplate({ label, kind: 'income', category: '', amount: num, memo: memo.trim() }));
   }
 
   const beforePhotos = photos.filter((p) => p.photoKind === 'site' && p.phase === 'before');
@@ -94,7 +93,7 @@ export default function AddView({
         id: editing?.id,
         date,
         kind: 'income',
-        category,
+        category: '',
         site: site.trim(),
         amount: num,
         memo: memo.trim(),
@@ -116,7 +115,7 @@ export default function AddView({
       {/* よく使う作業（定型ボタン） */}
       {!editing && templates.length > 0 && (
         <div>
-          <p className="mb-1 text-sm font-medium text-black/70">よく使う作業（タップで入力）</p>
+          <p className="mb-1 text-sm font-medium text-black/70">よく使う金額（タップで入力）</p>
           <div className="flex flex-wrap gap-2">
             {templates.map((t) => (
               <button
@@ -147,16 +146,6 @@ export default function AddView({
           className="input text-right text-xl font-bold"
         />
         {amount && <p className="mt-1 text-right text-sm text-black/50">{yen(Number(amount) || 0)}</p>}
-      </Field>
-
-      <Field label="カテゴリ">
-        <select value={category} onChange={(e) => setCategory(e.target.value)} className="input">
-          {cats.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
       </Field>
 
       <Field label="現場名">
@@ -207,21 +196,39 @@ export default function AddView({
         <textarea
           value={memo}
           onChange={(e) => setMemo(e.target.value)}
-          placeholder="作業内容・台数・面積など"
-          className="input h-20"
+          placeholder="作業内容（草刈作業・軽土木作業など）・台数・面積など"
+          className="input h-24"
         />
       </Field>
 
       <div className="rounded-xl border border-black/10 bg-white p-3">
-        <p className="mb-2 text-sm font-medium text-black/70">現場写真</p>
-        <div className="grid grid-cols-2 gap-3">
+        <p className="mb-2 text-sm font-medium text-black/70">現場写真（各{MAX_PHOTOS}枚まで）</p>
+        <div className="space-y-4">
           <div>
-            <p className="mb-1 text-xs font-semibold text-black/50">作業前（Before）</p>
-            <PhotoInput photos={beforePhotos} photoKind="site" phase="before" onChange={setBefore} label="作業前" />
+            <p className="mb-1 text-xs font-semibold text-black/50">
+              作業前（Before）　{beforePhotos.length}/{MAX_PHOTOS}
+            </p>
+            <PhotoInput
+              photos={beforePhotos}
+              photoKind="site"
+              phase="before"
+              maxCount={MAX_PHOTOS}
+              onChange={setBefore}
+              label="作業前"
+            />
           </div>
           <div>
-            <p className="mb-1 text-xs font-semibold text-black/50">作業後（After）</p>
-            <PhotoInput photos={afterPhotos} photoKind="site" phase="after" onChange={setAfter} label="作業後" />
+            <p className="mb-1 text-xs font-semibold text-black/50">
+              作業後（After）　{afterPhotos.length}/{MAX_PHOTOS}
+            </p>
+            <PhotoInput
+              photos={afterPhotos}
+              photoKind="site"
+              phase="after"
+              maxCount={MAX_PHOTOS}
+              onChange={setAfter}
+              label="作業後"
+            />
           </div>
         </div>
       </div>
@@ -232,7 +239,7 @@ export default function AddView({
           onClick={saveAsTemplate}
           className="w-full rounded-xl border border-dashed border-brand-primary/50 py-2 text-sm text-brand-primary"
         >
-          ＋ この内容を「よく使う作業」に登録
+          ＋ この内容を「よく使う金額」に登録
         </button>
       )}
 

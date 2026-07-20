@@ -30,11 +30,9 @@ export function buildReportText(mKey: string, entries: Entry[], opts: ReportOpti
   for (const e of rows) {
     if (e.kind === 'income') income += e.amount;
     else expense += e.amount;
-    const sign = e.kind === 'income' ? '' : '（経費）';
     const site = e.site ? ` ${e.site}` : '';
     lines.push(`${shortDate(e.date)}${site}`);
-    lines.push(`　${e.category}${sign} ${yen(e.amount)}`);
-    if (e.memo) lines.push(`　※${e.memo}`);
+    lines.push(`　${e.memo || '作業'} ${yen(e.amount)}`);
   }
 
   if (rows.length === 0) lines.push('（記録なし）');
@@ -97,7 +95,7 @@ export async function buildReportImage(
     y += lineH;
     ctx.font = '22px sans-serif';
     ctx.fillStyle = e.kind === 'income' ? '#1d4ed8' : '#dc2626';
-    const label = `${e.category}${e.kind === 'income' ? '' : '（経費）'}`;
+    const label = e.memo || '作業';
     ctx.fillText(label, pad + 16, y);
     const amt = (e.kind === 'income' ? '+' : '−') + yen(e.amount);
     ctx.fillText(amt, W - pad - ctx.measureText(amt).width, y);

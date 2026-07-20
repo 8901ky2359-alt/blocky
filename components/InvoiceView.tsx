@@ -155,9 +155,8 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
                   <td className="p-1.5">{shortDate(e.date)}</td>
                   <td className="p-1.5">
                     {e.site}
-                    {e.site && '　'}
-                    {e.category}
-                    {e.memo ? `（${e.memo}）` : ''}
+                    {e.site && e.memo && '　'}
+                    {e.memo}
                   </td>
                   <td className="p-1.5 text-right">{yen(e.amount)}</td>
                 </tr>

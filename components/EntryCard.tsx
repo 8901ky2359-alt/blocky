@@ -20,14 +20,7 @@ export default function EntryCard({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span
-              className={`rounded-md px-1.5 py-0.5 text-xs font-semibold ${
-                income ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'
-              }`}
-            >
-              {entry.category}
-            </span>
-            {entry.site && <span className="truncate text-sm text-black/60">{entry.site}</span>}
+            <span className="truncate text-sm font-semibold">{entry.site || '（現場名なし）'}</span>
           </div>
           {showDate && <p className="mt-0.5 text-xs text-black/40">{entry.date}</p>}
           {entry.memo && <p className="mt-1 whitespace-pre-wrap text-sm text-black/70">{entry.memo}</p>}
