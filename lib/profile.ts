@@ -1,6 +1,6 @@
 'use client';
 
-// 請求書の発行元情報（氏名・郵便番号・住所・電話番号など）を保存
+// 請求書の発行元情報（氏名・住所・登録番号・振込先など）を保存
 
 export interface Profile {
   businessName: string; // 屋号（任意）
@@ -8,6 +8,12 @@ export interface Profile {
   postal: string; // 郵便番号
   address: string; // 住所
   phone: string; // 電話番号
+  regNo: string; // 適格請求書発行事業者 登録番号（T+13桁）
+  bankName: string; // 振込先 銀行名
+  bankBranch: string; // 支店名
+  bankType: string; // 種別（普通/当座）
+  bankNumber: string; // 口座番号
+  bankHolder: string; // 口座名義
   lastClient: string; // 前回の宛名（元請け名）
 }
 
@@ -20,6 +26,12 @@ const DEFAULT: Profile = {
   postal: '980-0804',
   address: '宮城県仙台市青葉区大町2丁目15-13-702',
   phone: '080-1814-5592',
+  regNo: '',
+  bankName: '',
+  bankBranch: '',
+  bankType: '普通',
+  bankNumber: '',
+  bankHolder: '',
   lastClient: '',
 };
 
@@ -39,9 +51,14 @@ export function loadProfile(): Profile {
     businessName: saved.businessName || DEFAULT.businessName,
     name: saved.name || DEFAULT.name,
     postal: saved.postal || DEFAULT.postal,
-    // 旧データの「連絡先(contact)」は住所欄に引き継ぐ
     address: saved.address || saved.contact || DEFAULT.address,
     phone: saved.phone || DEFAULT.phone,
+    regNo: saved.regNo || DEFAULT.regNo,
+    bankName: saved.bankName || DEFAULT.bankName,
+    bankBranch: saved.bankBranch || DEFAULT.bankBranch,
+    bankType: saved.bankType || DEFAULT.bankType,
+    bankNumber: saved.bankNumber || DEFAULT.bankNumber,
+    bankHolder: saved.bankHolder || DEFAULT.bankHolder,
     lastClient: saved.lastClient || '',
   };
 }
