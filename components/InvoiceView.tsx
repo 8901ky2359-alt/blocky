@@ -34,9 +34,10 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
     lastClient: '',
   }));
   const [client, setClient] = useState('');
+  const [honorific, setHonorific] = useState('様'); // 個人=様 / 法人=御中
   const [invoiceNo, setInvoiceNo] = useState('');
   const [dueDate, setDueDate] = useState(defaultDue());
-  const [taxRate, setTaxRate] = useState(10); // 既定10%
+  const [taxRate, setTaxRate] = useState(0); // 既定なし（インボイス登録後に10%へ）
   const [note, setNote] = useState('お振込手数料は貴社にてご負担くださいますようお願い申し上げます。');
 
   useEffect(() => {
@@ -88,8 +89,8 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
       </div>
 
       <div className="no-print rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800">
-        ファクタリング審査では「登録番号（T番号）・支払期限・振込先・消費税」が揃った請求書が有利です。
-        下の欄を埋めると請求書に反映されます（登録番号・振込先は一度入れると保存されます）。
+        支払期限・振込先・宛名を埋めると審査で有利です。インボイス登録番号は、登録後に「登録番号」欄へ入れてください（未登録の今は空欄でOK・消費税は「なし」）。
+        個人の取引先は敬称「様」を選びます。
       </div>
 
       {/* 入力欄（印刷されない） */}
@@ -103,8 +104,23 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
             ›
           </button>
         </div>
-        <Row label="宛名（元請け名）">
-          <input className="input" value={client} onChange={(e) => setClient(e.target.value)} placeholder="〇〇建設 御中" />
+        <Row label="宛名（取引先名）">
+          <div className="flex gap-2">
+            <input
+              className="input flex-1"
+              value={client}
+              onChange={(e) => setClient(e.target.value)}
+              placeholder="例: 山田 太郎"
+            />
+            <select
+              className="input w-24 shrink-0"
+              value={honorific}
+              onChange={(e) => setHonorific(e.target.value)}
+            >
+              <option value="様">様</option>
+              <option value="御中">御中</option>
+            </select>
+          </div>
         </Row>
         <div className="grid grid-cols-2 gap-3">
           <Row label="請求書番号">
@@ -176,7 +192,9 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
 
         <div className="mb-4 flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <p className="border-b border-black pb-1 text-lg font-semibold">{client || '　　　　　'} 御中</p>
+            <p className="border-b border-black pb-1 text-lg font-semibold">
+              {client || '　　　　　'} {honorific}
+            </p>
           </div>
           <div className="shrink-0 text-right text-xs leading-relaxed">
             <p>請求書番号: {shownNo}</p>
@@ -203,7 +221,8 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
         </div>
 
         <div className="mb-4 inline-block border-b-2 border-brand-primary bg-brand-soft px-4 py-2 text-lg font-bold">
-          ご請求金額　{yen(total)}（税込）
+          ご請求金額　{yen(total)}
+          {taxRate > 0 ? '（税込）' : ''}
         </div>
 
         <div className="overflow-x-auto">
@@ -240,10 +259,12 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
             <span>小計</span>
             <span>{yen(subtotal)}</span>
           </div>
-          <div className="flex justify-between border-b border-black/10 py-1">
-            <span>消費税（{taxRate}%）</span>
-            <span>{yen(tax)}</span>
-          </div>
+          {taxRate > 0 && (
+            <div className="flex justify-between border-b border-black/10 py-1">
+              <span>消費税（{taxRate}%）</span>
+              <span>{yen(tax)}</span>
+            </div>
+          )}
           <div className="flex justify-between border-y-2 border-black py-1.5 text-sm font-bold">
             <span>合計</span>
             <span>{yen(total)}</span>
