@@ -6,25 +6,39 @@ import { Template } from './types';
 import { uid } from './format';
 
 const KEY = 'genba-templates';
+const SEED_KEY = 'genba-templates-seed';
+// 初期テンプレートを更新したら、この番号を1つ増やすと既存の端末にも一度だけ反映される
+const SEED_VERSION = 2;
 
-// 初期サンプル（初回のみ）
-const DEFAULTS: Template[] = [
-  { id: uid(), label: '草刈り 半日', kind: 'income', category: '草刈り作業', amount: 15000, memo: '' },
-  { id: uid(), label: '草刈り 1日', kind: 'income', category: '草刈り作業', amount: 30000, memo: '' },
-  { id: uid(), label: '軽トラ運搬', kind: 'income', category: '運搬・軽トラ作業', amount: 10000, memo: '' },
-  { id: uid(), label: '燃料 給油', kind: 'expense', category: '燃料（ガソリン）', amount: 0, memo: '' },
-];
+// 初期テンプレート（常駐 / 出張）
+function defaults(): Template[] {
+  return [
+    { id: uid(), label: '常駐', kind: 'income', category: '草刈り作業', amount: 15000, memo: '' },
+    { id: uid(), label: '出張', kind: 'income', category: '草刈り作業', amount: 20000, memo: '' },
+  ];
+}
 
 export function loadTemplates(): Template[] {
   if (typeof window === 'undefined') return [];
+
+  const seededVersion = Number(window.localStorage.getItem(SEED_KEY) || '0');
+  // まだ一度も初期化していない or 初期テンプレートの版が古い場合は入れ替える
+  if (seededVersion < SEED_VERSION) {
+    const seeded = defaults();
+    saveTemplates(seeded);
+    window.localStorage.setItem(SEED_KEY, String(SEED_VERSION));
+    return seeded;
+  }
+
   try {
     const raw = window.localStorage.getItem(KEY);
     if (raw) return JSON.parse(raw) as Template[];
   } catch {
     /* noop */
   }
-  window.localStorage.setItem(KEY, JSON.stringify(DEFAULTS));
-  return DEFAULTS;
+  const seeded = defaults();
+  saveTemplates(seeded);
+  return seeded;
 }
 
 export function saveTemplates(list: Template[]): void {
