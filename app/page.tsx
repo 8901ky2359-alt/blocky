@@ -44,9 +44,9 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-200">
+    <div className="min-h-screen overflow-x-hidden bg-neutral-200">
       {/* モバイル固定フレーム（PCでも中央にスマホ幅で表示） */}
-      <div className="relative mx-auto min-h-screen w-full max-w-[480px] bg-brand-bg shadow-xl">
+      <div className="relative mx-auto min-h-screen w-full max-w-[480px] overflow-x-hidden bg-brand-bg shadow-xl">
         <header className="sticky top-0 z-10 flex items-center justify-between border-b border-black/5 bg-brand-bg/95 px-4 py-3 backdrop-blur">
           <h1 className="text-base font-bold text-brand-primary">🌿 現場家計簿</h1>
           <button onClick={() => setShowBackup(true)} className="text-xl" aria-label="バックアップ">

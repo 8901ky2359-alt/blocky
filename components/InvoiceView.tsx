@@ -134,6 +134,7 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
           ご請求金額　{yen(total)}
         </div>
 
+        <div className="overflow-x-auto">
         <table className="w-full border-collapse text-xs">
           <thead>
             <tr className="border-y border-black/40 bg-black/5">
@@ -164,6 +165,7 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
             )}
           </tbody>
         </table>
+        </div>
 
         <div className="mt-2 ml-auto w-56 text-xs">
           <div className="flex justify-between border-b border-black/10 py-1">
