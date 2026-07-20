@@ -7,12 +7,14 @@ export interface GeoResult {
   matched: string; // ヒットした住所表記
 }
 
-export async function geocodeAddress(address: string): Promise<GeoResult | null> {
+export async function geocodeAddress(address: string, timeoutMs = 7000): Promise<GeoResult | null> {
   const q = address.trim();
   if (!q) return null;
   const url = `https://msearch.gsi.go.jp/address-search/AddressSearch?q=${encodeURIComponent(q)}`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: controller.signal });
     if (!res.ok) return null;
     const data = (await res.json()) as Array<{
       geometry: { coordinates: [number, number] };
@@ -23,5 +25,7 @@ export async function geocodeAddress(address: string): Promise<GeoResult | null>
     return { lat, lng, matched: data[0].properties?.title ?? q };
   } catch {
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
