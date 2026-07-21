@@ -11,7 +11,7 @@ const TABS: { key: Tab; label: string; icon: string }[] = [
 
 export default function BottomNav({ tab, onChange }: { tab: string; onChange: (t: Tab) => void }) {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-black/10 bg-white/95 backdrop-blur">
+    <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-black/10 bg-white/95 backdrop-blur md:hidden">
       <div className="mx-auto grid max-w-[480px] grid-cols-4">
         {TABS.map((t) => {
           const active = t.key === tab;

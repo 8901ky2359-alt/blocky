@@ -6,6 +6,7 @@ import { exportJson, importJson } from '@/lib/db';
 import { Entry } from '@/lib/types';
 import { todayStr } from '@/lib/format';
 import BottomNav, { Tab } from '@/components/BottomNav';
+import SideNav from '@/components/SideNav';
 import CalendarView from '@/components/CalendarView';
 import AddView from '@/components/AddView';
 import SummaryView from '@/components/SummaryView';
@@ -63,17 +64,26 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-neutral-200">
-      {/* モバイル固定フレーム（PCでも中央にスマホ幅で表示） */}
-      <div className="relative mx-auto min-h-screen w-full max-w-[480px] overflow-x-hidden bg-brand-bg shadow-xl">
-        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-black/5 bg-brand-bg/95 px-4 py-3 backdrop-blur">
-          <h1 className="text-base font-bold text-brand-primary">🌿 現場家計簿</h1>
-          <button onClick={() => setShowBackup(true)} className="text-xl" aria-label="バックアップ">
-            ⚙
-          </button>
-        </header>
+    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-emerald-50 via-neutral-100 to-neutral-200">
+      <div className="mx-auto flex min-h-screen w-full max-w-[1180px]">
+        {/* PC用サイドナビ（スマホでは非表示） */}
+        <SideNav
+          tab={view}
+          onChange={(t) => setView(t)}
+          onAdd={() => goAdd()}
+          onBackup={() => setShowBackup(true)}
+        />
 
-        <main className="w-full px-4 pb-28 pt-4">
+        {/* アプリ本体（スマホ幅のカード。PCでは中央にフローティング） */}
+        <div className="relative mx-auto min-h-screen w-full max-w-[520px] overflow-x-hidden bg-brand-bg shadow-xl md:my-8 md:min-h-[calc(100vh-4rem)] md:self-start md:rounded-3xl md:shadow-2xl md:ring-1 md:ring-black/5">
+          <header className="sticky top-0 z-10 flex items-center justify-between border-b border-black/5 bg-brand-bg/95 px-4 py-3 backdrop-blur md:hidden">
+            <h1 className="text-base font-bold text-brand-primary">🌿 現場家計簿</h1>
+            <button onClick={() => setShowBackup(true)} className="text-xl" aria-label="バックアップ">
+              ⚙
+            </button>
+          </header>
+
+          <main className="w-full px-4 pb-28 pt-4 md:px-6 md:pb-10 md:pt-7">
           {loading ? (
             <p className="py-20 text-center text-black/40">読み込み中…</p>
           ) : (
@@ -96,13 +106,14 @@ export default function Home() {
               {view === 'report' && <ReportView entries={entries} />}
             </>
           )}
-        </main>
+          </main>
+        </div>
       </div>
 
-      {/* 記録追加のフローティングボタン（＋） */}
+      {/* 記録追加のフローティングボタン（＋）＝スマホのみ */}
       {view !== 'add' && (
-        <div className="pointer-events-none fixed inset-0 z-20">
-          <div className="relative mx-auto h-full max-w-[480px]">
+        <div className="pointer-events-none fixed inset-0 z-20 md:hidden">
+          <div className="relative mx-auto h-full max-w-[520px]">
             <button
               onClick={() => goAdd()}
               aria-label="記録する"
