@@ -4,10 +4,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { Entry } from './types';
 import { deleteEntry, listEntries, putEntry } from './db';
 import { uid } from './format';
+import { hasSync, syncNow } from './sync';
 
 export function useEntries() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -20,8 +22,33 @@ export function useEntries() {
     }
   }, []);
 
+  // クラウド同期して一覧を更新
+  const sync = useCallback(async () => {
+    if (!hasSync()) return { ok: false, error: 'no-space' as const };
+    setSyncing(true);
+    try {
+      const r = await syncNow();
+      await refresh();
+      return r;
+    } finally {
+      setSyncing(false);
+    }
+  }, [refresh]);
+
+  // 起動時：まずローカル表示 → 同期があれば同期
   useEffect(() => {
-    refresh();
+    (async () => {
+      await refresh();
+      if (hasSync()) {
+        setSyncing(true);
+        try {
+          await syncNow();
+          await refresh();
+        } finally {
+          setSyncing(false);
+        }
+      }
+    })();
   }, [refresh]);
 
   const save = useCallback(
@@ -46,6 +73,12 @@ export function useEntries() {
       };
       await putEntry(entry);
       await refresh();
+      // 保存後にバックグラウンドで同期（写真は送らない）
+      if (hasSync()) {
+        syncNow()
+          .then(() => refresh())
+          .catch(() => {});
+      }
       return entry;
     },
     [entries, refresh],
@@ -59,5 +92,5 @@ export function useEntries() {
     [refresh],
   );
 
-  return { entries, loading, refresh, save, remove };
+  return { entries, loading, syncing, refresh, save, remove, sync };
 }

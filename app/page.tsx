@@ -5,6 +5,7 @@ import { useEntries } from '@/lib/useEntries';
 import { exportJson, importJson } from '@/lib/db';
 import { Entry } from '@/lib/types';
 import { todayStr } from '@/lib/format';
+import { generateCode, getSpace, setSpace, type SyncResult } from '@/lib/sync';
 import BottomNav, { Tab } from '@/components/BottomNav';
 import SideNav from '@/components/SideNav';
 import CalendarView from '@/components/CalendarView';
@@ -16,7 +17,7 @@ import ReportView from '@/components/ReportView';
 type View = Tab | 'add';
 
 export default function Home() {
-  const { entries, loading, save, remove } = useEntries();
+  const { entries, loading, syncing, save, remove, sync } = useEntries();
   const [view, setView] = useState<View>('calendar');
   const [editing, setEditing] = useState<Entry | null>(null);
   const [addDate, setAddDate] = useState<string>(todayStr());
@@ -127,12 +128,49 @@ export default function Home() {
 
       <BottomNav tab={view} onChange={(t) => setView(t)} />
 
-      {showBackup && <BackupPanel onClose={() => setShowBackup(false)} onImported={() => location.reload()} />}
+      {showBackup && (
+        <BackupPanel
+          onClose={() => setShowBackup(false)}
+          onImported={() => location.reload()}
+          onSync={sync}
+          syncing={syncing}
+        />
+      )}
     </div>
   );
 }
 
-function BackupPanel({ onClose, onImported }: { onClose: () => void; onImported: () => void }) {
+function BackupPanel({
+  onClose,
+  onImported,
+  onSync,
+  syncing,
+}: {
+  onClose: () => void;
+  onImported: () => void;
+  onSync: () => Promise<SyncResult>;
+  syncing: boolean;
+}) {
+  const [code, setCode] = useState(getSpace());
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
+
+  function applyCode() {
+    setSpace(code.trim());
+    setSyncMsg(code.trim() ? '同期コードを設定しました' : '同期をオフにしました');
+  }
+
+  async function doSyncNow() {
+    setSpace(code.trim());
+    if (!code.trim()) {
+      setSyncMsg('同期コードを入力してください');
+      return;
+    }
+    const r = await onSync();
+    if (r.ok) setSyncMsg(`同期しました（${r.count}件）`);
+    else if (r.error === 'offline') setSyncMsg('ネットに接続できませんでした');
+    else setSyncMsg('同期できませんでした');
+  }
+
   async function doExport() {
     const json = await exportJson();
     const blob = new Blob([json], { type: 'application/json' });
@@ -162,6 +200,45 @@ function BackupPanel({ onClose, onImported }: { onClose: () => void; onImported:
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-black/20" />
+
+        {/* クラウド同期 */}
+        <h3 className="mb-1 text-lg font-bold">☁ クラウド同期（スマホ⇔PC）</h3>
+        <p className="mb-2 text-sm text-black/50">
+          同じ「同期コード」を各端末に設定すると、記録が自動で共有されます（写真は各端末に残ります）。
+        </p>
+        <div className="mb-2 flex gap-2">
+          <input
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="同期コード（例: genba-ab12cd）"
+            className="input flex-1"
+          />
+          <button
+            onClick={() => setCode(generateCode())}
+            className="shrink-0 rounded-xl border border-black/15 px-3 text-sm font-semibold text-black/60"
+          >
+            新規作成
+          </button>
+        </div>
+        <div className="mb-1 grid grid-cols-2 gap-2">
+          <button onClick={applyCode} className="rounded-xl border border-black/15 py-2.5 text-sm font-semibold">
+            コードを設定
+          </button>
+          <button
+            onClick={doSyncNow}
+            disabled={syncing}
+            className="rounded-xl bg-brand-primary py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            {syncing ? '同期中…' : '今すぐ同期'}
+          </button>
+        </div>
+        {syncMsg && <p className="mb-1 text-center text-xs text-brand-primary">{syncMsg}</p>}
+        <p className="mb-4 text-[11px] leading-relaxed text-black/40">
+          ※ 他の端末では、同じコードを入れて「今すぐ同期」すると同じデータが表示されます。コードは他人に教えないでください。
+        </p>
+
+        <div className="my-3 border-t border-black/10" />
+
         <h3 className="mb-1 text-lg font-bold">バックアップ / 復元</h3>
         <p className="mb-4 text-sm text-black/50">
           データはこの端末内に保存されています。機種変更や万一に備え、ファイルに書き出して保管できます。

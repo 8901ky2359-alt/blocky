@@ -1,10 +1,18 @@
-# Cloudflare Workers（静的アセット配信）設定
-# `npm run build` で out/ を生成 → `npx wrangler deploy` でこの設定を読み、out/ を配信する
+# Cloudflare Workers（静的アセット配信＋同期API）設定
+# `npm run build` で out/ を生成 → `npx wrangler deploy` でこの設定を読み配信・API公開
 
 name = "blocky"
+main = "worker/index.js"
 compatibility_date = "2025-01-01"
 
-# サーバー処理のない静的サイトとして out/ を配信する
+# 静的サイト（out/）を配信。/api 以外はアセットが直接配信される
 [assets]
 directory = "./out"
+binding = "ASSETS"
 not_found_handling = "single-page-application"
+
+# 端末間同期用データベース
+[[d1_databases]]
+binding = "DB"
+database_name = "genba-kakeibo"
+database_id = "68a56050-be1a-4509-af43-63bf6e795ad4"
