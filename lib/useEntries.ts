@@ -14,7 +14,8 @@ export function useEntries() {
   const refresh = useCallback(async () => {
     try {
       const rows = await listEntries();
-      setEntries(rows);
+      // 削除済み（墓標）は表示しない
+      setEntries(rows.filter((e) => !e.deleted));
     } catch {
       setEntries([]);
     } finally {
@@ -86,10 +87,21 @@ export function useEntries() {
 
   const remove = useCallback(
     async (id: string) => {
-      await deleteEntry(id);
+      // 同期のため、物理削除ではなく「削除済み」の墓標として残す（写真は破棄）
+      const target = entries.find((e) => e.id === id);
+      if (target) {
+        await putEntry({ ...target, deleted: true, photos: [], updatedAt: Date.now() });
+      } else {
+        await deleteEntry(id);
+      }
       await refresh();
+      if (hasSync()) {
+        syncNow()
+          .then(() => refresh())
+          .catch(() => {});
+      }
     },
-    [refresh],
+    [entries, refresh],
   );
 
   return { entries, loading, syncing, refresh, save, remove, sync };

@@ -63,11 +63,13 @@ async function handleSync(request, env) {
     await env.DB.batch(stmts.slice(i, i + 500));
   }
 
+  // 削除印(墓標)も含めて全件返す（他端末の削除を反映するため）
   const { results } = await env.DB.prepare(
-    `SELECT data FROM entries WHERE space = ?1 AND deleted = 0`,
+    `SELECT data FROM entries WHERE space = ?1`,
   )
     .bind(space)
     .all();
   const entries = (results || []).map((r) => JSON.parse(r.data));
-  return json({ entries, count: entries.length });
+  const active = entries.filter((e) => !e.deleted).length;
+  return json({ entries, count: active });
 }

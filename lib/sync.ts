@@ -65,10 +65,13 @@ export async function syncNow(): Promise<SyncResult> {
   for (const s of data.entries) {
     if (!s || !s.id) continue;
     const l = localMap.get(s.id);
-    const photos = l?.photos ?? []; // 写真はローカルのものを保持
-    if (!l || (s.updatedAt ?? 0) >= (l.updatedAt ?? 0)) {
+    if ((s.updatedAt ?? 0) >= (l?.updatedAt ?? -1) || !l) {
+      // 削除印なら墓標として保存（写真も破棄）。通常はローカル写真を保持
+      const photos = s.deleted ? [] : l?.photos ?? [];
       await putEntry({ ...s, photos });
     }
   }
-  return { ok: true, count: data.entries.length };
+  // 表示件数は削除済みを除く
+  const count = data.entries.filter((e) => !e.deleted).length;
+  return { ok: true, count };
 }
