@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useEntries } from '@/lib/useEntries';
 import { exportJson, importJson } from '@/lib/db';
 import { Entry } from '@/lib/types';
@@ -22,6 +22,13 @@ export default function Home() {
   const [editing, setEditing] = useState<Entry | null>(null);
   const [addDate, setAddDate] = useState<string>(todayStr());
   const [showBackup, setShowBackup] = useState(false);
+
+  // オフライン対応（サービスワーカー登録）
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+  }, []);
 
   // 現場名の候補（最近使った順・住所つき）
   const knownSites = useMemo(() => {

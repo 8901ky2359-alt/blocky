@@ -76,14 +76,62 @@ export default function EntryCard({
         </div>
       </div>
 
-      {entry.photos.length > 0 && (
-        <div className="mt-2 flex gap-1.5 overflow-x-auto">
-          {entry.photos.map((p) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img key={p.id} src={p.dataUrl} alt="" className="h-16 w-16 shrink-0 rounded-md object-cover" />
-          ))}
-        </div>
-      )}
+      {(() => {
+        const before = entry.photos.filter((p) => p.photoKind === 'site' && p.phase === 'before');
+        const after = entry.photos.filter((p) => p.photoKind === 'site' && p.phase === 'after');
+        const others = entry.photos.filter(
+          (p) => p.photoKind === 'site' && p.phase !== 'before' && p.phase !== 'after',
+        );
+        const receipts = entry.photos.filter((p) => p.photoKind === 'receipt');
+        const col = (list: Photo[]) =>
+          list.length === 0 ? (
+            <div className="grid aspect-[4/3] place-items-center rounded-md bg-slate-100 text-[11px] text-slate-400">
+              なし
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {list.map((p) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img key={p.id} src={p.dataUrl} alt="" className="aspect-[4/3] w-full rounded-md object-cover" />
+              ))}
+            </div>
+          );
+        return (
+          <div className="mt-2 space-y-2">
+            {(before.length > 0 || after.length > 0) && (
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <p className="mb-1 text-[10px] font-bold tracking-wide text-blue-600">BEFORE（作業前）</p>
+                  {col(before)}
+                </div>
+                <div>
+                  <p className="mb-1 text-[10px] font-bold tracking-wide text-emerald-600">AFTER（作業後）</p>
+                  {col(after)}
+                </div>
+              </div>
+            )}
+            {others.length > 0 && (
+              <div className="flex gap-1.5 overflow-x-auto">
+                {others.map((p) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img key={p.id} src={p.dataUrl} alt="" className="h-16 w-16 shrink-0 rounded-md object-cover" />
+                ))}
+              </div>
+            )}
+            {receipts.length > 0 && (
+              <div>
+                <p className="mb-1 text-[10px] font-bold tracking-wide text-slate-500">レシート・購入品</p>
+                <div className="flex gap-1.5 overflow-x-auto">
+                  {receipts.map((p) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={p.id} src={p.dataUrl} alt="" className="h-16 w-16 shrink-0 rounded-md object-cover" />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* 共有（日付・現場・住所・位置・金額・経費＋全写真をまとめて） */}
       <button
