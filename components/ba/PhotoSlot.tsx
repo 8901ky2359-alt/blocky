@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Shot } from '@/lib/ba/types';
 
 type Kind = 'before' | 'after';
@@ -29,6 +29,20 @@ export default function PhotoSlot({
 }) {
   const albRef = useRef<HTMLInputElement>(null);
   const s = STYLE[kind];
+  const [saved, setSaved] = useState(false);
+  const savedT = useRef<number>();
+
+  // 写真が変わったら保存完了表示をリセット
+  useEffect(() => {
+    setSaved(false);
+  }, [shot?.dataUrl]);
+
+  function doSave() {
+    onSave();
+    setSaved(true);
+    window.clearTimeout(savedT.current);
+    savedT.current = window.setTimeout(() => setSaved(false), 2200);
+  }
 
   return (
     <div className="flex-1">
@@ -63,25 +77,29 @@ export default function PhotoSlot({
       </div>
 
       {shot && (
-        <div className="mt-1.5 grid grid-cols-3 gap-1.5">
+        <div className="mt-1.5 space-y-1.5">
           <button
-            onClick={onRequestCamera}
-            className="rounded-none border border-slate-300 py-1.5 text-[11px] font-semibold text-slate-600"
+            onClick={doSave}
+            className={`w-full rounded-none py-2 text-xs font-bold text-white transition ${
+              saved ? 'bg-emerald-600' : 'bg-slate-900'
+            }`}
           >
-            撮り直し
+            {saved ? '✓ 保存しました' : '💾 この写真を保存'}
           </button>
-          <button
-            onClick={onClear}
-            className="rounded-none border border-rose-200 py-1.5 text-[11px] font-semibold text-rose-500"
-          >
-            削除
-          </button>
-          <button
-            onClick={onSave}
-            className="rounded-none bg-slate-900 py-1.5 text-[11px] font-semibold text-white"
-          >
-            保存
-          </button>
+          <div className="grid grid-cols-2 gap-1.5">
+            <button
+              onClick={onRequestCamera}
+              className="rounded-none border border-slate-300 py-1.5 text-[11px] font-semibold text-slate-600"
+            >
+              撮り直し
+            </button>
+            <button
+              onClick={onClear}
+              className="rounded-none border border-rose-200 py-1.5 text-[11px] font-semibold text-rose-500"
+            >
+              削除
+            </button>
+          </div>
         </div>
       )}
 
