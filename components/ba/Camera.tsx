@@ -53,12 +53,34 @@ export default function Camera({
   function capture() {
     const video = videoRef.current;
     if (!video || !video.videoWidth) return;
+    // 5:4 の横長で中央から切り出す（プレビューの見た目と一致）
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    const ratio = 5 / 4;
+    const srcRatio = vw / vh;
+    let cw: number;
+    let ch: number;
+    let cx: number;
+    let cy: number;
+    if (srcRatio > ratio) {
+      ch = vh;
+      cw = vh * ratio;
+      cx = (vw - cw) / 2;
+      cy = 0;
+    } else {
+      cw = vw;
+      ch = vw / ratio;
+      cx = 0;
+      cy = (vh - ch) / 2;
+    }
+    const outW = Math.min(1280, Math.round(cw));
+    const outH = Math.round(outW / ratio);
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    canvas.width = outW;
+    canvas.height = outH;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    ctx.drawImage(video, 0, 0);
+    ctx.drawImage(video, cx, cy, cw, ch, 0, 0, outW, outH);
     setShot(canvas.toDataURL('image/jpeg', 0.92));
   }
 
@@ -83,8 +105,8 @@ export default function Camera({
         <span className="w-16" />
       </div>
 
-      {/* プレビュー領域 */}
-      <div className="relative flex-1 overflow-hidden bg-black">
+      {/* プレビュー領域（5:4の横長フレーム。見たまま切り出し） */}
+      <div className="relative flex flex-1 items-center justify-center overflow-hidden bg-black">
         {error ? (
           <div className="flex h-full flex-col items-center justify-center gap-4 px-6 text-center text-white">
             <p className="text-sm">{error}</p>
@@ -97,9 +119,11 @@ export default function Camera({
           </div>
         ) : shot ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={shot} alt="" className="h-full w-full object-contain" />
+          <img src={shot} alt="" className="aspect-[5/4] w-full object-cover" />
         ) : (
-          <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
+          <div className="aspect-[5/4] w-full overflow-hidden bg-black ring-1 ring-white/15">
+            <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
+          </div>
         )}
       </div>
 
@@ -125,9 +149,11 @@ export default function Camera({
             <button
               onClick={capture}
               aria-label="撮影"
-              className="h-18 w-18 border-4 border-white bg-white/20 active:bg-white/40"
-              style={{ height: 72, width: 72 }}
-            />
+              className="grid place-items-center rounded-full border-4 border-white/80 active:border-white"
+              style={{ height: 76, width: 76 }}
+            >
+              <span className="block rounded-full bg-white" style={{ height: 56, width: 56 }} />
+            </button>
           )}
         </div>
       )}
