@@ -51,6 +51,11 @@ export default function ShareSheet({
 
   const selectedCells = cells.filter((c) => sel.has(key(c)));
 
+  // 共有テキストは番号のみ（現場名は含めない）
+  function numbersText(nums: number[]): string {
+    return [...new Set(nums)].sort((a, b) => a - b).map((n) => `${n}番`).join(' ');
+  }
+
   async function shareSelected() {
     if (selectedCells.length === 0) return;
     setBusy(true);
@@ -58,7 +63,7 @@ export default function ShareSheet({
       const files = selectedCells.map((c) =>
         dataUrlToFile(c.url, `${p}${c.i + 1}_${c.kind}.jpg`),
       );
-      const r = await shareOrDownload(files, `${project.name || '現場'} ビフォーアフター`);
+      const r = await shareOrDownload(files, numbersText(selectedCells.map((c) => c.i + 1)));
       if (r === 'downloaded') notify(`${files.length}枚を保存しました（共有非対応のため）`);
       else if (r === 'failed') notify('共有できませんでした');
       else onClose();
@@ -88,7 +93,7 @@ export default function ShareSheet({
         );
         files.push(dataUrlToFile(url, `${p}${i + 1}_比較.jpg`));
       }
-      const r = await shareOrDownload(files, `${project.name || '現場'} 比較画像`);
+      const r = await shareOrDownload(files, numbersText(nums.map((i) => i + 1)));
       if (r === 'downloaded') notify(`${files.length}枚の比較画像を保存しました`);
       else if (r === 'failed') notify('共有できませんでした');
       else onClose();

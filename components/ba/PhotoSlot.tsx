@@ -17,6 +17,7 @@ export default function PhotoSlot({
   onRequestCamera,
   onPickFile,
   onClear,
+  onSave,
 }: {
   kind: Kind;
   shot: Shot | null;
@@ -24,6 +25,7 @@ export default function PhotoSlot({
   onRequestCamera: () => void;
   onPickFile: (file: File) => void;
   onClear: () => void;
+  onSave: () => void;
 }) {
   const albRef = useRef<HTMLInputElement>(null);
   const s = STYLE[kind];
@@ -61,7 +63,7 @@ export default function PhotoSlot({
       </div>
 
       {shot && (
-        <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+        <div className="mt-1.5 grid grid-cols-3 gap-1.5">
           <button
             onClick={onRequestCamera}
             className="rounded-none border border-slate-300 py-1.5 text-[11px] font-semibold text-slate-600"
@@ -73,6 +75,12 @@ export default function PhotoSlot({
             className="rounded-none border border-rose-200 py-1.5 text-[11px] font-semibold text-rose-500"
           >
             削除
+          </button>
+          <button
+            onClick={onSave}
+            className="rounded-none bg-slate-900 py-1.5 text-[11px] font-semibold text-white"
+          >
+            保存
           </button>
         </div>
       )}

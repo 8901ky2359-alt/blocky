@@ -109,6 +109,7 @@ export default function WorkScreen({
             onRequestCamera={(kind) => setCamTarget({ index: i, kind })}
             onPickFile={(kind, file) => handlePick(i, kind, file)}
             onClear={(kind) => onSetShot(i, kind, null)}
+            notify={notify}
           />
         ))}
       </div>

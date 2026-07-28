@@ -1,6 +1,7 @@
 'use client';
 
 import { Item } from '@/lib/ba/types';
+import { dataUrlToFile, downloadFile } from '@/lib/ba/share';
 import PhotoSlot from './PhotoSlot';
 
 export default function ItemRow({
@@ -10,6 +11,7 @@ export default function ItemRow({
   onRequestCamera,
   onPickFile,
   onClear,
+  notify,
 }: {
   index: number;
   item: Item;
@@ -17,9 +19,17 @@ export default function ItemRow({
   onRequestCamera: (kind: 'before' | 'after') => void;
   onPickFile: (kind: 'before' | 'after', file: File) => void;
   onClear: (kind: 'before' | 'after') => void;
+  notify: (msg: string) => void;
 }) {
   const no = index + 1;
   const done = !!item.before && !!item.after;
+
+  function saveOne(kind: 'before' | 'after') {
+    const shot = item[kind];
+    if (!shot) return;
+    downloadFile(dataUrlToFile(shot.dataUrl, `${no}_${kind}.jpg`));
+    notify('写真を保存しました');
+  }
 
   return (
     <div className="rounded-sm border border-slate-200 bg-white p-3 shadow-sm">
@@ -45,6 +55,7 @@ export default function ItemRow({
           onRequestCamera={() => onRequestCamera('before')}
           onPickFile={(f) => onPickFile('before', f)}
           onClear={() => onClear('before')}
+          onSave={() => saveOne('before')}
         />
         <PhotoSlot
           kind="after"
@@ -53,6 +64,7 @@ export default function ItemRow({
           onRequestCamera={() => onRequestCamera('after')}
           onPickFile={(f) => onPickFile('after', f)}
           onClear={() => onClear('after')}
+          onSave={() => saveOne('after')}
         />
       </div>
     </div>
