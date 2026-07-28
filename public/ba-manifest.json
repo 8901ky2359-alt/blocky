@@ -1,0 +1,19 @@
+{
+  "name": "現場ビフォーアフター",
+  "short_name": "B/A現場",
+  "description": "現場作業のビフォー/アフター写真を記録・共有",
+  "start_url": "/ba",
+  "scope": "/ba",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "/ba-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

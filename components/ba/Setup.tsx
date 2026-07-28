@@ -1,0 +1,79 @@
+'use client';
+
+import { useState } from 'react';
+
+const PRESETS = [1, 3, 5, 8, 10, 15, 20, 30];
+
+export default function Setup({ onStart }: { onStart: (count: number) => void }) {
+  const [count, setCount] = useState(5);
+  const clamp = (n: number) => Math.max(1, Math.min(30, n));
+
+  return (
+    <div className="mx-auto flex min-h-[100dvh] w-full max-w-md flex-col justify-center px-5 py-10">
+      <div className="mb-8 text-center">
+        <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-1.5 text-xs font-semibold tracking-wide text-white">
+          BEFORE / AFTER
+        </div>
+        <h1 className="text-2xl font-bold text-slate-900">現場ビフォーアフター</h1>
+        <p className="mt-2 text-sm text-slate-500">
+          撮影する箇所数を選んで始めましょう。
+          <br />
+          番号ごとにビフォー／アフターを記録できます。
+        </p>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <p className="mb-3 text-sm font-semibold text-slate-700">箇所数を選ぶ</p>
+
+        <div className="grid grid-cols-4 gap-2">
+          {PRESETS.map((p) => (
+            <button
+              key={p}
+              onClick={() => setCount(p)}
+              className={`rounded-xl py-3 text-sm font-bold transition ${
+                count === p
+                  ? 'bg-slate-900 text-white shadow'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+
+        {/* ステッパー */}
+        <div className="mt-5 flex items-center justify-center gap-4">
+          <button
+            onClick={() => setCount((c) => clamp(c - 1))}
+            className="grid h-12 w-12 place-items-center rounded-full border border-slate-200 text-2xl text-slate-600 active:bg-slate-100"
+            aria-label="減らす"
+          >
+            −
+          </button>
+          <div className="w-24 text-center">
+            <span className="text-4xl font-bold text-slate-900">{count}</span>
+            <span className="ml-1 text-sm text-slate-500">箇所</span>
+          </div>
+          <button
+            onClick={() => setCount((c) => clamp(c + 1))}
+            className="grid h-12 w-12 place-items-center rounded-full border border-slate-200 text-2xl text-slate-600 active:bg-slate-100"
+            aria-label="増やす"
+          >
+            ＋
+          </button>
+        </div>
+      </div>
+
+      <button
+        onClick={() => onStart(count)}
+        className="mt-6 w-full rounded-2xl bg-blue-600 py-4 text-base font-bold text-white shadow-lg shadow-blue-600/20 transition active:scale-[.99]"
+      >
+        {count}箇所ではじめる
+      </button>
+
+      <p className="mt-4 text-center text-xs text-slate-400">
+        データはこの端末に自動保存され、オフラインでも使えます
+      </p>
+    </div>
+  );
+}
