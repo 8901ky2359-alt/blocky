@@ -1,7 +1,15 @@
 'use client';
 
-import { Entry } from '@/lib/types';
+import { Entry, Photo } from '@/lib/types';
 import { yen } from '@/lib/format';
+import { dataUrlToFile, downloadFile, shareFiles } from '@/lib/report';
+
+function photoLabel(p: Photo): string {
+  if (p.photoKind === 'receipt') return 'レシート';
+  if (p.phase === 'before') return 'before';
+  if (p.phase === 'after') return 'after';
+  return '現場';
+}
 
 export default function EntryCard({
   entry,
@@ -15,6 +23,17 @@ export default function EntryCard({
   showDate?: boolean;
 }) {
   const income = entry.kind === 'income';
+
+  async function shareAllPhotos() {
+    if (entry.photos.length === 0) return;
+    const base = entry.site || '現場';
+    const files = entry.photos.map((p, i) =>
+      dataUrlToFile(p.dataUrl, `${base}_${photoLabel(p)}_${i + 1}.jpg`),
+    );
+    const r = await shareFiles(files, base);
+    if (r !== 'shared') files.forEach(downloadFile);
+  }
+
   return (
     <div className="rounded-xl border border-black/10 bg-white p-3">
       <div className="flex items-start justify-between gap-2">
@@ -48,6 +67,15 @@ export default function EntryCard({
             />
           ))}
         </div>
+      )}
+
+      {entry.photos.length > 0 && (
+        <button
+          onClick={shareAllPhotos}
+          className="mt-2 w-full rounded-lg bg-brand-primary py-2 text-xs font-bold text-white"
+        >
+          📷 この現場の写真を共有（{entry.photos.length}枚・Before/After・レシート）
+        </button>
       )}
 
       {(onEdit || onDelete) && (

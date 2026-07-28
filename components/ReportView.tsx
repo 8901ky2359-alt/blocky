@@ -7,6 +7,7 @@ import {
   buildReportImage,
   buildReportText,
   dataUrlToFile,
+  downloadFile,
   shareFiles,
   shareText,
 } from '@/lib/report';
@@ -20,11 +21,12 @@ export default function ReportView({ entries }: { entries: Entry[] }) {
 
   const text = useMemo(() => buildReportText(mKey, entries), [mKey, entries]);
 
-  const sitePhotos = useMemo(
+  // 月内の全写真（現場Before/After＋レシート）
+  const allPhotos = useMemo(
     () =>
       entries
         .filter((e) => e.date.slice(0, 7) === mKey)
-        .flatMap((e) => e.photos.filter((p) => p.photoKind === 'site')),
+        .flatMap((e) => e.photos),
     [entries, mKey],
   );
 
@@ -67,16 +69,21 @@ export default function ReportView({ entries }: { entries: Entry[] }) {
   }
 
   async function onSharePhotos() {
-    if (sitePhotos.length === 0) {
-      flash('この月の現場写真はありません');
+    if (allPhotos.length === 0) {
+      flash('この月の写真はありません');
       return;
     }
     setBusy(true);
     try {
-      const files = sitePhotos.slice(0, 10).map((p, i) => dataUrlToFile(p.dataUrl, `現場_${mKey}_${i + 1}.jpg`));
-      const r = await shareFiles(files, `${formatJpMonth(mKey)} 現場写真`);
-      if (r === 'unsupported') flash('この端末では写真の一括共有に未対応です（1枚ずつ写真タブから保存できます）');
-      else if (r === 'failed') flash('共有できませんでした');
+      const files = allPhotos.map((p, i) => {
+        const kind = p.photoKind === 'receipt' ? 'レシート' : p.phase === 'before' ? 'before' : p.phase === 'after' ? 'after' : '現場';
+        return dataUrlToFile(p.dataUrl, `${mKey}_${kind}_${i + 1}.jpg`);
+      });
+      const r = await shareFiles(files, `${formatJpMonth(mKey)} 写真`);
+      if (r === 'unsupported' || r === 'failed') {
+        files.forEach(downloadFile);
+        flash('端末に保存しました（共有非対応のため）');
+      }
     } finally {
       setBusy(false);
     }
@@ -129,7 +136,7 @@ export default function ReportView({ entries }: { entries: Entry[] }) {
           disabled={busy}
           className="w-full rounded-xl border border-brand-primary py-3 font-bold text-brand-primary disabled:opacity-50"
         >
-          🖼 現場写真をまとめて共有（{sitePhotos.length}枚）
+          🖼 写真をまとめて共有（現場・レシート {allPhotos.length}枚）
         </button>
         <button
           onClick={() => setShowInvoice(true)}

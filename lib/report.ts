@@ -164,3 +164,13 @@ export function dataUrlToFile(dataUrl: string, filename: string): File {
   for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
   return new File([arr], filename, { type: mime });
 }
+
+// ファイルを端末に保存（共有非対応時のフォールバック）
+export function downloadFile(file: File): void {
+  const url = URL.createObjectURL(file);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = file.name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
