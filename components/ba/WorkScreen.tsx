@@ -1,10 +1,13 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Project, Shot } from '@/lib/ba/types';
 import { toFiveFour } from '@/lib/ba/image';
-import { dataUrlToFile, shareOrDownload } from '@/lib/ba/share';
 import ItemRow from './ItemRow';
+import Camera from './Camera';
+import ShareSheet from './ShareSheet';
+
+type Target = { index: number; kind: 'before' | 'after' };
 
 export default function WorkScreen({
   project,
@@ -18,17 +21,22 @@ export default function WorkScreen({
   onReset: () => void;
 }) {
   const [toast, setToast] = useState<string | null>(null);
-  const [busy, setBusy] = useState<string | null>(null); // `${index}:${kind}`
+  const [busy, setBusy] = useState<string | null>(null);
+  const [camTarget, setCamTarget] = useState<Target | null>(null);
+  const [showShare, setShowShare] = useState(false);
+  const nativeRef = useRef<HTMLInputElement>(null);
+  const pendingRef = useRef<Target | null>(null);
+  const toastT = useRef<number>();
 
   function notify(msg: string) {
     setToast(msg);
-    window.clearTimeout((notify as unknown as { t?: number }).t);
-    (notify as unknown as { t?: number }).t = window.setTimeout(() => setToast(null), 2400);
+    window.clearTimeout(toastT.current);
+    toastT.current = window.setTimeout(() => setToast(null), 2400);
   }
 
   async function handlePick(index: number, kind: 'before' | 'after', file: File) {
-    const key = `${index}:${kind}`;
-    setBusy(key);
+    const k = `${index}:${kind}`;
+    setBusy(k);
     try {
       const dataUrl = await toFiveFour(file);
       onSetShot(index, kind, { dataUrl });
@@ -37,6 +45,17 @@ export default function WorkScreen({
     } finally {
       setBusy(null);
     }
+  }
+
+  function onCameraCapture(file: File) {
+    const t = camTarget;
+    setCamTarget(null);
+    if (t) handlePick(t.index, t.kind, file);
+  }
+  function onCameraFallback() {
+    pendingRef.current = camTarget;
+    setCamTarget(null);
+    nativeRef.current?.click();
   }
 
   const doneCount = useMemo(
@@ -48,25 +67,8 @@ export default function WorkScreen({
     [project.items],
   );
 
-  async function shareAll() {
-    const files: File[] = [];
-    const p = project.name ? `${project.name}_` : '';
-    project.items.forEach((it, i) => {
-      if (it.before) files.push(dataUrlToFile(it.before.dataUrl, `${p}${i + 1}_before.jpg`));
-      if (it.after) files.push(dataUrlToFile(it.after.dataUrl, `${p}${i + 1}_after.jpg`));
-    });
-    if (files.length === 0) {
-      notify('共有できる写真がありません');
-      return;
-    }
-    const r = await shareOrDownload(files, `${project.name || '現場'} ビフォーアフター（全${project.count}箇所）`);
-    if (r === 'downloaded') notify(`${files.length}枚を端末に保存しました（共有非対応のため）`);
-    else if (r === 'failed') notify('共有できませんでした');
-  }
-
   return (
     <div className="min-h-[100dvh] pb-24">
-      {/* ヘッダ */}
       <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
         <div className="mx-auto max-w-md px-4 py-3">
           <div className="flex items-center gap-2">
@@ -74,20 +76,19 @@ export default function WorkScreen({
               value={project.name}
               onChange={(e) => onSetName(e.target.value)}
               placeholder="案件名・現場名（任意）"
-              className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-400 focus:bg-white"
+              className="min-w-0 flex-1 rounded-none border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-400 focus:bg-white"
             />
             <button
               onClick={onReset}
-              className="shrink-0 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-500"
+              className="shrink-0 rounded-none border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-500"
             >
               新規
             </button>
           </div>
-          {/* 進捗 */}
           <div className="mt-2 flex items-center gap-2">
-            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-none bg-slate-100">
               <div
-                className="h-full rounded-full bg-emerald-500 transition-all"
+                className="h-full bg-emerald-500 transition-all"
                 style={{ width: `${(doneCount / project.count) * 100}%` }}
               />
             </div>
@@ -98,18 +99,16 @@ export default function WorkScreen({
         </div>
       </header>
 
-      {/* 番号リスト */}
       <div className="mx-auto max-w-md space-y-3 px-4 py-4">
         {project.items.map((it, i) => (
           <ItemRow
             key={i}
             index={i}
             item={it}
-            projectName={project.name}
             busyKind={busy === `${i}:before` ? 'before' : busy === `${i}:after` ? 'after' : null}
-            onPick={(kind, file) => handlePick(i, kind, file)}
+            onRequestCamera={(kind) => setCamTarget({ index: i, kind })}
+            onPickFile={(kind, file) => handlePick(i, kind, file)}
             onClear={(kind) => onSetShot(i, kind, null)}
-            notify={notify}
           />
         ))}
       </div>
@@ -118,16 +117,46 @@ export default function WorkScreen({
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto max-w-md px-4 py-3">
           <button
-            onClick={shareAll}
-            className="w-full rounded-2xl bg-slate-900 py-4 text-base font-bold text-white shadow-lg active:scale-[.99]"
+            onClick={() => setShowShare(true)}
+            className="w-full rounded-none bg-slate-900 py-4 text-base font-bold text-white shadow-lg active:scale-[.99]"
           >
-            全箇所をまとめて共有（{totalShots}枚）
+            共有する（{totalShots}枚）
           </button>
         </div>
       </div>
 
+      {/* アプリ内カメラ */}
+      {camTarget && (
+        <Camera
+          label={`${camTarget.index + 1}番 ${camTarget.kind === 'before' ? 'ビフォー' : 'アフター'}`}
+          onCapture={onCameraCapture}
+          onClose={() => setCamTarget(null)}
+          onFallback={onCameraFallback}
+        />
+      )}
+
+      {/* 共有選択シート */}
+      {showShare && (
+        <ShareSheet project={project} onClose={() => setShowShare(false)} notify={notify} />
+      )}
+
+      {/* カメラ不可時の標準カメラ・フォールバック */}
+      <input
+        ref={nativeRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          const t = pendingRef.current;
+          pendingRef.current = null;
+          if (e.target.files?.[0] && t) handlePick(t.index, t.kind, e.target.files[0]);
+          e.target.value = '';
+        }}
+      />
+
       {toast && (
-        <div className="fixed inset-x-0 bottom-24 z-30 mx-auto w-fit max-w-[90%] rounded-full bg-slate-900/90 px-4 py-2 text-center text-sm text-white shadow-lg">
+        <div className="fixed inset-x-0 bottom-24 z-30 mx-auto w-fit max-w-[90%] rounded-sm bg-slate-900/90 px-4 py-2 text-center text-sm text-white shadow-lg">
           {toast}
         </div>
       )}
