@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Entry, workTypeOf } from '@/lib/types';
+import { sendToNotion } from '@/lib/notion';
 import {
   WEEK_LABELS,
   calendarCells,
@@ -28,6 +29,23 @@ export default function CalendarView({
 }) {
   const [mKey, setMKey] = useState(currentMonthKey());
   const [selected, setSelected] = useState<string | null>(todayStr());
+  const [notionBusy, setNotionBusy] = useState(false);
+  const [notionMsg, setNotionMsg] = useState('');
+
+  async function sendDay() {
+    setNotionBusy(true);
+    setNotionMsg('');
+    try {
+      const r = await sendToNotion(selectedEntries);
+      if (r.ok) setNotionMsg(`✓ Notionに${r.created}件保存しました`);
+      else if (r.error === 'not-configured')
+        setNotionMsg('Notion連携が未設定です（設定手順をお伝えします）');
+      else if (r.error === 'offline') setNotionMsg('ネットに接続できませんでした');
+      else setNotionMsg('保存できませんでした');
+    } finally {
+      setNotionBusy(false);
+    }
+  }
 
   const byDate = useMemo(() => {
     const map = new Map<string, { ukeoi: number; jouchu: number; photo: boolean }>();
@@ -156,9 +174,19 @@ export default function CalendarView({
               この日の記録はまだありません
             </p>
           ) : (
-            selectedEntries.map((e) => (
-              <EntryCard key={e.id} entry={e} onEdit={onEdit} onDelete={onDelete} />
-            ))
+            <>
+              {selectedEntries.map((e) => (
+                <EntryCard key={e.id} entry={e} onEdit={onEdit} onDelete={onDelete} />
+              ))}
+              <button
+                onClick={sendDay}
+                disabled={notionBusy}
+                className="w-full rounded-lg border border-slate-800 bg-white py-2.5 text-sm font-bold text-slate-800 disabled:opacity-50"
+              >
+                {notionBusy ? '送信中…' : `📥 この日の記録をNotionに保存（${selectedEntries.length}件）`}
+              </button>
+              {notionMsg && <p className="text-center text-xs text-brand-primary">{notionMsg}</p>}
+            </>
           )}
         </div>
       )}
