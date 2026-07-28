@@ -1,14 +1,27 @@
 'use client';
 
+import { useState } from 'react';
 import { Entry, Photo } from '@/lib/types';
-import { yen } from '@/lib/format';
-import { dataUrlToFile, downloadFile, shareFiles } from '@/lib/report';
+import { formatJpDate, yen } from '@/lib/format';
+import { dataUrlToFile, shareTextAndFiles } from '@/lib/report';
 
 function photoLabel(p: Photo): string {
   if (p.photoKind === 'receipt') return 'レシート';
   if (p.phase === 'before') return 'before';
   if (p.phase === 'after') return 'after';
   return '現場';
+}
+
+// 共有テキスト（1現場の記録内容）
+function buildText(e: Entry): string {
+  const lines = [`【現場記録】${formatJpDate(e.date)}`];
+  if (e.site) lines.push(`現場: ${e.site}`);
+  if (e.address) lines.push(`住所: ${e.address}`);
+  if (e.lat != null && e.lng != null) lines.push(`地図: https://www.google.com/maps?q=${e.lat},${e.lng}`);
+  lines.push(`売上: ${yen(e.amount)}`);
+  if (e.expense) lines.push(`経費: ${yen(e.expense)}`);
+  if (e.memo) lines.push(`メモ: ${e.memo}`);
+  return lines.join('\n');
 }
 
 export default function EntryCard({
@@ -23,26 +36,34 @@ export default function EntryCard({
   showDate?: boolean;
 }) {
   const income = entry.kind === 'income';
+  const [msg, setMsg] = useState('');
 
-  async function shareAllPhotos() {
-    if (entry.photos.length === 0) return;
-    const base = entry.site || '現場';
+  async function share() {
     const files = entry.photos.map((p, i) =>
-      dataUrlToFile(p.dataUrl, `${base}_${photoLabel(p)}_${i + 1}.jpg`),
+      dataUrlToFile(p.dataUrl, `${entry.site || '現場'}_${photoLabel(p)}_${i + 1}.jpg`),
     );
-    const r = await shareFiles(files, base);
-    if (r !== 'shared') files.forEach(downloadFile);
+    const r = await shareTextAndFiles(buildText(entry), files);
+    if (r === 'fallback') {
+      setMsg('コピー＆保存しました（共有シート非対応のため）');
+      setTimeout(() => setMsg(''), 2600);
+    } else if (r === 'failed') {
+      setMsg('共有できませんでした');
+      setTimeout(() => setMsg(''), 2600);
+    }
   }
 
   return (
-    <div className="rounded-xl border border-black/10 bg-white p-3">
+    <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-card">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="truncate text-sm font-semibold">{entry.site || '（現場名なし）'}</span>
-          </div>
-          {showDate && <p className="mt-0.5 text-xs text-black/40">{entry.date}</p>}
-          {entry.memo && <p className="mt-1 whitespace-pre-wrap text-sm text-black/70">{entry.memo}</p>}
+          <span className="block truncate text-sm font-bold text-slate-800">
+            {entry.site || '（現場名なし）'}
+          </span>
+          {showDate && <p className="mt-0.5 text-xs text-slate-400">{entry.date}</p>}
+          {entry.address && (
+            <p className="mt-0.5 truncate text-xs text-slate-500">📍 {entry.address}</p>
+          )}
+          {entry.memo && <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">{entry.memo}</p>}
         </div>
         <div className="shrink-0 text-right">
           <div className={`font-bold ${income ? 'text-blue-600' : 'text-red-600'}`}>
@@ -59,27 +80,23 @@ export default function EntryCard({
         <div className="mt-2 flex gap-1.5 overflow-x-auto">
           {entry.photos.map((p) => (
             // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={p.id}
-              src={p.dataUrl}
-              alt=""
-              className="h-16 w-16 shrink-0 rounded-lg object-cover"
-            />
+            <img key={p.id} src={p.dataUrl} alt="" className="h-16 w-16 shrink-0 rounded-md object-cover" />
           ))}
         </div>
       )}
 
-      {entry.photos.length > 0 && (
-        <button
-          onClick={shareAllPhotos}
-          className="mt-2 w-full rounded-lg bg-brand-primary py-2 text-xs font-bold text-white"
-        >
-          📷 この現場の写真を共有（{entry.photos.length}枚・Before/After・レシート）
-        </button>
-      )}
+      {/* 共有（日付・現場・住所・位置・金額・経費＋全写真をまとめて） */}
+      <button
+        onClick={share}
+        className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-lg bg-brand-primary py-2.5 text-sm font-bold text-white"
+      >
+        <span className="text-base leading-none">📤</span> 共有する
+        {entry.photos.length > 0 ? `（写真${entry.photos.length}枚つき）` : ''}
+      </button>
+      {msg && <p className="mt-1 text-center text-xs text-brand-primary">{msg}</p>}
 
       {(onEdit || onDelete) && (
-        <div className="mt-2 flex justify-end gap-3 text-xs text-black/50">
+        <div className="mt-2 flex justify-end gap-3 text-xs text-slate-400">
           {onEdit && (
             <button onClick={() => onEdit(entry)} className="underline">
               編集

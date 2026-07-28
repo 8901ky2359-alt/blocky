@@ -165,6 +165,39 @@ export function dataUrlToFile(dataUrl: string, filename: string): File {
   return new File([arr], filename, { type: mime });
 }
 
+// テキスト＋写真をまとめて共有（iPhoneの共有シート→LINE/Notion等）。
+// 非対応時はテキストをコピー＋写真をダウンロード。
+export async function shareTextAndFiles(
+  text: string,
+  files: File[],
+): Promise<'shared' | 'fallback' | 'failed'> {
+  if (typeof navigator !== 'undefined' && navigator.share) {
+    const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
+    const data: ShareData = { text };
+    if (files.length && (!nav.canShare || nav.canShare({ files } as ShareData))) {
+      (data as ShareData & { files: File[] }).files = files;
+    }
+    try {
+      await navigator.share(data);
+      return 'shared';
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') return 'shared';
+    }
+  }
+  // フォールバック：テキストをコピー＋写真を保存
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    /* noop */
+  }
+  try {
+    files.forEach(downloadFile);
+    return 'fallback';
+  } catch {
+    return 'failed';
+  }
+}
+
 // ファイルを端末に保存（共有非対応時のフォールバック）
 export function downloadFile(file: File): void {
   const url = URL.createObjectURL(file);
