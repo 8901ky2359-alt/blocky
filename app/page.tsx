@@ -79,9 +79,19 @@ export default function Home() {
         <div className="relative mx-auto min-h-screen w-full max-w-[520px] overflow-x-hidden bg-brand-bg shadow-xl md:my-8 md:min-h-[calc(100vh-4rem)] md:self-start md:rounded-3xl md:shadow-2xl md:ring-1 md:ring-black/5">
           <header className="sticky top-0 z-10 flex items-center justify-between border-b border-black/5 bg-brand-bg/95 px-4 py-3 backdrop-blur md:hidden">
             <h1 className="text-base font-bold text-brand-primary">🌿 現場家計簿</h1>
-            <button onClick={() => setShowBackup(true)} className="text-xl" aria-label="バックアップ">
-              ⚙
-            </button>
+            <div className="flex items-center gap-1">
+              <a
+                href="/before-after"
+                className="rounded-lg px-2 py-1 text-lg"
+                aria-label="ビフォーアフター"
+                title="現場写真ビフォーアフター"
+              >
+                ◧
+              </a>
+              <button onClick={() => setShowBackup(true)} className="px-1 text-xl" aria-label="バックアップ">
+                ⚙
+              </button>
+            </div>
           </header>
 
           <main className="w-full px-4 pb-28 pt-4 md:px-6 md:pb-10 md:pt-7">
