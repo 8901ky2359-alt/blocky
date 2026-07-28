@@ -21,15 +21,20 @@ export default function SideNav({
   onBackup: () => void;
 }) {
   return (
-    <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-1 border-r border-black/5 bg-white/60 px-4 py-6 backdrop-blur md:flex">
-      <div className="mb-6 flex items-center gap-2 px-2">
-        <span className="text-2xl">🌿</span>
-        <span className="text-lg font-bold text-brand-primary">現場家計簿</span>
+    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col gap-1 border-r border-slate-200 bg-white px-4 py-6 md:flex">
+      <div className="mb-6 flex items-center gap-2.5 px-1">
+        <span className="grid h-9 w-9 place-items-center rounded-lg bg-brand-primary text-sm font-black text-white">
+          現
+        </span>
+        <div className="leading-tight">
+          <div className="text-base font-bold tracking-tight text-brand-primary">現場家計簿</div>
+          <div className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Field Ledger</div>
+        </div>
       </div>
 
       <button
         onClick={onAdd}
-        className="mb-5 flex items-center justify-center gap-2 rounded-xl bg-brand-primary py-3 font-bold text-white shadow-sm transition hover:brightness-110"
+        className="mb-5 flex items-center justify-center gap-2 rounded-lg bg-brand-accent py-3 font-bold text-white shadow-sm transition hover:brightness-105"
       >
         <span className="text-lg leading-none">＋</span> 記録する
       </button>

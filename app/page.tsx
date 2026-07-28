@@ -65,7 +65,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-emerald-50 via-neutral-100 to-neutral-200">
+    <div className="min-h-screen overflow-x-hidden bg-gradient-to-b from-slate-100 to-slate-300">
       <div className="mx-auto flex min-h-screen w-full max-w-[1180px]">
         {/* PC用サイドナビ（スマホでは非表示） */}
         <SideNav
@@ -77,9 +77,14 @@ export default function Home() {
 
         {/* アプリ本体（スマホ幅のカード。PCでは中央にフローティング） */}
         <div className="relative mx-auto min-h-screen w-full max-w-[520px] overflow-x-hidden bg-brand-bg shadow-xl md:my-8 md:min-h-[calc(100vh-4rem)] md:self-start md:rounded-3xl md:shadow-2xl md:ring-1 md:ring-black/5">
-          <header className="sticky top-0 z-10 flex items-center justify-between border-b border-black/5 bg-brand-bg/95 px-4 py-3 backdrop-blur md:hidden">
-            <h1 className="text-base font-bold text-brand-primary">🌿 現場家計簿</h1>
-            <button onClick={() => setShowBackup(true)} className="text-xl" aria-label="バックアップ">
+          <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur md:hidden">
+            <div className="flex items-center gap-2">
+              <span className="grid h-7 w-7 place-items-center rounded-md bg-brand-primary text-xs font-black text-white">
+                現
+              </span>
+              <span className="text-base font-bold tracking-tight text-brand-primary">現場家計簿</span>
+            </div>
+            <button onClick={() => setShowBackup(true)} className="text-lg text-slate-500" aria-label="バックアップ">
               ⚙
             </button>
           </header>
@@ -118,7 +123,7 @@ export default function Home() {
             <button
               onClick={() => goAdd()}
               aria-label="記録する"
-              className="pointer-events-auto absolute bottom-[76px] right-4 grid h-14 w-14 place-items-center rounded-full bg-brand-primary text-3xl leading-none text-white shadow-lg"
+              className="pointer-events-auto absolute bottom-[76px] right-4 grid h-14 w-14 place-items-center rounded-full bg-brand-accent text-3xl leading-none text-white shadow-lg shadow-brand-accent/30"
             >
               ＋
             </button>

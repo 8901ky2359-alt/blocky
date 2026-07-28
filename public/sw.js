@@ -3,7 +3,7 @@
 // - 静的アセット(/_next/static 等): キャッシュ優先（ハッシュ付きで不変）
 // - /api/ やPOST: 介入しない（同期を壊さない）
 
-const CACHE = 'genba-cache-v2';
+const CACHE = 'genba-cache-v3';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
