@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { playShutter, setSoundEnabled, soundEnabled } from '@/lib/ba/sound';
 
 // アプリ内カメラ（getUserMedia）。撮影→確認→使う で File を返す。
 export default function Camera({
@@ -18,6 +19,11 @@ export default function Camera({
   const streamRef = useRef<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [shot, setShot] = useState<string | null>(null);
+  const [sound, setSound] = useState(true);
+
+  useEffect(() => {
+    setSound(soundEnabled());
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -53,6 +59,7 @@ export default function Camera({
   function capture() {
     const video = videoRef.current;
     if (!video || !video.videoWidth) return;
+    if (sound) playShutter(); // シャッター音
     // 5:4 の横長で中央から切り出す（プレビューの見た目と一致）
     const vw = video.videoWidth;
     const vh = video.videoHeight;
@@ -102,7 +109,17 @@ export default function Camera({
           ✕ 閉じる
         </button>
         <span className="text-sm font-semibold opacity-80">{label}</span>
-        <span className="w-16" />
+        <button
+          onClick={() => {
+            const next = !sound;
+            setSound(next);
+            setSoundEnabled(next);
+          }}
+          className="w-16 text-right text-lg"
+          aria-label="シャッター音"
+        >
+          {sound ? '🔔' : '🔕'}
+        </button>
       </div>
 
       {/* プレビュー領域（5:4の横長フレーム。見たまま切り出し） */}
