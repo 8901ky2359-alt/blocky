@@ -30,6 +30,7 @@ export default function AddView({
   const [date, setDate] = useState(editing?.date ?? defaultDate ?? todayStr());
   const [site, setSite] = useState(editing?.site ?? '');
   const [amount, setAmount] = useState(editing?.amount ? String(editing.amount) : '');
+  const [expense, setExpense] = useState(editing?.expense ? String(editing.expense) : '');
   const [memo, setMemo] = useState(editing?.memo ?? '');
   const [photos, setPhotos] = useState<Photo[]>(editing?.photos ?? []);
   const [address, setAddress] = useState(editing?.address ?? '');
@@ -58,12 +59,16 @@ export default function AddView({
 
   const beforePhotos = photos.filter((p) => p.photoKind === 'site' && p.phase === 'before');
   const afterPhotos = photos.filter((p) => p.photoKind === 'site' && p.phase === 'after');
+  const receiptPhotos = photos.filter((p) => p.photoKind === 'receipt');
 
   function setBefore(next: Photo[]) {
-    setPhotos([...afterPhotos, ...next]);
+    setPhotos([...afterPhotos, ...receiptPhotos, ...next]);
   }
   function setAfter(next: Photo[]) {
-    setPhotos([...beforePhotos, ...next]);
+    setPhotos([...beforePhotos, ...receiptPhotos, ...next]);
+  }
+  function setReceipts(next: Photo[]) {
+    setPhotos([...beforePhotos, ...afterPhotos, ...next]);
   }
 
   // 過去の現場を選んだとき、住所（と位置）も一致させる
@@ -127,6 +132,7 @@ export default function AddView({
         category: '',
         site: site.trim(),
         amount: num,
+        expense: Number(expense.replace(/[, ¥]/g, '')) || 0,
         memo: memo.trim(),
         photos,
         address: address.trim() || undefined,
@@ -302,6 +308,22 @@ export default function AddView({
           className="input h-24"
         />
       </Field>
+
+      {/* 経費（金額＋レシート/購入品の写真） */}
+      <div className="rounded-xl border border-black/10 bg-white p-3">
+        <p className="mb-2 text-sm font-medium text-black/70">経費（任意）</p>
+        <input
+          type="number"
+          inputMode="numeric"
+          value={expense}
+          onChange={(e) => setExpense(e.target.value)}
+          placeholder="経費の金額（円）"
+          className="input text-right"
+        />
+        {expense && <p className="mt-1 text-right text-sm text-red-500">− {yen(Number(expense) || 0)}</p>}
+        <p className="mb-1 mt-3 text-xs font-semibold text-black/50">レシート・購入品の写真</p>
+        <PhotoInput photos={receiptPhotos} photoKind="receipt" maxCount={15} onChange={setReceipts} label="レシート" />
+      </div>
 
       <div className="rounded-xl border border-black/10 bg-white p-3">
         <p className="mb-2 text-sm font-medium text-black/70">現場写真（各{MAX_PHOTOS}枚まで）</p>

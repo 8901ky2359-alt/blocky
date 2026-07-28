@@ -25,9 +25,14 @@ export default function EntryCard({
           {showDate && <p className="mt-0.5 text-xs text-black/40">{entry.date}</p>}
           {entry.memo && <p className="mt-1 whitespace-pre-wrap text-sm text-black/70">{entry.memo}</p>}
         </div>
-        <div className={`shrink-0 text-right font-bold ${income ? 'text-blue-600' : 'text-red-600'}`}>
-          {income ? '+' : '−'}
-          {yen(entry.amount)}
+        <div className="shrink-0 text-right">
+          <div className={`font-bold ${income ? 'text-blue-600' : 'text-red-600'}`}>
+            {income ? '+' : '−'}
+            {yen(entry.amount)}
+          </div>
+          {!!entry.expense && entry.expense > 0 && (
+            <div className="text-xs font-semibold text-red-500">経費 −{yen(entry.expense)}</div>
+          )}
         </div>
       </div>
 

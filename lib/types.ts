@@ -23,7 +23,8 @@ export interface Entry {
   kind: EntryKind;
   category: string;
   site: string; // 現場名
-  amount: number; // 円
+  amount: number; // 円（売上）
+  expense?: number; // 経費（円）
   memo: string;
   photos: Photo[];
   address?: string; // 現場の住所（地図マッピング用）

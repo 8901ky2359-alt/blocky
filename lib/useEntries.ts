@@ -63,6 +63,7 @@ export function useEntries() {
         category: input.category,
         site: input.site,
         amount: input.amount,
+        expense: input.expense,
         memo: input.memo,
         photos: input.photos,
         address: input.address,
