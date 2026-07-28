@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { Project, Shot } from '@/lib/ba/types';
 import { toFiveFour } from '@/lib/ba/image';
+import { getQuality, qualityParams } from '@/lib/ba/quality';
 import ItemRow from './ItemRow';
 import Camera from './Camera';
 import ShareSheet from './ShareSheet';
@@ -38,7 +39,8 @@ export default function WorkScreen({
     const k = `${index}:${kind}`;
     setBusy(k);
     try {
-      const dataUrl = await toFiveFour(file);
+      const { maxW, jpeg } = qualityParams(getQuality());
+      const dataUrl = await toFiveFour(file, maxW, jpeg);
       onSetShot(index, kind, { dataUrl });
     } catch {
       notify('写真を読み込めませんでした');
