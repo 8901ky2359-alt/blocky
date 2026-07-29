@@ -102,6 +102,22 @@ export default function MapView({ entries }: { entries: Entry[] }) {
       <p className="text-center text-xs text-black/40">
         ピンをタップすると、現場名・単価・作業前後の写真が見られます。
       </p>
+
+      {/* 共有マップ（Googleマイマップ埋め込み） */}
+      <div className="pt-2">
+        <h2 className="mb-2 text-lg font-bold">共有マップ</h2>
+        <div className="overflow-hidden rounded-xl border border-black/10 bg-white">
+          <iframe
+            title="共有マップ"
+            src="https://www.google.com/maps/d/embed?mid=1sVAqk0AvvwCYejDZV0lpcjEP5_pI4po&ll=38.240271706714104%2C140.87205496708083&z=9"
+            className="h-[62vh] w-full"
+            loading="lazy"
+          />
+        </div>
+        <p className="mt-1 text-center text-xs text-black/40">
+          共有マップの表示にはネット接続が必要です。
+        </p>
+      </div>
     </div>
   );
 }
