@@ -6,6 +6,7 @@ import { exportJson, importJson } from '@/lib/db';
 import { Entry } from '@/lib/types';
 import { todayStr } from '@/lib/format';
 import { generateCode, getSpace, setSpace, type SyncResult } from '@/lib/sync';
+import AppNav from '@/components/AppNav';
 import BottomNav, { Tab } from '@/components/BottomNav';
 import SideNav from '@/components/SideNav';
 import CalendarView from '@/components/CalendarView';
@@ -97,6 +98,7 @@ export default function Home() {
           </header>
 
           <main className="w-full px-4 pb-28 pt-4 md:px-6 md:pb-10 md:pt-7">
+          <AppNav />
           {loading ? (
             <p className="py-20 text-center text-black/40">読み込み中…</p>
           ) : (

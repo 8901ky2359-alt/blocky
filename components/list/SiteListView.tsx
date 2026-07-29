@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { SITES } from '@/lib/list/data';
 import { useSites } from '@/lib/list/useSites';
 import SiteCard from './SiteCard';
+import SiteMap from './SiteMap';
 
 type Filter = 'all' | 'todo' | 'done' | 'priority';
 
@@ -11,6 +12,7 @@ export default function SiteListView() {
   const { loading, getState, update } = useSites();
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
+  const [mode, setMode] = useState<'list' | 'map'>('list');
 
   const doneCount = useMemo(
     () => SITES.filter((s) => getState(s.workNo).done).length,
@@ -49,6 +51,12 @@ export default function SiteListView() {
   }
 
   const pct = Math.round((doneCount / SITES.length) * 100);
+
+  // 地図のピン再描画キー（完了状態・表示件数が変わったら更新）
+  const renderKey = useMemo(
+    () => shown.map((s) => s.workNo + (getState(s.workNo).done ? '1' : '0')).join(','),
+    [shown, getState],
+  );
 
   const chips: { key: Filter; label: string }[] = [
     { key: 'all', label: `すべて ${SITES.length}` },
@@ -94,25 +102,43 @@ export default function SiteListView() {
         )}
       </div>
 
-      {/* フィルタ */}
-      <div className="flex gap-1.5 overflow-x-auto pb-1">
-        {chips.map((c) => (
+      {/* フィルタ＋リスト/地図切替 */}
+      <div className="flex items-center gap-1.5">
+        <div className="flex flex-1 gap-1.5 overflow-x-auto pb-1">
+          {chips.map((c) => (
+            <button
+              key={c.key}
+              onClick={() => setFilter(c.key)}
+              className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${
+                filter === c.key
+                  ? 'bg-brand-primary text-white'
+                  : 'border border-slate-200 bg-white text-slate-600'
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex shrink-0 overflow-hidden rounded-full border border-slate-200 bg-white">
           <button
-            key={c.key}
-            onClick={() => setFilter(c.key)}
-            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${
-              filter === c.key
-                ? 'bg-brand-primary text-white'
-                : 'border border-slate-200 bg-white text-slate-600'
-            }`}
+            onClick={() => setMode('list')}
+            className={`px-2.5 py-1.5 text-xs font-bold ${mode === 'list' ? 'bg-brand-primary text-white' : 'text-slate-500'}`}
           >
-            {c.label}
+            一覧
           </button>
-        ))}
+          <button
+            onClick={() => setMode('map')}
+            className={`px-2.5 py-1.5 text-xs font-bold ${mode === 'map' ? 'bg-brand-primary text-white' : 'text-slate-500'}`}
+          >
+            地図
+          </button>
+        </div>
       </div>
 
       {loading ? (
         <p className="py-16 text-center text-black/40">読み込み中…</p>
+      ) : mode === 'map' ? (
+        <SiteMap sites={shown} isDone={(w) => getState(w).done} renderKey={renderKey} />
       ) : (
         <>
           <p className="text-xs text-slate-400">{shown.length}件を表示</p>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import AppNav from '@/components/AppNav';
 import SiteListView from '@/components/list/SiteListView';
 
 export default function ListPage() {
@@ -25,6 +26,7 @@ export default function ListPage() {
         </header>
 
         <main className="px-4 pb-16 pt-4">
+          <AppNav />
           <SiteListView />
         </main>
       </div>

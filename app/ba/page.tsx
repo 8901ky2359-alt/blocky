@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Project, Shot, emptyItems } from '@/lib/ba/types';
 import { clearProject, loadProject, saveProject } from '@/lib/ba/db';
+import AppNav from '@/components/AppNav';
 import Setup from '@/components/ba/Setup';
 import WorkScreen from '@/components/ba/WorkScreen';
 
@@ -72,6 +73,11 @@ export default function BAPage() {
 
   return (
     <div className="min-h-[100dvh] bg-slate-50 text-slate-900">
+      <div className="px-4 pt-3">
+        <div className="mx-auto max-w-md">
+          <AppNav />
+        </div>
+      </div>
       {project ? (
         <WorkScreen project={project} onSetShot={setShot} onSetName={setName} onReset={reset} />
       ) : (
