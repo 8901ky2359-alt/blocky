@@ -7,8 +7,6 @@ import { addTemplate, loadTemplates } from '@/lib/templates';
 import { geocodeAddress } from '@/lib/geocode';
 import PhotoInput from './PhotoInput';
 
-const MAX_PHOTOS = 25; // Before/After それぞれの上限
-
 type KnownSite = { site: string; address?: string; lat?: number; lng?: number };
 
 export default function AddView({
@@ -57,16 +55,11 @@ export default function AddView({
     setTemplates(addTemplate({ label, kind: 'income', category: '', amount: num, memo: memo.trim() }));
   }
 
+  // 既存の作業前/後写真は編集画面では表示しないが、保存時にそのまま保持する
   const beforePhotos = photos.filter((p) => p.photoKind === 'site' && p.phase === 'before');
   const afterPhotos = photos.filter((p) => p.photoKind === 'site' && p.phase === 'after');
   const receiptPhotos = photos.filter((p) => p.photoKind === 'receipt');
 
-  function setBefore(next: Photo[]) {
-    setPhotos([...afterPhotos, ...receiptPhotos, ...next]);
-  }
-  function setAfter(next: Photo[]) {
-    setPhotos([...beforePhotos, ...receiptPhotos, ...next]);
-  }
   function setReceipts(next: Photo[]) {
     setPhotos([...beforePhotos, ...afterPhotos, ...next]);
   }
@@ -323,38 +316,6 @@ export default function AddView({
         {expense && <p className="mt-1 text-right text-sm text-red-500">− {yen(Number(expense) || 0)}</p>}
         <p className="mb-1 mt-3 text-xs font-semibold text-black/50">レシート・購入品の写真</p>
         <PhotoInput photos={receiptPhotos} photoKind="receipt" maxCount={15} onChange={setReceipts} label="レシート" />
-      </div>
-
-      <div className="rounded-xl border border-black/10 bg-white p-3">
-        <p className="mb-2 text-sm font-medium text-black/70">現場写真（各{MAX_PHOTOS}枚まで）</p>
-        <div className="space-y-4">
-          <div>
-            <p className="mb-1 text-xs font-semibold text-black/50">
-              作業前（Before）　{beforePhotos.length}/{MAX_PHOTOS}
-            </p>
-            <PhotoInput
-              photos={beforePhotos}
-              photoKind="site"
-              phase="before"
-              maxCount={MAX_PHOTOS}
-              onChange={setBefore}
-              label="作業前"
-            />
-          </div>
-          <div>
-            <p className="mb-1 text-xs font-semibold text-black/50">
-              作業後（After）　{afterPhotos.length}/{MAX_PHOTOS}
-            </p>
-            <PhotoInput
-              photos={afterPhotos}
-              photoKind="site"
-              phase="after"
-              maxCount={MAX_PHOTOS}
-              onChange={setAfter}
-              label="作業後"
-            />
-          </div>
-        </div>
       </div>
 
       {!editing && (amount || memo) && (
