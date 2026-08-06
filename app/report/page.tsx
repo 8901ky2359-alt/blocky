@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect } from 'react';
-import AppNav from '@/components/AppNav';
 import ReportListView from '@/components/report/ReportListView';
 
 export default function ReportPage() {
@@ -27,7 +26,6 @@ export default function ReportPage() {
         </header>
 
         <main className="px-4 pb-16 pt-4">
-          <AppNav />
           <ReportListView />
         </main>
       </div>

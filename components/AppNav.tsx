@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 // 3つのツールを行き来する共通スイッチャー
 const LINKS = [
   { href: '/', label: '家計簿', icon: '📒' },
-  { href: '/report', label: 'ルート報告', icon: '🗺' },
   { href: '/ba', label: 'ビフォーアフター', icon: '📷' },
 ];
 
