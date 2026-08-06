@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { SiteSeed, SiteProgress, Weeding, Sheet } from '@/lib/report/types';
-import { WEEDING_LABEL, SHEET_LABEL, OVERALL_META, overallOf, mapsUrl } from '@/lib/report/status';
+import { WEEDING_LABEL, SHEET_LABEL, OVERALL_META, overallOf, mapsUrl, codeOf } from '@/lib/report/status';
 
 function Seg<T extends string>({
   value,
@@ -63,7 +63,8 @@ export default function SiteRow({
             )}
           </div>
           <p className="mt-0.5 text-[11px] text-slate-400">
-            工番 {site.workNo}・{site.area}
+            {codeOf(site.workNo) ? `工番 ${site.workNo}・` : 'リスト外・'}
+            {site.area}
           </p>
           <p className="mt-0.5 truncate text-xs text-slate-500">📍 {site.address}</p>
           <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px]">

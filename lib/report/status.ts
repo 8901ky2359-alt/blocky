@@ -49,6 +49,11 @@ export function mapsUrl(lat: number, lng: number): string {
   return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 }
 
+// 工番（数字のみ表示。リスト外の工番なし現場は空を返す）
+export function codeOf(workNo: string): string {
+  return /^\d{5,6}$/.test(workNo) ? workNo : '';
+}
+
 // 今週の報告テキストを生成（実施＝今週実施ON、次週＝次週予定ON）
 export function buildReport(
   sites: SiteSeed[],
@@ -86,7 +91,8 @@ export function buildReport(
       lines.push(area);
       for (const p of list) {
         const s = byWork.get(p.workNo)!;
-        lines.push(`${s.workNo} ${s.name} ${statusPhrase(p)}`);
+        const code = codeOf(s.workNo);
+        lines.push(`${code ? code + ' ' : ''}${s.name} ${statusPhrase(p)}`);
       }
     }
   }
@@ -98,7 +104,8 @@ export function buildReport(
   } else {
     for (const p of next) {
       const s = byWork.get(p.workNo)!;
-      lines.push(`${s.workNo} ${s.name}`);
+      const code = codeOf(s.workNo);
+      lines.push(`${code ? code + ' ' : ''}${s.name}`);
     }
   }
   return lines.join('\n');

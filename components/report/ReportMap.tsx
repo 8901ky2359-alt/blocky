@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import type { Map as LeafletMap, LayerGroup } from 'leaflet';
 import { SiteSeed, SiteProgress } from '@/lib/report/types';
-import { OVERALL_META, overallOf, mapsUrl, WEEDING_LABEL, SHEET_LABEL } from '@/lib/report/status';
+import { OVERALL_META, overallOf, mapsUrl, WEEDING_LABEL, SHEET_LABEL, codeOf } from '@/lib/report/status';
 
 function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -84,7 +84,7 @@ export default function ReportMap({
       const html =
         `<div style="font-size:13px;min-width:190px">` +
         `<div style="font-weight:700">${esc(s.name)}${s.priority ? ' <span style=\"color:#dc2626\">優先</span>' : ''}</div>` +
-        `<div style="color:#666;margin:2px 0 4px">工番 ${esc(s.workNo)}・${esc(s.area)}</div>` +
+        `<div style="color:#666;margin:2px 0 4px">${codeOf(s.workNo) ? '工番 ' + esc(s.workNo) + '・' : 'リスト外・'}${esc(s.area)}</div>` +
         `<div style="background:${meta.color};color:#fff;text-align:center;font-weight:700;border-radius:4px;padding:2px 0;margin-bottom:6px">${meta.label}</div>` +
         row('除草', WEEDING_LABEL[p.weeding], p.weeding === 'done') +
         row('防草シート', SHEET_LABEL[p.sheet], p.sheet === 'done') +

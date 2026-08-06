@@ -202,4 +202,7 @@ export const SITES: SiteSeed[] = [
   { workNo: '802129', name: 'Lohas-1258', address: '茨城県那珂市南酒出東ﾉ前651-1､651-2､1405', area: '那珂市', hasKey: true, lat: 36.480758, lng: 140.499007, land: 1175.35, priority: false },
   { workNo: '801952', name: 'WEST-L-1197', address: '茨城県那珂市北酒出石井戸34', area: '那珂市', hasKey: false, lat: 36.484251, lng: 140.490152, land: 948, priority: false },
   { workNo: '801990', name: 'WEST-L-1219', address: '茨城県那珂市本米崎海後2051-1､2051-4', area: '那珂市', hasKey: true, lat: 36.489195, lng: 140.553507, land: 605, priority: false },
+  // リスト外（工番なし・除草作業）: 気仙沼
+  { workNo: 'WEST-L-1471', name: 'WEST-L-1471', address: '宮城県気仙沼市茗荷沢174-1,187-5', area: '気仙沼市', hasKey: false, lat: 38.903381, lng: 141.543337, land: 0, priority: false },
+  { workNo: 'WEST-L-1472', name: 'WEST-L-1472', address: '宮城県気仙沼市茗荷沢170-3,172,123', area: '気仙沼市', hasKey: false, lat: 38.902851, lng: 141.543272, land: 0, priority: false },
 ];
