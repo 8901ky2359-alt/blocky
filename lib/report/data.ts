@@ -205,4 +205,5 @@ export const SITES: SiteSeed[] = [
   // リスト外（工番なし・除草作業）: 気仙沼
   { workNo: 'WEST-L-1471', name: 'WEST-L-1471', address: '宮城県気仙沼市茗荷沢174-1,187-5', area: '気仙沼市', hasKey: false, lat: 38.903381, lng: 141.543337, land: 0, priority: false },
   { workNo: 'WEST-L-1472', name: 'WEST-L-1472', address: '宮城県気仙沼市茗荷沢170-3,172,123', area: '気仙沼市', hasKey: false, lat: 38.902851, lng: 141.543272, land: 0, priority: false },
+  { workNo: 'WEST-L-25', name: 'WEST-L-25', address: '茨城県桜川市磯部字平608-1,617-2', area: '桜川市', hasKey: false, lat: 36.36942, lng: 140.13693, land: 0, priority: false },
 ];
