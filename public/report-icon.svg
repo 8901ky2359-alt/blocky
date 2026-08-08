@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="112" fill="#1e293b"/>
+  <g>
+    <!-- 地図ピン -->
+    <path d="M256 116c-62 0-112 48-112 110 0 78 112 170 112 170s112-92 112-170c0-62-50-110-112-110z" fill="#d97706"/>
+    <circle cx="256" cy="226" r="46" fill="#ffffff"/>
+    <!-- チェック -->
+    <path d="M234 226l14 14 30-32" fill="none" stroke="#1e293b" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
