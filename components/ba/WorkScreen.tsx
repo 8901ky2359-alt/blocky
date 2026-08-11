@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { Project, Shot } from '@/lib/ba/types';
 import { toFiveFour } from '@/lib/ba/image';
+import { dataUrlToFile, shareOrDownload } from '@/lib/ba/share';
 import { getQuality, qualityParams } from '@/lib/ba/quality';
 import ItemRow from './ItemRow';
 import Camera from './Camera';
@@ -25,6 +26,7 @@ export default function WorkScreen({
   const [busy, setBusy] = useState<string | null>(null);
   const [camTarget, setCamTarget] = useState<Target | null>(null);
   const [showShare, setShowShare] = useState(false);
+  const [saving, setSaving] = useState(false);
   const nativeRef = useRef<HTMLInputElement>(null);
   const pendingRef = useRef<Target | null>(null);
   const toastT = useRef<number>();
@@ -58,6 +60,29 @@ export default function WorkScreen({
     pendingRef.current = camTarget;
     setCamTarget(null);
     nativeRef.current?.click();
+  }
+
+  // すべての写真を一括保存（iPhone: 共有シートの「画像を保存」で全枚数をまとめて保存 / PC: 一括ダウンロード）
+  async function saveAll() {
+    const prefix = project.name ? `${project.name}_` : '';
+    const files: File[] = [];
+    project.items.forEach((it, i) => {
+      if (it.before) files.push(dataUrlToFile(it.before.dataUrl, `${prefix}${i + 1}_before.jpg`));
+      if (it.after) files.push(dataUrlToFile(it.after.dataUrl, `${prefix}${i + 1}_after.jpg`));
+    });
+    if (files.length === 0) {
+      notify('保存できる写真がありません');
+      return;
+    }
+    setSaving(true);
+    try {
+      const r = await shareOrDownload(files);
+      if (r === 'downloaded') notify(`${files.length}枚を保存しました`);
+      else if (r === 'failed') notify('保存できませんでした');
+      // shared の場合はiOS側で「画像を保存」を選ぶと全枚数がカメラロールへ保存される
+    } finally {
+      setSaving(false);
+    }
   }
 
   const doneCount = useMemo(
@@ -116,12 +141,19 @@ export default function WorkScreen({
         ))}
       </div>
 
-      {/* 下部の共有バー */}
+      {/* 下部の保存・共有バー */}
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto max-w-md px-4 py-3">
+        <div className="mx-auto grid max-w-md grid-cols-2 gap-2 px-4 py-3">
+          <button
+            onClick={saveAll}
+            disabled={saving || totalShots === 0}
+            className="rounded-none border-2 border-slate-900 py-4 text-base font-bold text-slate-900 active:scale-[.99] disabled:border-slate-200 disabled:text-slate-300"
+          >
+            {saving ? '保存中…' : `📥 すべて保存（${totalShots}枚）`}
+          </button>
           <button
             onClick={() => setShowShare(true)}
-            className="w-full rounded-none bg-slate-900 py-4 text-base font-bold text-white shadow-lg active:scale-[.99]"
+            className="rounded-none bg-slate-900 py-4 text-base font-bold text-white shadow-lg active:scale-[.99]"
           >
             共有する（{totalShots}枚）
           </button>
