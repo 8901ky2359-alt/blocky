@@ -32,5 +32,39 @@ export function useReport() {
     [],
   );
 
-  return { map, loading, get, update };
+  // 進捗のある現場（除草/シート/施工完了のいずれか）を「今週実施」に取り込む
+  const markProgressThisWeek = useCallback(() => {
+    setMap((cur) => {
+      const next = { ...cur };
+      let changed = false;
+      for (const k of Object.keys(next)) {
+        const p = next[k];
+        const hasProgress = p.weeding !== 'none' || p.sheet !== 'none' || p.done;
+        if (hasProgress && !p.thisWeek) {
+          next[k] = { ...p, thisWeek: true, updatedAt: Date.now() };
+          saveProgress(next[k]).catch(() => {});
+          changed = true;
+        }
+      }
+      return changed ? next : cur;
+    });
+  }, []);
+
+  // 「今週実施」をすべて解除（報告を送ったあとに使う。ステータスは保持）
+  const clearThisWeek = useCallback(() => {
+    setMap((cur) => {
+      const next = { ...cur };
+      let changed = false;
+      for (const k of Object.keys(next)) {
+        if (next[k].thisWeek) {
+          next[k] = { ...next[k], thisWeek: false, updatedAt: Date.now() };
+          saveProgress(next[k]).catch(() => {});
+          changed = true;
+        }
+      }
+      return changed ? next : cur;
+    });
+  }, []);
+
+  return { map, loading, get, update, markProgressThisWeek, clearThisWeek };
 }

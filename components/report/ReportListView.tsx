@@ -11,7 +11,7 @@ import ReportSheet from './ReportSheet';
 type Filter = 'all' | 'none' | 'wip' | 'done' | 'week' | 'next';
 
 export default function ReportListView() {
-  const { loading, get, update } = useReport();
+  const { loading, get, update, markProgressThisWeek, clearThisWeek } = useReport();
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [mode, setMode] = useState<'list' | 'map'>('list');
@@ -149,7 +149,17 @@ export default function ReportListView() {
           <p className="text-xs text-slate-400">{shown.length}件を表示</p>
           <div className="space-y-2">
             {shown.map((s) => (
-              <SiteRow key={s.workNo} site={s} p={get(s.workNo)} onChange={(patch) => update(s.workNo, patch)} />
+              <SiteRow
+                key={s.workNo}
+                site={s}
+                p={get(s.workNo)}
+                onChange={(patch) => {
+                  // 除草/シート/施工完了を更新したら、自動的に「今週実施」に入れる
+                  const touchesStatus =
+                    'weeding' in patch || 'sheet' in patch || 'done' in patch;
+                  update(s.workNo, touchesStatus ? { thisWeek: true, ...patch } : patch);
+                }}
+              />
             ))}
             {shown.length === 0 && (
               <p className="rounded-xl border border-dashed border-black/15 p-6 text-center text-sm text-black/50">
@@ -172,7 +182,15 @@ export default function ReportListView() {
         </div>
       </div>
 
-      {showSheet && <ReportSheet sites={SITES} get={get} onClose={() => setShowSheet(false)} />}
+      {showSheet && (
+        <ReportSheet
+          sites={SITES}
+          get={get}
+          onReflectProgress={markProgressThisWeek}
+          onClearThisWeek={clearThisWeek}
+          onClose={() => setShowSheet(false)}
+        />
+      )}
     </div>
   );
 }
