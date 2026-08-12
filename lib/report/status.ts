@@ -77,7 +77,7 @@ export function buildReport(
   }
 
   if (impl.length === 0) {
-    lines.push('（実施の現場がありません。現場のステータスを更新するか「🔄 進捗のある現場を実施に反映」を押してください）');
+    lines.push('（実施の現場がありません。各現場のコード横の「報告」にチェックを入れてください）');
   } else {
     // 市町村ごとにまとめる
     const groups = new Map<string, SiteProgress[]>();

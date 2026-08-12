@@ -62,27 +62,27 @@ export default function ReportSheet({
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-black/20" />
         <h3 className="mb-1 text-lg font-bold">📋 今週の報告を作成</h3>
         <p className="mb-2 text-xs text-slate-500">
-          実施 {implCount}件／次週 {nextCount}件。ステータスを更新した現場は自動で「実施」に入ります。
+          実施 {implCount}件／次週 {nextCount}件。各現場のコード横の「報告」チェックで選んだ現場が実施に載ります。
           そのままLINEへ共有・コピーできます。
         </p>
 
-        {/* 実施の取り込み・クリア */}
+        {/* まとめて選択・解除 */}
         <div className="mb-3 grid grid-cols-2 gap-2">
           <button
             onClick={onReflectProgress}
             className="rounded-lg border border-brand-primary bg-brand-primary/5 py-2 text-[12px] font-bold text-brand-primary"
           >
-            🔄 進捗のある現場を実施に反映
+            🔄 進捗のある現場をまとめて選択
           </button>
           <button
             onClick={() => {
-              if (confirm('「今週実施」をすべて解除します。（除草・シート・施工完了のステータスはそのまま残ります）')) {
+              if (confirm('報告の選択（チェック）をすべて解除します。（除草・シート・完工のステータスはそのまま残ります）')) {
                 onClearThisWeek();
               }
             }}
             className="rounded-lg border border-slate-300 py-2 text-[12px] font-bold text-slate-600"
           >
-            今週分をクリア（報告後）
+            選択をすべて解除
           </button>
         </div>
 

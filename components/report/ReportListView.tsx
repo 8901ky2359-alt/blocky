@@ -16,6 +16,8 @@ export default function ReportListView() {
   const [filter, setFilter] = useState<Filter>('all');
   const [mode, setMode] = useState<'list' | 'map'>('list');
   const [area, setArea] = useState<string>('all');
+  const [weedFilter, setWeedFilter] = useState<'all' | 'wip' | 'done'>('all');
+  const [sheetFilter, setSheetFilter] = useState<'all' | 'wip' | 'done'>('all');
   const [showSheet, setShowSheet] = useState(false);
 
   const areas = useMemo(() => Array.from(new Set(SITES.map((s) => s.area))), []);
@@ -32,6 +34,8 @@ export default function ReportListView() {
       if (filter === 'done' && !p.done) return false;
       if (filter === 'week' && !p.thisWeek) return false;
       if (filter === 'next' && !p.nextWeek) return false;
+      if (weedFilter !== 'all' && p.weeding !== weedFilter) return false;
+      if (sheetFilter !== 'all' && p.sheet !== sheetFilter) return false;
       if (!kw) return true;
       return (
         s.workNo.toLowerCase().includes(kw) ||
@@ -39,7 +43,7 @@ export default function ReportListView() {
         s.address.toLowerCase().includes(kw)
       );
     });
-  }, [q, filter, area, get]);
+  }, [q, filter, area, weedFilter, sheetFilter, get]);
 
   const renderKey = useMemo(
     () =>
@@ -57,8 +61,8 @@ export default function ReportListView() {
     { key: 'all', label: `すべて ${SITES.length}` },
     { key: 'none', label: '未着手' },
     { key: 'wip', label: '作業中' },
-    { key: 'done', label: `施工完了 ${doneCount}` },
-    { key: 'week', label: '今週' },
+    { key: 'done', label: `完工 ${doneCount}` },
+    { key: 'week', label: '報告対象' },
     { key: 'next', label: '次週' },
   ];
 
@@ -125,6 +129,34 @@ export default function ReportListView() {
         </div>
       </div>
 
+      {/* ステータス絞り込み（除草・防草シート） */}
+      <div className="grid grid-cols-2 gap-2">
+        <label className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5">
+          <span className="shrink-0 text-[11px] font-bold text-slate-500">除草</span>
+          <select
+            value={weedFilter}
+            onChange={(e) => setWeedFilter(e.target.value as 'all' | 'wip' | 'done')}
+            className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+          >
+            <option value="all">すべて</option>
+            <option value="wip">作業途中</option>
+            <option value="done">完了</option>
+          </select>
+        </label>
+        <label className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5">
+          <span className="shrink-0 text-[11px] font-bold text-slate-500">シート</span>
+          <select
+            value={sheetFilter}
+            onChange={(e) => setSheetFilter(e.target.value as 'all' | 'wip' | 'done')}
+            className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+          >
+            <option value="all">すべて</option>
+            <option value="wip">作業途中</option>
+            <option value="done">完了</option>
+          </select>
+        </label>
+      </div>
+
       {/* フィルタ */}
       <div className="flex gap-1.5 overflow-x-auto pb-1">
         {chips.map((c) => (
@@ -149,17 +181,7 @@ export default function ReportListView() {
           <p className="text-xs text-slate-400">{shown.length}件を表示</p>
           <div className="space-y-2">
             {shown.map((s) => (
-              <SiteRow
-                key={s.workNo}
-                site={s}
-                p={get(s.workNo)}
-                onChange={(patch) => {
-                  // 除草/シート/施工完了を更新したら、自動的に「今週実施」に入れる
-                  const touchesStatus =
-                    'weeding' in patch || 'sheet' in patch || 'done' in patch;
-                  update(s.workNo, touchesStatus ? { thisWeek: true, ...patch } : patch);
-                }}
-              />
+              <SiteRow key={s.workNo} site={s} p={get(s.workNo)} onChange={(patch) => update(s.workNo, patch)} />
             ))}
             {shown.length === 0 && (
               <p className="rounded-xl border border-dashed border-black/15 p-6 text-center text-sm text-black/50">

@@ -46,16 +46,33 @@ export default function SiteRow({
   const meta = OVERALL_META[ov];
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-card">
+    <div
+      className={`rounded-xl border bg-white shadow-card ${
+        p.thisWeek ? 'border-emerald-400 ring-1 ring-emerald-200' : 'border-slate-200'
+      }`}
+    >
       <div className="flex items-start gap-2 p-3">
-        <span
-          className="mt-1 h-3 w-3 shrink-0 rounded-full"
-          style={{ background: meta.color }}
-          aria-hidden
-        />
+        {/* 報告に載せるチェック（コードの隣） */}
+        <label className="mt-0.5 flex shrink-0 cursor-pointer flex-col items-center gap-0.5">
+          <input
+            type="checkbox"
+            checked={p.thisWeek}
+            onChange={(e) => onChange({ thisWeek: e.target.checked })}
+            className="h-6 w-6 accent-emerald-600"
+            aria-label="報告に載せる"
+          />
+          <span className="text-[8px] font-bold text-emerald-600">報告</span>
+        </label>
+
         <button onClick={() => setOpen((o) => !o)} className="min-w-0 flex-1 text-left">
           <div className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: meta.color }} aria-hidden />
             <span className="truncate text-sm font-bold text-slate-800">{site.name}</span>
+            {p.done && (
+              <span className="shrink-0 rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700">
+                完工
+              </span>
+            )}
             {site.priority && (
               <span className="shrink-0 rounded bg-red-100 px-1.5 py-0.5 text-[9px] font-bold text-red-600">
                 優先
@@ -77,7 +94,6 @@ export default function SiteRow({
             <span className="rounded bg-slate-100 px-1.5 py-0.5 text-slate-500">
               シート:{SHEET_LABEL[p.sheet]}
             </span>
-            {p.thisWeek && <span className="rounded bg-emerald-100 px-1.5 py-0.5 font-bold text-emerald-700">今週</span>}
             {p.nextWeek && <span className="rounded bg-blue-100 px-1.5 py-0.5 font-bold text-blue-700">次週</span>}
           </div>
         </button>
@@ -111,7 +127,7 @@ export default function SiteRow({
               value={p.sheet}
               onChange={(v) => onChange({ sheet: v })}
               options={[
-                { key: 'none', label: '未着手' },
+                { key: 'none', label: '無し/未' },
                 { key: 'wip', label: '作業途中' },
                 { key: 'done', label: '完了' },
                 { key: 'fix', label: '是正未完' },
@@ -119,36 +135,35 @@ export default function SiteRow({
             />
           </div>
 
+          {/* 完工の確定ボタン（現場のパターンに関係なく、この現場は完了） */}
+          {p.done ? (
+            <div className="flex items-center justify-between rounded-lg border border-emerald-300 bg-emerald-50 p-2.5">
+              <span className="text-sm font-bold text-emerald-700">✔ 完工済み（この現場は完了）</span>
+              <button
+                onClick={() => onChange({ done: false })}
+                className="rounded-lg border border-emerald-300 bg-white px-2.5 py-1 text-xs font-bold text-emerald-700"
+              >
+                取り消す
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => onChange({ done: true })}
+              className="w-full rounded-lg bg-emerald-600 py-3 text-sm font-black text-white active:scale-[.99]"
+            >
+              ✅ 完工にする（この現場はすべて完了）
+            </button>
+          )}
+
           <label className="flex items-center gap-2 rounded-lg border border-slate-200 p-2.5">
             <input
               type="checkbox"
-              checked={p.done}
-              onChange={(e) => onChange({ done: e.target.checked })}
-              className="h-5 w-5 accent-emerald-600"
+              checked={p.nextWeek}
+              onChange={(e) => onChange({ nextWeek: e.target.checked })}
+              className="h-5 w-5 accent-blue-600"
             />
-            <span className="text-sm font-bold text-slate-700">施工完了（除草＋シート完了）</span>
+            <span className="text-sm font-bold text-slate-700">次週予定に入れる</span>
           </label>
-
-          <div className="grid grid-cols-2 gap-2">
-            <label className="flex items-center gap-2 rounded-lg border border-slate-200 p-2.5">
-              <input
-                type="checkbox"
-                checked={p.thisWeek}
-                onChange={(e) => onChange({ thisWeek: e.target.checked })}
-                className="h-5 w-5 accent-emerald-600"
-              />
-              <span className="text-xs font-bold text-slate-700">今週実施</span>
-            </label>
-            <label className="flex items-center gap-2 rounded-lg border border-slate-200 p-2.5">
-              <input
-                type="checkbox"
-                checked={p.nextWeek}
-                onChange={(e) => onChange({ nextWeek: e.target.checked })}
-                className="h-5 w-5 accent-blue-600"
-              />
-              <span className="text-xs font-bold text-slate-700">次週予定</span>
-            </label>
-          </div>
 
           <a
             href={mapsUrl(site.lat, site.lng)}
