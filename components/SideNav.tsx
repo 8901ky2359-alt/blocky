@@ -14,23 +14,25 @@ export default function SideNav({
   onChange,
   onAdd,
   onBackup,
+  onHome,
 }: {
   tab: string;
   onChange: (t: Tab) => void;
   onAdd: () => void;
   onBackup: () => void;
+  onHome: () => void;
 }) {
   return (
     <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col gap-1 border-r border-slate-200 bg-white px-4 py-6 md:flex">
-      <div className="mb-6 flex items-center gap-2.5 px-1">
+      <button onClick={onHome} className="mb-6 flex items-center gap-2.5 px-1 text-left" aria-label="ホームに戻る">
         <span className="grid h-9 w-9 place-items-center rounded-lg bg-brand-primary text-sm font-black text-white">
           現
         </span>
         <div className="leading-tight">
-          <div className="text-base font-bold tracking-tight text-brand-primary">現場家計簿</div>
-          <div className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Field Ledger</div>
+          <div className="text-base font-bold tracking-tight text-brand-primary">現場メモ</div>
+          <div className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">ホームに戻る</div>
         </div>
-      </div>
+      </button>
 
       <button
         onClick={onAdd}

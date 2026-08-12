@@ -6,7 +6,7 @@ import { exportJson, importJson } from '@/lib/db';
 import { Entry } from '@/lib/types';
 import { todayStr } from '@/lib/format';
 import { generateCode, getSpace, setSpace, type SyncResult } from '@/lib/sync';
-import AppNav from '@/components/AppNav';
+import Launcher from '@/components/Launcher';
 import BottomNav, { Tab } from '@/components/BottomNav';
 import SideNav from '@/components/SideNav';
 import CalendarView from '@/components/CalendarView';
@@ -23,6 +23,7 @@ export default function Home() {
   const [editing, setEditing] = useState<Entry | null>(null);
   const [addDate, setAddDate] = useState<string>(todayStr());
   const [showBackup, setShowBackup] = useState(false);
+  const [showLauncher, setShowLauncher] = useState(true); // 開いた最初はホーム画面
 
   // オフライン対応（サービスワーカー登録）
   useEffect(() => {
@@ -72,6 +73,17 @@ export default function Home() {
     setView('calendar');
   }
 
+  function goHome() {
+    setEditing(null);
+    setView('calendar');
+    setShowLauncher(true);
+  }
+
+  // 最初のホーム画面（3つの入口）
+  if (showLauncher) {
+    return <Launcher onOpenMemo={() => setShowLauncher(false)} />;
+  }
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-gradient-to-b from-slate-100 to-slate-300">
       <div className="mx-auto flex min-h-screen w-full max-w-[1180px]">
@@ -81,24 +93,25 @@ export default function Home() {
           onChange={(t) => setView(t)}
           onAdd={() => goAdd()}
           onBackup={() => setShowBackup(true)}
+          onHome={goHome}
         />
 
         {/* アプリ本体（スマホ幅のカード。PCでは中央にフローティング） */}
         <div className="relative mx-auto min-h-screen w-full max-w-[520px] overflow-x-hidden bg-brand-bg shadow-xl md:my-8 md:min-h-[calc(100vh-4rem)] md:self-start md:rounded-3xl md:shadow-2xl md:ring-1 md:ring-black/5">
           <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur md:hidden">
-            <div className="flex items-center gap-2">
+            <button onClick={goHome} className="flex items-center gap-2" aria-label="ホームに戻る">
               <span className="grid h-7 w-7 place-items-center rounded-md bg-brand-primary text-xs font-black text-white">
                 現
               </span>
-              <span className="text-base font-bold tracking-tight text-brand-primary">現場家計簿</span>
-            </div>
+              <span className="text-base font-bold tracking-tight text-brand-primary">現場メモ</span>
+              <span className="text-xs text-slate-400">／ホーム</span>
+            </button>
             <button onClick={() => setShowBackup(true)} className="text-lg text-slate-500" aria-label="バックアップ">
               ⚙
             </button>
           </header>
 
           <main className="w-full px-4 pb-28 pt-4 md:px-6 md:pb-10 md:pt-7">
-          <AppNav />
           {loading ? (
             <p className="py-20 text-center text-black/40">読み込み中…</p>
           ) : (
