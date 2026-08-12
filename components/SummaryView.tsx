@@ -2,15 +2,11 @@
 
 import { useMemo, useState } from 'react';
 import { Entry } from '@/lib/types';
+import { summarize, Totals } from '@/lib/finance';
 import { currentMonthKey, formatJpMonth, shiftMonth, yen } from '@/lib/format';
 import { downloadCsv, entriesToCsv } from '@/lib/csv';
 
 type Mode = 'month' | 'year';
-
-// 収入のみを対象にする
-function incomeOnly(entries: Entry[]): Entry[] {
-  return entries.filter((e) => e.kind === 'income');
-}
 
 export default function SummaryView({ entries }: { entries: Entry[] }) {
   const [mode, setMode] = useState<Mode>('month');
@@ -47,6 +43,34 @@ export default function SummaryView({ entries }: { entries: Entry[] }) {
   );
 }
 
+// 収支カード（売上 − 自己負担経費 ＝ 差引利益。常駐立替は別枠）
+function BalanceCard({ t, label }: { t: Totals; label: string }) {
+  return (
+    <div className="overflow-hidden rounded-2xl bg-brand-primary text-white shadow">
+      <div className="p-4">
+        <p className="text-sm opacity-80">{label}</p>
+        <p className="mt-0.5 text-3xl font-bold">{yen(t.net)}</p>
+        <p className="mt-1 text-xs opacity-70">差引（手取り）／作業 {t.count}件</p>
+      </div>
+      <div className="grid grid-cols-2 divide-x divide-white/15 border-t border-white/15 text-center text-sm">
+        <div className="p-2.5">
+          <p className="text-[11px] opacity-70">売上合計</p>
+          <p className="font-bold">{yen(t.income)}</p>
+        </div>
+        <div className="p-2.5">
+          <p className="text-[11px] opacity-70">自己負担経費（請負）</p>
+          <p className="font-bold text-red-200">−{yen(t.selfExpense)}</p>
+        </div>
+      </div>
+      {t.reimburseExpense > 0 && (
+        <div className="bg-amber-500/90 px-4 py-2 text-center text-xs font-semibold">
+          常駐の立替経費 {yen(t.reimburseExpense)}　→ 中野さんに請求して受け取る（差引ゼロ）
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MonthSummary({
   entries,
   mKey,
@@ -57,37 +81,28 @@ function MonthSummary({
   onShift: (d: number) => void;
 }) {
   const data = useMemo(() => {
-    const rows = incomeOnly(entries).filter((e) => e.date.slice(0, 7) === mKey);
-    let income = 0;
-    const bySite = new Map<string, { total: number; count: number }>();
+    const rows = entries.filter((e) => e.kind === 'income' && e.date.slice(0, 7) === mKey);
+    const t = summarize(rows);
+    const bySite = new Map<string, { total: number; count: number; expense: number }>();
     for (const e of rows) {
-      income += e.amount;
       const site = e.site || '（現場名なし）';
-      const cur = bySite.get(site) ?? { total: 0, count: 0 };
+      const cur = bySite.get(site) ?? { total: 0, count: 0, expense: 0 };
       cur.total += e.amount;
+      cur.expense += e.expense || 0;
       cur.count += 1;
       bySite.set(site, cur);
     }
-    return {
-      income,
-      sites: [...bySite.entries()].sort((a, b) => b[1].total - a[1].total),
-      count: rows.length,
-      rows,
-    };
+    return { t, sites: [...bySite.entries()].sort((a, b) => b[1].total - a[1].total), rows };
   }, [entries, mKey]);
 
   return (
     <>
-      <Nav title={`${formatJpMonth(mKey)} の売上`} onShift={onShift} />
+      <Nav title={`${formatJpMonth(mKey)} の収支`} onShift={onShift} />
 
-      <div className="rounded-2xl bg-brand-primary p-4 text-white shadow">
-        <p className="text-sm opacity-80">売上合計</p>
-        <p className="text-3xl font-bold">{yen(data.income)}</p>
-        <p className="mt-2 text-sm opacity-80">作業 {data.count}件</p>
-      </div>
+      <BalanceCard t={data.t} label={`${formatJpMonth(mKey)} の差引利益`} />
 
       <section className="rounded-xl bg-white p-4 shadow-sm">
-        <h3 className="mb-3 font-semibold">現場別の売上</h3>
+        <h3 className="mb-3 font-semibold">現場別の売上・経費</h3>
         {data.sites.length === 0 ? (
           <p className="text-sm text-black/40">記録はありません</p>
         ) : (
@@ -98,7 +113,12 @@ function MonthSummary({
                   {site}
                   <span className="ml-1 text-xs text-black/40">×{v.count}</span>
                 </span>
-                <span className="shrink-0 font-medium text-blue-600">{yen(v.total)}</span>
+                <span className="shrink-0 text-right">
+                  <span className="font-medium text-blue-600">{yen(v.total)}</span>
+                  {v.expense > 0 && (
+                    <span className="ml-2 text-xs text-red-500">経費 −{yen(v.expense)}</span>
+                  )}
+                </span>
               </div>
             ))}
           </div>
@@ -107,7 +127,7 @@ function MonthSummary({
 
       <CsvButton
         disabled={data.rows.length === 0}
-        onClick={() => downloadCsv(`売上_${mKey}.csv`, entriesToCsv(data.rows))}
+        onClick={() => downloadCsv(`収支_${mKey}.csv`, entriesToCsv(data.rows))}
       />
     </>
   );
@@ -124,26 +144,26 @@ function YearSummary({
 }) {
   const data = useMemo(() => {
     const prefix = String(year);
-    const rows = incomeOnly(entries).filter((e) => e.date.slice(0, 4) === prefix);
-    const months = Array.from({ length: 12 }, () => 0);
-    let income = 0;
+    const rows = entries.filter((e) => e.kind === 'income' && e.date.slice(0, 4) === prefix);
+    const t = summarize(rows);
+    const months = Array.from({ length: 12 }, () => ({ income: 0, net: 0 }));
     for (const e of rows) {
       const m = Number(e.date.slice(5, 7)) - 1;
-      months[m] += e.amount;
-      income += e.amount;
+      months[m].income += e.amount;
     }
-    return { rows, months, income, maxV: Math.max(1, ...months) };
+    // 月ごとの差引は月単位でsummarizeし直す
+    for (let m = 0; m < 12; m++) {
+      const mm = String(m + 1).padStart(2, '0');
+      months[m].net = summarize(rows.filter((e) => e.date.slice(5, 7) === mm)).net;
+    }
+    return { rows, months, t, maxV: Math.max(1, ...months.map((v) => v.income)) };
   }, [entries, year]);
 
   return (
     <>
-      <Nav title={`${year}年の売上集計`} onShift={onShift} />
+      <Nav title={`${year}年の収支集計`} onShift={onShift} />
 
-      <div className="rounded-2xl bg-brand-primary p-4 text-white shadow">
-        <p className="text-sm opacity-80">年間 売上合計</p>
-        <p className="text-3xl font-bold">{yen(data.income)}</p>
-        <p className="mt-2 text-sm opacity-80">作業 {data.rows.length}件</p>
-      </div>
+      <BalanceCard t={data.t} label={`${year}年 の差引利益`} />
 
       <section className="rounded-xl bg-white p-4 shadow-sm">
         <h3 className="mb-3 font-semibold">月別の売上</h3>
@@ -152,9 +172,12 @@ function YearSummary({
             <div key={i} className="flex items-center gap-2 text-xs">
               <span className="w-8 shrink-0 text-black/50">{i + 1}月</span>
               <div className="h-3 flex-1 rounded-full bg-black/5">
-                <div className="h-3 rounded-full bg-blue-400" style={{ width: `${(v / data.maxV) * 100}%` }} />
+                <div
+                  className="h-3 rounded-full bg-blue-400"
+                  style={{ width: `${(v.income / data.maxV) * 100}%` }}
+                />
               </div>
-              <span className="w-20 shrink-0 text-right text-black/60">{yen(v)}</span>
+              <span className="w-20 shrink-0 text-right text-black/60">{yen(v.income)}</span>
             </div>
           ))}
         </div>
@@ -162,7 +185,7 @@ function YearSummary({
 
       <CsvButton
         disabled={data.rows.length === 0}
-        onClick={() => downloadCsv(`売上_${year}年.csv`, entriesToCsv(data.rows))}
+        onClick={() => downloadCsv(`収支_${year}年.csv`, entriesToCsv(data.rows))}
         label={`${year}年の明細をCSVで書き出す（確定申告用）`}
       />
     </>

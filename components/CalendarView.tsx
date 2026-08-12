@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Entry, workTypeOf } from '@/lib/types';
+import { Entry } from '@/lib/types';
+import { byDateInfo, summarize } from '@/lib/finance';
 import { sendToNotion } from '@/lib/notion';
 import {
   WEEK_LABELS,
@@ -47,29 +48,12 @@ export default function CalendarView({
     }
   }
 
-  const byDate = useMemo(() => {
-    const map = new Map<string, { ukeoi: number; jouchu: number; photo: boolean }>();
-    for (const e of entries) {
-      if (e.kind !== 'income') continue;
-      const cur = map.get(e.date) ?? { ukeoi: 0, jouchu: 0, photo: false };
-      if (workTypeOf(e) === '常駐') cur.jouchu += e.amount;
-      else cur.ukeoi += e.amount;
-      if (e.photos.length > 0) cur.photo = true;
-      map.set(e.date, cur);
-    }
-    return map;
-  }, [entries]);
+  const byDate = useMemo(() => byDateInfo(entries), [entries]);
 
-  const monthTotals = useMemo(() => {
-    let income = 0;
-    let count = 0;
-    for (const e of entries) {
-      if (e.date.slice(0, 7) !== mKey || e.kind !== 'income') continue;
-      income += e.amount;
-      count += 1;
-    }
-    return { income, count };
-  }, [entries, mKey]);
+  const monthTotals = useMemo(
+    () => summarize(entries.filter((e) => e.date.slice(0, 7) === mKey)),
+    [entries, mKey],
+  );
 
   const cells = calendarCells(mKey);
   const selectedEntries = selected ? entries.filter((e) => e.date === selected) : [];
@@ -88,16 +72,27 @@ export default function CalendarView({
         </button>
       </div>
 
-      {/* 月サマリー */}
-      <div className="grid grid-cols-2 gap-2 rounded-xl bg-white p-3 text-center shadow-sm">
-        <div>
-          <p className="text-xs text-black/50">売上合計</p>
-          <p className="font-bold text-blue-600">{yen(monthTotals.income)}</p>
+      {/* 月サマリー（収支） */}
+      <div className="rounded-xl bg-white p-3 shadow-sm">
+        <div className="grid grid-cols-3 divide-x divide-black/5 text-center">
+          <div className="px-1">
+            <p className="text-[11px] text-black/50">売上</p>
+            <p className="text-sm font-bold text-blue-600">{yen(monthTotals.income)}</p>
+          </div>
+          <div className="px-1">
+            <p className="text-[11px] text-black/50">経費(自己負担)</p>
+            <p className="text-sm font-bold text-red-500">−{yen(monthTotals.selfExpense)}</p>
+          </div>
+          <div className="px-1">
+            <p className="text-[11px] text-black/50">差引</p>
+            <p className="text-sm font-bold text-brand-primary">{yen(monthTotals.net)}</p>
+          </div>
         </div>
-        <div>
-          <p className="text-xs text-black/50">作業件数</p>
-          <p className="font-bold text-brand-primary">{monthTotals.count}件</p>
-        </div>
+        {monthTotals.reimburseExpense > 0 && (
+          <p className="mt-2 rounded-lg bg-amber-50 px-2 py-1 text-center text-[11px] text-amber-700">
+            常駐の立替経費 {yen(monthTotals.reimburseExpense)}（中野さんに請求／差引ゼロ）
+          </p>
+        )}
       </div>
 
       {/* カレンダー */}
@@ -120,7 +115,7 @@ export default function CalendarView({
               <button
                 key={c}
                 onClick={() => setSelected(c)}
-                className={`flex min-h-[58px] flex-col items-center rounded-lg px-0.5 py-1 text-xs ${
+                className={`flex min-h-[66px] flex-col items-center rounded-lg px-0.5 py-1 text-xs ${
                   isSel ? 'bg-brand-soft' : ''
                 } ${isToday ? 'ring-1 ring-brand-primary' : ''}`}
               >
@@ -139,6 +134,11 @@ export default function CalendarView({
                       常{manYen(info.jouchu)}
                     </span>
                   ) : null}
+                  {info?.expense ? (
+                    <span className="w-full truncate text-center text-[9px] font-semibold text-red-400">
+                      経{manYen(info.expense)}
+                    </span>
+                  ) : null}
                 </span>
               </button>
             );
@@ -147,12 +147,15 @@ export default function CalendarView({
       </div>
 
       {/* 凡例 */}
-      <div className="flex justify-center gap-5 text-[11px] text-black/50">
+      <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-[11px] text-black/50">
         <span>
           <span className="font-bold text-blue-600">請</span> = 請負
         </span>
         <span>
           <span className="font-bold text-emerald-600">常</span> = 常駐
+        </span>
+        <span>
+          <span className="font-bold text-red-400">経</span> = 経費
         </span>
         <span>📷 = 写真あり</span>
       </div>

@@ -314,6 +314,17 @@ export default function AddView({
           className="input text-right"
         />
         {expense && <p className="mt-1 text-right text-sm text-red-500">− {yen(Number(expense) || 0)}</p>}
+        {expense ? (
+          workType === '常駐' ? (
+            <p className="mt-1 rounded-lg bg-amber-50 px-2 py-1 text-[11px] text-amber-700">
+              常駐の経費は中野さんに請求して受け取るため、差引ゼロ（立替）で計算されます。
+            </p>
+          ) : (
+            <p className="mt-1 rounded-lg bg-slate-50 px-2 py-1 text-[11px] text-slate-500">
+              請負の経費は自己負担として、利益（差引）から差し引かれます。
+            </p>
+          )
+        ) : null}
         <p className="mb-1 mt-3 text-xs font-semibold text-black/50">レシート・購入品の写真</p>
         <PhotoInput photos={receiptPhotos} photoKind="receipt" maxCount={15} onChange={setReceipts} label="レシート" />
       </div>

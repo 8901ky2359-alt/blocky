@@ -4,7 +4,7 @@ import { Tab } from './BottomNav';
 
 const ITEMS: { key: Tab; label: string; icon: string }[] = [
   { key: 'calendar', label: 'カレンダー', icon: '📅' },
-  { key: 'summary', label: '売上', icon: '💰' },
+  { key: 'summary', label: '収支', icon: '💰' },
   { key: 'map', label: '地図', icon: '🗺' },
   { key: 'report', label: '報告・請求', icon: '📄' },
 ];
