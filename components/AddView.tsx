@@ -5,7 +5,6 @@ import { Entry, Photo, Template, WorkType, workTypeOf } from '@/lib/types';
 import { shiftDay, todayStr, yen } from '@/lib/format';
 import { addTemplate, loadTemplates } from '@/lib/templates';
 import { geocodeAddress } from '@/lib/geocode';
-import PhotoInput from './PhotoInput';
 
 type KnownSite = { site: string; address?: string; lat?: number; lng?: number };
 
@@ -28,7 +27,6 @@ export default function AddView({
   const [date, setDate] = useState(editing?.date ?? defaultDate ?? todayStr());
   const [site, setSite] = useState(editing?.site ?? '');
   const [amount, setAmount] = useState(editing?.amount ? String(editing.amount) : '');
-  const [expense, setExpense] = useState(editing?.expense ? String(editing.expense) : '');
   const [memo, setMemo] = useState(editing?.memo ?? '');
   const [photos, setPhotos] = useState<Photo[]>(editing?.photos ?? []);
   const [address, setAddress] = useState(editing?.address ?? '');
@@ -53,15 +51,6 @@ export default function AddView({
     if (!label) return;
     const num = Number(amount.replace(/[, ¥]/g, '')) || 0;
     setTemplates(addTemplate({ label, kind: 'income', category: '', amount: num, memo: memo.trim() }));
-  }
-
-  // 既存の作業前/後写真は編集画面では表示しないが、保存時にそのまま保持する
-  const beforePhotos = photos.filter((p) => p.photoKind === 'site' && p.phase === 'before');
-  const afterPhotos = photos.filter((p) => p.photoKind === 'site' && p.phase === 'after');
-  const receiptPhotos = photos.filter((p) => p.photoKind === 'receipt');
-
-  function setReceipts(next: Photo[]) {
-    setPhotos([...beforePhotos, ...afterPhotos, ...next]);
   }
 
   // 過去の現場を選んだとき、住所（と位置）も一致させる
@@ -125,7 +114,7 @@ export default function AddView({
         category: '',
         site: site.trim(),
         amount: num,
-        expense: Number(expense.replace(/[, ¥]/g, '')) || 0,
+        expense: editing?.expense, // 経費は「経費」ページで管理（旧データは保持）
         memo: memo.trim(),
         photos,
         address: address.trim() || undefined,
@@ -302,32 +291,9 @@ export default function AddView({
         />
       </Field>
 
-      {/* 経費（金額＋レシート/購入品の写真） */}
-      <div className="rounded-xl border border-black/10 bg-white p-3">
-        <p className="mb-2 text-sm font-medium text-black/70">経費（任意）</p>
-        <input
-          type="number"
-          inputMode="numeric"
-          value={expense}
-          onChange={(e) => setExpense(e.target.value)}
-          placeholder="経費の金額（円）"
-          className="input text-right"
-        />
-        {expense && <p className="mt-1 text-right text-sm text-red-500">− {yen(Number(expense) || 0)}</p>}
-        {expense ? (
-          workType === '常駐' ? (
-            <p className="mt-1 rounded-lg bg-amber-50 px-2 py-1 text-[11px] text-amber-700">
-              常駐の経費は中野さんに請求して受け取るため、差引ゼロ（立替）で計算されます。
-            </p>
-          ) : (
-            <p className="mt-1 rounded-lg bg-slate-50 px-2 py-1 text-[11px] text-slate-500">
-              請負の経費は自己負担として、利益（差引）から差し引かれます。
-            </p>
-          )
-        ) : null}
-        <p className="mb-1 mt-3 text-xs font-semibold text-black/50">レシート・購入品の写真</p>
-        <PhotoInput photos={receiptPhotos} photoKind="receipt" maxCount={15} onChange={setReceipts} label="レシート" />
-      </div>
+      <p className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
+        経費（ガソリン・高速・人件費・レシートなど）は、ホームの「🧾 経費」ページで記録・報告します。
+      </p>
 
       {!editing && (amount || memo) && (
         <button

@@ -17,10 +17,18 @@ export default function Launcher({ onOpenMemo }: { onOpenMemo: () => void }) {
     {
       key: 'memo',
       label: '現場メモ',
-      desc: '収支・経費・現場記録／カレンダー・請求書',
+      desc: '売上・現場記録／カレンダー・収支・請求書',
       icon: '📒',
       onClick: onOpenMemo,
       accent: 'bg-brand-primary',
+    },
+    {
+      key: 'expense',
+      label: '経費',
+      desc: 'レシート写真つきで経費を記録・報告',
+      icon: '🧾',
+      href: '/expense',
+      accent: 'bg-red-600',
     },
     {
       key: 'ba',
