@@ -3,39 +3,34 @@
 import { useMemo, useState } from 'react';
 import { SITES } from '@/lib/report/data';
 import { useReport } from '@/lib/report/useReport';
-import { overallOf } from '@/lib/report/status';
+import { isReportTarget } from '@/lib/report/status';
 import SiteRow from './SiteRow';
 import ReportMap from './ReportMap';
 import ReportSheet from './ReportSheet';
 
-type Filter = 'all' | 'none' | 'wip' | 'done' | 'week' | 'next';
+type Filter = 'all' | 'none' | 'target' | 'done' | 'next';
 
 export default function ReportListView() {
-  const { loading, get, update, markProgressThisWeek, clearThisWeek } = useReport();
+  const { loading, get, update } = useReport();
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [mode, setMode] = useState<'list' | 'map'>('list');
   const [area, setArea] = useState<string>('all');
-  const [weedFilter, setWeedFilter] = useState<'all' | 'wip' | 'done'>('all');
-  const [sheetFilter, setSheetFilter] = useState<'all' | 'wip' | 'done'>('all');
   const [showSheet, setShowSheet] = useState(false);
 
   const areas = useMemo(() => Array.from(new Set(SITES.map((s) => s.area))), []);
   const doneCount = useMemo(() => SITES.filter((s) => get(s.workNo).done).length, [get]);
+  const targetCount = useMemo(() => SITES.filter((s) => isReportTarget(get(s.workNo))).length, [get]);
 
   const shown = useMemo(() => {
     const kw = q.trim().toLowerCase();
     return SITES.filter((s) => {
       if (area !== 'all' && s.area !== area) return false;
       const p = get(s.workNo);
-      const ov = overallOf(p);
-      if (filter === 'none' && ov !== 'none') return false;
-      if (filter === 'wip' && !(ov === 'wip' || ov === 'weeded' || ov === 'sheet')) return false;
+      if (filter === 'none' && (p.weedDone || p.done)) return false;
+      if (filter === 'target' && !isReportTarget(p)) return false;
       if (filter === 'done' && !p.done) return false;
-      if (filter === 'week' && !p.thisWeek) return false;
       if (filter === 'next' && !p.nextWeek) return false;
-      if (weedFilter !== 'all' && p.weeding !== weedFilter) return false;
-      if (sheetFilter !== 'all' && p.sheet !== sheetFilter) return false;
       if (!kw) return true;
       return (
         s.workNo.toLowerCase().includes(kw) ||
@@ -43,14 +38,14 @@ export default function ReportListView() {
         s.address.toLowerCase().includes(kw)
       );
     });
-  }, [q, filter, area, weedFilter, sheetFilter, get]);
+  }, [q, filter, area, get]);
 
   const renderKey = useMemo(
     () =>
       shown
         .map((s) => {
           const p = get(s.workNo);
-          return s.workNo + p.weeding + p.sheet + (p.done ? '1' : '0');
+          return s.workNo + (p.weedDone ? 'w' : '') + (p.done ? '1' : '') + (p.siteType ?? '');
         })
         .join(','),
     [shown, get],
@@ -60,10 +55,9 @@ export default function ReportListView() {
   const chips: { key: Filter; label: string }[] = [
     { key: 'all', label: `すべて ${SITES.length}` },
     { key: 'none', label: '未着手' },
-    { key: 'wip', label: '作業中' },
+    { key: 'target', label: `報告対象 ${targetCount}` },
     { key: 'done', label: `完工 ${doneCount}` },
-    { key: 'week', label: '報告対象' },
-    { key: 'next', label: '次週' },
+    { key: 'next', label: '次週予定' },
   ];
 
   return (
@@ -129,34 +123,6 @@ export default function ReportListView() {
         </div>
       </div>
 
-      {/* ステータス絞り込み（除草・防草シート） */}
-      <div className="grid grid-cols-2 gap-2">
-        <label className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5">
-          <span className="shrink-0 text-[11px] font-bold text-slate-500">除草</span>
-          <select
-            value={weedFilter}
-            onChange={(e) => setWeedFilter(e.target.value as 'all' | 'wip' | 'done')}
-            className="min-w-0 flex-1 bg-transparent text-sm outline-none"
-          >
-            <option value="all">すべて</option>
-            <option value="wip">作業途中</option>
-            <option value="done">完了</option>
-          </select>
-        </label>
-        <label className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5">
-          <span className="shrink-0 text-[11px] font-bold text-slate-500">シート</span>
-          <select
-            value={sheetFilter}
-            onChange={(e) => setSheetFilter(e.target.value as 'all' | 'wip' | 'done')}
-            className="min-w-0 flex-1 bg-transparent text-sm outline-none"
-          >
-            <option value="all">すべて</option>
-            <option value="wip">作業途中</option>
-            <option value="done">完了</option>
-          </select>
-        </label>
-      </div>
-
       {/* フィルタ */}
       <div className="flex gap-1.5 overflow-x-auto pb-1">
         {chips.map((c) => (
@@ -204,15 +170,7 @@ export default function ReportListView() {
         </div>
       </div>
 
-      {showSheet && (
-        <ReportSheet
-          sites={SITES}
-          get={get}
-          onReflectProgress={markProgressThisWeek}
-          onClearThisWeek={clearThisWeek}
-          onClose={() => setShowSheet(false)}
-        />
-      )}
+      {showSheet && <ReportSheet sites={SITES} get={get} onClose={() => setShowSheet(false)} />}
     </div>
   );
 }

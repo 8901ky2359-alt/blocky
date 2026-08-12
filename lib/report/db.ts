@@ -1,6 +1,6 @@
 // 現場ルート報告の作業状態を端末に自動保存（IndexedDB）。オフライン対応。
 
-import { SiteProgress } from './types';
+import { SiteProgress, normalizeProgress } from './types';
 
 const DB_NAME = 'genba-report';
 const STORE = 'progress';
@@ -29,7 +29,10 @@ export async function loadAll(): Promise<Record<string, SiteProgress>> {
       const req = db.transaction(STORE, 'readonly').objectStore(STORE).getAll();
       req.onsuccess = () => {
         const map: Record<string, SiteProgress> = {};
-        for (const s of (req.result as SiteProgress[]) || []) map[s.workNo] = s;
+        for (const raw of (req.result as SiteProgress[]) || []) {
+          const s = normalizeProgress(raw);
+          if (s.workNo) map[s.workNo] = s;
+        }
         resolve(map);
       };
       req.onerror = () => reject(req.error);

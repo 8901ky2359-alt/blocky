@@ -2,19 +2,15 @@
 
 import { useMemo, useState } from 'react';
 import { SiteSeed, SiteProgress } from '@/lib/report/types';
-import { buildReport } from '@/lib/report/status';
+import { buildReport, isReportTarget } from '@/lib/report/status';
 
 export default function ReportSheet({
   sites,
   get,
-  onReflectProgress,
-  onClearThisWeek,
   onClose,
 }: {
   sites: SiteSeed[];
   get: (workNo: string) => SiteProgress;
-  onReflectProgress: () => void;
-  onClearThisWeek: () => void;
   onClose: () => void;
 }) {
   const [dateLabel, setDateLabel] = useState('');
@@ -28,7 +24,7 @@ export default function ReportSheet({
   );
   const text = edited ?? auto;
 
-  const implCount = sites.filter((s) => get(s.workNo).thisWeek).length;
+  const implCount = sites.filter((s) => isReportTarget(get(s.workNo))).length;
   const nextCount = sites.filter((s) => get(s.workNo).nextWeek).length;
 
   async function share() {
@@ -61,30 +57,10 @@ export default function ReportSheet({
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-black/20" />
         <h3 className="mb-1 text-lg font-bold">📋 今週の報告を作成</h3>
-        <p className="mb-2 text-xs text-slate-500">
-          実施 {implCount}件／次週 {nextCount}件。各現場のコード横の「報告」チェックで選んだ現場が実施に載ります。
-          そのままLINEへ共有・コピーできます。
+        <p className="mb-3 text-xs text-slate-500">
+          実施 {implCount}件／次週 {nextCount}件。<b>完工していない「除草完了」の現場</b>が自動で実施に載ります
+          （完工にすると外れます）。そのままLINEへ共有・コピーできます。
         </p>
-
-        {/* まとめて選択・解除 */}
-        <div className="mb-3 grid grid-cols-2 gap-2">
-          <button
-            onClick={onReflectProgress}
-            className="rounded-lg border border-brand-primary bg-brand-primary/5 py-2 text-[12px] font-bold text-brand-primary"
-          >
-            🔄 進捗のある現場をまとめて選択
-          </button>
-          <button
-            onClick={() => {
-              if (confirm('報告の選択（チェック）をすべて解除します。（除草・シート・完工のステータスはそのまま残ります）')) {
-                onClearThisWeek();
-              }
-            }}
-            className="rounded-lg border border-slate-300 py-2 text-[12px] font-bold text-slate-600"
-          >
-            選択をすべて解除
-          </button>
-        </div>
 
         <div className="mb-2 grid grid-cols-1 gap-2">
           <input

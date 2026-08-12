@@ -1,49 +1,21 @@
 // ステータスの表示・色・LINE報告テキストの生成
 
-import { SiteSeed, SiteProgress, Weeding, Sheet } from './types';
-
-export const WEEDING_LABEL: Record<Weeding, string> = {
-  none: '未着手',
-  wip: '作業途中',
-  done: '完了',
-};
-
-export const SHEET_LABEL: Record<Sheet, string> = {
-  none: '未着手',
-  wip: '作業途中',
-  done: '完了',
-  fix: '是正未完',
-};
+import { SiteSeed, SiteProgress, SiteType } from './types';
 
 // 全体の状態区分（地図ピン色・フィルタ用）
-export type Overall = 'done' | 'sheet' | 'weeded' | 'wip' | 'none';
+export type Overall = 'done' | 'weeded' | 'none';
 
 export function overallOf(p: SiteProgress): Overall {
-  if (p.done) return 'done'; // 施工完了
-  if (p.sheet === 'done') return 'sheet'; // シート完了（施工完了待ち）
-  if (p.weeding === 'done') return 'weeded'; // 除草まで完了
-  if (p.weeding === 'wip' || p.sheet === 'wip' || p.sheet === 'fix') return 'wip'; // 作業中
+  if (p.done) return 'done'; // 完工
+  if (p.weedDone) return 'weeded'; // 除草完了/除草のみ完了
   return 'none'; // 未着手
 }
 
 export const OVERALL_META: Record<Overall, { label: string; color: string }> = {
-  done: { label: '施工完了', color: '#059669' }, // 緑
-  sheet: { label: 'シート完了', color: '#2563eb' }, // 青
-  weeded: { label: '除草まで完了', color: '#d97706' }, // オレンジ
-  wip: { label: '作業中', color: '#eab308' }, // 黄
+  done: { label: '完工', color: '#059669' }, // 緑
+  weeded: { label: '除草完了', color: '#d97706' }, // オレンジ
   none: { label: '未着手', color: '#94a3b8' }, // 灰
 };
-
-// LINE報告用の1行ステータス表現（中野さんの書式に合わせる）
-export function statusPhrase(p: SiteProgress): string {
-  if (p.done) return '施工完了';
-  if (p.sheet === 'fix') return 'シート是正個所未完';
-  if (p.sheet === 'wip') return 'シート作業途中';
-  if (p.sheet === 'done') return 'シート完了';
-  if (p.weeding === 'done') return '除草まで';
-  if (p.weeding === 'wip') return '除草（作業途中）';
-  return '未着手';
-}
 
 export function mapsUrl(lat: number, lng: number): string {
   return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
@@ -54,17 +26,39 @@ export function codeOf(workNo: string): string {
   return /^\d{5,6}$/.test(workNo) ? workNo : '';
 }
 
-// 今週の報告テキストを生成（実施＝今週実施ON、次週＝次週予定ON）
+// 現場の種類（未設定なら既定：工番あり=シートあり / リスト外=除草のみ）
+export function typeOf(site: SiteSeed, p: SiteProgress): SiteType {
+  return p.siteType ?? (codeOf(site.workNo) ? 'シートあり' : '除草のみ');
+}
+
+// 画面表示用の状態ラベル（現場の種類で表現を変える）
+export function statusLabel(type: SiteType, p: SiteProgress): string {
+  if (p.done) return '完工';
+  if (p.weedDone) return type === '除草のみ' ? '除草完了' : '除草のみ完了';
+  return '未着手';
+}
+
+// 報告対象＝完工していない現場
+export function isReportTarget(p: SiteProgress): boolean {
+  return !p.done && p.weedDone;
+}
+
+// LINE報告用の1行ステータス表現
+// - 除草のみの現場：除草作業完了
+// - 防草シートありの現場：除草作業のみ完了
+export function reportPhrase(type: SiteType): string {
+  return type === '除草のみ' ? '除草作業完了' : '除草作業のみ完了';
+}
+
+// 今週の報告テキストを生成
+// 実施＝完工していない＆除草完了の現場（市町村ごと）／次週＝次週予定
 export function buildReport(
   sites: SiteSeed[],
   get: (workNo: string) => SiteProgress,
   opts: { dateLabel?: string; extra?: string } = {},
 ): string {
-  const byWork = new Map(sites.map((s) => [s.workNo, s]));
-  const done = sites.map((s) => get(s.workNo));
-
-  const impl = done.filter((p) => p.thisWeek);
-  const next = done.filter((p) => p.nextWeek);
+  const impl = sites.filter((s) => isReportTarget(get(s.workNo)));
+  const next = sites.filter((s) => get(s.workNo).nextWeek);
 
   const lines: string[] = [];
   if (opts.dateLabel) lines.push(`✅${opts.dateLabel}`);
@@ -77,22 +71,20 @@ export function buildReport(
   }
 
   if (impl.length === 0) {
-    lines.push('（実施の現場がありません。各現場のコード横の「報告」にチェックを入れてください）');
+    lines.push('（報告対象の現場がありません。現場を「除草完了」にすると対象になります）');
   } else {
     // 市町村ごとにまとめる
-    const groups = new Map<string, SiteProgress[]>();
-    for (const p of impl) {
-      const s = byWork.get(p.workNo);
-      const area = s?.area ?? 'その他';
-      if (!groups.has(area)) groups.set(area, []);
-      groups.get(area)!.push(p);
+    const groups = new Map<string, SiteSeed[]>();
+    for (const s of impl) {
+      if (!groups.has(s.area)) groups.set(s.area, []);
+      groups.get(s.area)!.push(s);
     }
     for (const [area, list] of groups) {
       lines.push(area);
-      for (const p of list) {
-        const s = byWork.get(p.workNo)!;
+      for (const s of list) {
         const code = codeOf(s.workNo);
-        lines.push(`${code ? code + ' ' : ''}${s.name} ${statusPhrase(p)}`);
+        const phrase = reportPhrase(typeOf(s, get(s.workNo)));
+        lines.push(`${code ? code + ' ' : ''}${s.name} ${phrase}`);
       }
     }
   }
@@ -102,8 +94,7 @@ export function buildReport(
   if (next.length === 0) {
     lines.push('（次週予定の現場が選択されていません）');
   } else {
-    for (const p of next) {
-      const s = byWork.get(p.workNo)!;
+    for (const s of next) {
       const code = codeOf(s.workNo);
       lines.push(`${code ? code + ' ' : ''}${s.name}`);
     }
