@@ -46,6 +46,14 @@ export default function Launcher({ onOpenMemo }: { onOpenMemo: () => void }) {
       href: '/report',
       accent: 'bg-amber-600',
     },
+    {
+      key: 'hire',
+      label: '雇用・作業依頼',
+      desc: '作業依頼書（報酬・支払条件・署名）を作成',
+      icon: '🤝',
+      href: '/hire',
+      accent: 'bg-indigo-600',
+    },
   ];
 
   return (
