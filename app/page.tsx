@@ -7,6 +7,8 @@ import { Entry } from '@/lib/types';
 import { todayStr } from '@/lib/format';
 import { generateCode, getSpace, setSpace, type SyncResult } from '@/lib/sync';
 import Launcher from '@/components/Launcher';
+import PasswordGate from '@/components/PasswordGate';
+import { hasPasscode, setPasscode, clearPasscode } from '@/lib/lock';
 import BottomNav, { Tab } from '@/components/BottomNav';
 import SideNav from '@/components/SideNav';
 import CalendarView from '@/components/CalendarView';
@@ -79,12 +81,13 @@ export default function Home() {
     setShowLauncher(true);
   }
 
-  // 最初のホーム画面（3つの入口）
+  // 最初のホーム画面（入口一覧）
   if (showLauncher) {
     return <Launcher onOpenMemo={() => setShowLauncher(false)} />;
   }
 
   return (
+   <PasswordGate title="現場メモ" onExit={goHome}>
     <div className="min-h-screen overflow-x-hidden bg-gradient-to-b from-slate-100 to-slate-300">
       <div className="mx-auto flex min-h-screen w-full max-w-[1180px]">
         {/* PC用サイドナビ（スマホでは非表示） */}
@@ -164,6 +167,63 @@ export default function Home() {
         />
       )}
     </div>
+   </PasswordGate>
+  );
+}
+
+function PasscodeSettings() {
+  const [pass, setPass] = useState('');
+  const [msg, setMsg] = useState('');
+  const [set, setSet] = useState(false);
+
+  useEffect(() => {
+    setSet(hasPasscode());
+  }, []);
+
+  async function apply() {
+    if (pass.trim().length < 4) {
+      setMsg('4文字以上にしてください');
+      return;
+    }
+    await setPasscode(pass.trim());
+    setPass('');
+    setSet(true);
+    setMsg('パスワードを設定しました');
+    setTimeout(() => setMsg(''), 2600);
+  }
+  function remove() {
+    if (!confirm('パスワードを解除しますか？（現場メモ・雇用ページのロックが外れます）')) return;
+    clearPasscode();
+    setSet(false);
+    setMsg('パスワードを解除しました');
+    setTimeout(() => setMsg(''), 2600);
+  }
+
+  return (
+    <div>
+      <h3 className="mb-1 text-lg font-bold">🔒 パスワード（現場メモ・雇用）</h3>
+      <p className="mb-2 text-sm text-black/50">
+        {set ? 'パスワード設定中。変更するには新しいパスワードを入力してください。' : 'パスワードは未設定です。'}
+      </p>
+      <div className="flex gap-2">
+        <input
+          type="password"
+          value={pass}
+          onChange={(e) => setPass(e.target.value)}
+          placeholder={set ? '新しいパスワード' : 'パスワード（4文字以上）'}
+          className="input flex-1"
+        />
+        <button onClick={apply} className="shrink-0 rounded-xl bg-brand-primary px-4 text-sm font-semibold text-white">
+          {set ? '変更' : '設定'}
+        </button>
+      </div>
+      {set && (
+        <button onClick={remove} className="mt-2 text-xs text-red-500 underline">
+          パスワードを解除する
+        </button>
+      )}
+      {msg && <p className="mt-1 text-xs text-brand-primary">{msg}</p>}
+    </div>
   );
 }
 
@@ -227,6 +287,11 @@ function BackupPanel({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-black/20" />
+
+        {/* パスワード */}
+        <PasscodeSettings />
+
+        <div className="my-3 border-t border-black/10" />
 
         {/* クラウド同期 */}
         <h3 className="mb-1 text-lg font-bold">☁ クラウド同期（スマホ⇔PC）</h3>
