@@ -5,6 +5,7 @@ import { HireRecord } from '@/lib/hire/types';
 import { listHire, putHire, deleteHire } from '@/lib/hire/db';
 import HireForm from '@/components/hire/HireForm';
 import HireDoc from '@/components/hire/HireDoc';
+import HireCalendar from '@/components/hire/HireCalendar';
 import PasswordGate from '@/components/PasswordGate';
 
 type View = { kind: 'list' } | { kind: 'form'; editing?: HireRecord | null } | { kind: 'doc'; rec: HireRecord };
@@ -13,6 +14,7 @@ export default function HirePage() {
   const [records, setRecords] = useState<HireRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>({ kind: 'list' });
+  const [listMode, setListMode] = useState<'list' | 'calendar'>('calendar');
 
   const refresh = useCallback(async () => {
     setRecords(await listHire());
@@ -70,7 +72,30 @@ export default function HirePage() {
               onBack={() => setView({ kind: 'list' })}
             />
           ) : (
-            <HireList records={records} onOpen={(rec) => setView({ kind: 'doc', rec })} onNew={() => setView({ kind: 'form', editing: null })} />
+            <>
+              {/* 一覧 / カレンダー 切替 */}
+              <div className="mb-3 flex justify-center">
+                <div className="flex overflow-hidden rounded-full border border-slate-200 bg-white">
+                  <button
+                    onClick={() => setListMode('calendar')}
+                    className={`px-4 py-1.5 text-xs font-bold ${listMode === 'calendar' ? 'bg-brand-primary text-white' : 'text-slate-500'}`}
+                  >
+                    📅 カレンダー
+                  </button>
+                  <button
+                    onClick={() => setListMode('list')}
+                    className={`px-4 py-1.5 text-xs font-bold ${listMode === 'list' ? 'bg-brand-primary text-white' : 'text-slate-500'}`}
+                  >
+                    一覧
+                  </button>
+                </div>
+              </div>
+              {listMode === 'calendar' ? (
+                <HireCalendar records={records} onOpen={(rec) => setView({ kind: 'doc', rec })} />
+              ) : (
+                <HireList records={records} onOpen={(rec) => setView({ kind: 'doc', rec })} onNew={() => setView({ kind: 'form', editing: null })} />
+              )}
+            </>
           )}
         </main>
       </div>

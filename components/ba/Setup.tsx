@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 
-const PRESETS = [1, 3, 5, 8, 10, 15, 20, 30];
+const PRESETS = [5, 10, 20, 30, 50, 100];
 
 export default function Setup({ onStart }: { onStart: (count: number) => void }) {
   const [count, setCount] = useState(5);
-  const clamp = (n: number) => Math.max(1, Math.min(30, n));
+  const clamp = (n: number) => Math.max(1, Math.min(999, Math.floor(n) || 1));
 
   return (
     <div className="mx-auto flex min-h-[100dvh] w-full max-w-md flex-col justify-center px-5 py-10">
@@ -49,10 +49,15 @@ export default function Setup({ onStart }: { onStart: (count: number) => void })
           >
             −
           </button>
-          <div className="w-24 text-center">
-            <span className="text-4xl font-bold text-slate-900">{count}</span>
-            <span className="ml-1 text-sm text-slate-500">箇所</span>
-          </div>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            value={count}
+            onChange={(e) => setCount(clamp(Number(e.target.value)))}
+            className="w-24 rounded-none border-b-2 border-slate-200 text-center text-4xl font-bold text-slate-900 outline-none"
+            aria-label="箇所数"
+          />
           <button
             onClick={() => setCount((c) => clamp(c + 1))}
             className="grid h-12 w-12 place-items-center rounded-none border border-slate-200 text-2xl text-slate-600 active:bg-slate-100"
@@ -61,6 +66,9 @@ export default function Setup({ onStart }: { onStart: (count: number) => void })
             ＋
           </button>
         </div>
+        <p className="mt-2 text-center text-xs text-slate-400">
+          箇所数は自由に設定できます（後から「箇所を追加」もできます）
+        </p>
       </div>
 
       <button

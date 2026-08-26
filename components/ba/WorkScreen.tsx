@@ -16,11 +16,13 @@ export default function WorkScreen({
   onSetShot,
   onSetName,
   onReset,
+  onAddItems,
 }: {
   project: Project;
   onSetShot: (index: number, kind: 'before' | 'after', shot: Shot | null) => void;
   onSetName: (name: string) => void;
   onReset: () => void;
+  onAddItems: (n: number) => void;
 }) {
   const [toast, setToast] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -139,6 +141,19 @@ export default function WorkScreen({
             notify={notify}
           />
         ))}
+
+        {/* 箇所を追加（何箇所でも） */}
+        <div className="grid grid-cols-3 gap-2 pt-1">
+          {[1, 5, 10].map((n) => (
+            <button
+              key={n}
+              onClick={() => onAddItems(n)}
+              className="rounded-none border-2 border-dashed border-slate-300 py-3 text-sm font-bold text-slate-500 active:bg-slate-100"
+            >
+              ＋{n}箇所
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* 下部の保存・共有バー */}
