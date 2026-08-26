@@ -2,6 +2,7 @@
 
 const WORKERS_KEY = 'hire-workers';
 const CONTENTS_KEY = 'hire-contents';
+const SITES_KEY = 'hire-sites';
 
 function load(key: string): string[] {
   if (typeof localStorage === 'undefined') return [];
@@ -35,6 +36,22 @@ export function addWorker(name: string): string[] {
 export function removeWorker(name: string): string[] {
   const list = getWorkers().filter((x) => x !== name);
   save(WORKERS_KEY, list);
+  return list;
+}
+
+export function getSites(): string[] {
+  return load(SITES_KEY);
+}
+export function addSite(name: string): string[] {
+  const n = name.trim();
+  if (!n) return getSites();
+  const list = [n, ...getSites().filter((x) => x !== n)];
+  save(SITES_KEY, list);
+  return list;
+}
+export function removeSite(name: string): string[] {
+  const list = getSites().filter((x) => x !== name);
+  save(SITES_KEY, list);
   return list;
 }
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { HireRecord } from '@/lib/hire/types';
 import { shiftDay, todayStr, yen } from '@/lib/format';
-import { getWorkers, addWorker, removeWorker } from '@/lib/hire/presets';
+import { getWorkers, addWorker, removeWorker, getSites, addSite, removeSite } from '@/lib/hire/presets';
 
 export default function HireForm({
   editing,
@@ -22,9 +22,11 @@ export default function HireForm({
   const [amount, setAmount] = useState(editing?.amount ? String(editing.amount) : '');
   const [memo, setMemo] = useState(editing?.memo ?? '');
   const [workers, setWorkers] = useState<string[]>([]);
+  const [sites, setSites] = useState<string[]>([]);
 
   useEffect(() => {
     setWorkers(getWorkers());
+    setSites(getSites());
   }, []);
 
   function onNameInput(v: string) {
@@ -38,6 +40,7 @@ export default function HireForm({
     }
     const num = Number(amount.replace(/[, ¥]/g, '')) || 0;
     if (name.trim()) setWorkers(addWorker(name.trim())); // 名前を登録して次回から候補に
+    if (site.trim()) setSites(addSite(site.trim())); // 現場名も登録
     const now = Date.now();
     onSave({
       id: editing?.id ?? Math.random().toString(36).slice(2, 12),
@@ -111,7 +114,26 @@ export default function HireForm({
       {/* 現場名 */}
       <label className="block space-y-1">
         <span className="text-sm font-medium text-black/70">現場名</span>
-        <input value={site} onChange={(e) => setSite(e.target.value)} placeholder="例: ◯◯様宅 / △△線" className="input" />
+        <input list="hire-sites" value={site} onChange={(e) => setSite(e.target.value)} placeholder="例: ◯◯様宅 / △△線" className="input" />
+        <datalist id="hire-sites">
+          {sites.map((s) => (
+            <option key={s} value={s} />
+          ))}
+        </datalist>
+        {sites.length > 0 && (
+          <div className="mt-1 flex flex-wrap gap-1.5">
+            {sites.map((s) => (
+              <span key={s} className="flex items-center gap-1 rounded-full border border-black/15 pl-3 pr-1 text-xs">
+                <button type="button" onClick={() => setSite(s)} className={`py-1 ${site === s ? 'font-bold text-brand-primary' : 'text-black/60'}`}>
+                  {s}
+                </button>
+                <button type="button" onClick={() => setSites(removeSite(s))} className="grid h-5 w-5 place-items-center text-black/30" aria-label="削除">
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
       </label>
 
       {/* 金額 */}
