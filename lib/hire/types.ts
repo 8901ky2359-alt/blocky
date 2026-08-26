@@ -1,25 +1,39 @@
-// 雇用（作業依頼・業務委託）管理の型
+// 雇用（人工・作業依頼）の型 — シンプル版
 
 export interface HireRecord {
   id: string;
-  orderer: string; // 発注者名（基本は山田一貴）
-  worker: string; // 作業者名
-  workContent: string; // 作業内容
-  location: string; // 作業場所
-  dateStart: string; // 作業日・開始（YYYY-MM-DD）
-  dateEnd?: string; // 期間の終了（任意）
-  rate: string; // 報酬額（例: 1人工 20,000円）
-  paymentTerms: string; // 支払条件（例: 月末締め翌月末払い）
-  travelLodging: string; // 交通費・宿泊費の負担
-  ordererSign?: string; // 発注者の署名（dataURL）
-  workerSign?: string; // 作業者の署名（dataURL）
-  ordererConfirmed?: boolean; // 発注者の確認
-  workerConfirmed?: boolean; // 作業者の確認
+  date: string; // 日付 YYYY-MM-DD
+  name: string; // 名前（作業者）
+  site: string; // 現場名
+  amount: number; // 金額
   memo?: string;
   createdAt: number;
   updatedAt: number;
   deleted?: boolean;
 }
 
-export const DEFAULT_ORDERER = '山田一貴';
-export const DEFAULT_PAYMENT_TERMS = '月末締め翌月末払い';
+// 旧データ（rate文字列・worker・dateStart など）を金額数値へ
+function parseAmount(v: unknown): number {
+  if (typeof v === 'number') return v;
+  if (typeof v === 'string') {
+    const m = v.match(/[\d,]+/g);
+    if (m) return Number(m[m.length - 1].replace(/,/g, '')) || 0;
+  }
+  return 0;
+}
+
+// 旧モデルも吸収して正規化
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function normalizeHire(raw: any): HireRecord {
+  return {
+    id: String(raw?.id ?? Math.random().toString(36).slice(2, 12)),
+    date: raw?.date ?? raw?.dateStart ?? '',
+    name: raw?.name ?? raw?.worker ?? '',
+    site: raw?.site ?? raw?.location ?? '',
+    amount: raw?.amount != null ? parseAmount(raw.amount) : parseAmount(raw?.rate),
+    memo: raw?.memo ?? '',
+    createdAt: Number(raw?.createdAt) || 0,
+    updatedAt: Number(raw?.updatedAt) || 0,
+    deleted: raw?.deleted,
+  };
+}

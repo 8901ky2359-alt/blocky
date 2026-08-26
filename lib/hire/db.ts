@@ -1,6 +1,6 @@
 // 雇用（作業依頼）記録の保存（IndexedDB）。オフライン対応。
 
-import { HireRecord } from './types';
+import { HireRecord, normalizeHire } from './types';
 
 const DB_NAME = 'genba-hire';
 const STORE = 'records';
@@ -28,8 +28,10 @@ export async function listHire(): Promise<HireRecord[]> {
     return await new Promise((resolve, reject) => {
       const req = db.transaction(STORE, 'readonly').objectStore(STORE).getAll();
       req.onsuccess = () => {
-        const rows = ((req.result as HireRecord[]) || []).filter((r) => !r.deleted);
-        rows.sort((a, b) => (a.dateStart < b.dateStart ? 1 : a.dateStart > b.dateStart ? -1 : b.createdAt - a.createdAt));
+        const rows = ((req.result as HireRecord[]) || [])
+          .map(normalizeHire)
+          .filter((r) => !r.deleted);
+        rows.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.createdAt - a.createdAt));
         resolve(rows);
       };
       req.onerror = () => reject(req.error);
