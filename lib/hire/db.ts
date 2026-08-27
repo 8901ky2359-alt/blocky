@@ -41,6 +41,20 @@ export async function listHire(): Promise<HireRecord[]> {
   }
 }
 
+// 同期用：削除済み(墓標)も含めた全件
+export async function listHireRaw(): Promise<HireRecord[]> {
+  try {
+    const db = await openDb();
+    return await new Promise((resolve, reject) => {
+      const req = db.transaction(STORE, 'readonly').objectStore(STORE).getAll();
+      req.onsuccess = () => resolve(((req.result as HireRecord[]) || []).map(normalizeHire));
+      req.onerror = () => reject(req.error);
+    });
+  } catch {
+    return [];
+  }
+}
+
 export async function putHire(rec: HireRecord): Promise<void> {
   const db = await openDb();
   await new Promise<void>((resolve, reject) => {

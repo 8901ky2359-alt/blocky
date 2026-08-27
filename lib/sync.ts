@@ -7,21 +7,44 @@ import { Entry } from './types';
 import { listEntries, putEntry } from './db';
 
 const SPACE_KEY = 'genba-sync-space';
+// 既定の同期スペース。全端末が同じ値になるので、設定なしで自動的に同期される。
+export const DEFAULT_SPACE = 'genba-yamada-8901ky-main-v1';
 
 export function getSpace(): string {
-  if (typeof window === 'undefined') return '';
-  return window.localStorage.getItem(SPACE_KEY) || '';
+  if (typeof window === 'undefined') return DEFAULT_SPACE;
+  return window.localStorage.getItem(SPACE_KEY) || DEFAULT_SPACE;
 }
 
 export function setSpace(code: string): void {
   if (typeof window === 'undefined') return;
   const c = code.trim();
   if (c) window.localStorage.setItem(SPACE_KEY, c);
-  else window.localStorage.removeItem(SPACE_KEY);
+  else window.localStorage.removeItem(SPACE_KEY); // 既定スペースに戻る
 }
 
 export function hasSync(): boolean {
-  return !!getSpace();
+  return !!getSpace(); // 既定スペースがあるので常にtrue
+}
+
+// 汎用同期：任意のストア(雇用・進捗など)を space の派生キーで同期する。
+// rows は {id, updatedAt, deleted?} を持つJSON。サーバの全行(墓標含む)を返す。
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function pushPull(suffix: string, rows: any[]): Promise<any[] | null> {
+  const base = getSpace();
+  if (!base) return null;
+  const space = suffix ? `${base}::${suffix}` : base;
+  try {
+    const res = await fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ space, entries: rows }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return Array.isArray(data.entries) ? data.entries : null;
+  } catch {
+    return null;
+  }
 }
 
 // 覚えやすいランダムな同期コードを生成（例: genba-8k3p-x7q2）

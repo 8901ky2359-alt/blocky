@@ -1,14 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { HireRecord } from '@/lib/hire/types';
-import { listHire, putHire, deleteHire } from '@/lib/hire/db';
+import { HireRecord, normalizeHire } from '@/lib/hire/types';
+import { listHire, putHire, listHireRaw } from '@/lib/hire/db';
+import { pushPull } from '@/lib/sync';
 import { todayStr } from '@/lib/format';
 import HireForm from '@/components/hire/HireForm';
 import HireDoc from '@/components/hire/HireDoc';
 import HireCalendar from '@/components/hire/HireCalendar';
 import HireByName from '@/components/hire/HireByName';
-import PasswordGate from '@/components/PasswordGate';
 
 type View =
   | { kind: 'list' }
@@ -26,24 +26,50 @@ export default function HirePage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    refresh();
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+  // サーバ(D1)と同期して取り込む
+  const syncNow = useCallback(async () => {
+    const raw = await listHireRaw();
+    const server = await pushPull('hire', raw);
+    if (!server) return;
+    const localMap = new Map(raw.map((r) => [r.id, r]));
+    for (const s of server) {
+      const rec = normalizeHire(s);
+      if (!rec.id) continue;
+      const l = localMap.get(rec.id);
+      if (!l || (rec.updatedAt ?? 0) >= (l.updatedAt ?? -1)) {
+        await putHire(rec);
+      }
+    }
+    await refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    (async () => {
+      await refresh();
+      syncNow();
+    })();
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+  }, [refresh, syncNow]);
 
   async function save(rec: HireRecord) {
     await putHire(rec);
     await refresh();
+    pushPull('hire', [rec]).catch(() => {});
     setView({ kind: 'doc', rec });
   }
   async function remove(id: string) {
-    await deleteHire(id);
+    // 同期のため物理削除ではなく墓標を残す
+    const target = records.find((r) => r.id === id);
+    const tomb: HireRecord = target
+      ? { ...target, deleted: true, updatedAt: Date.now() }
+      : { id, date: '', name: '', site: '', amount: 0, deleted: true, createdAt: Date.now(), updatedAt: Date.now() };
+    await putHire(tomb);
     await refresh();
+    pushPull('hire', [tomb]).catch(() => {});
     setView({ kind: 'list' });
   }
 
   return (
-   <PasswordGate title="雇用・作業依頼">
     <div className="min-h-[100dvh] hud-bg">
       <div className="relative mx-auto min-h-[100dvh] w-full max-w-[520px] bg-brand-bg shadow-xl md:my-8 md:min-h-[calc(100vh-4rem)] md:rounded-3xl">
         <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur">
@@ -109,6 +135,5 @@ export default function HirePage() {
         </main>
       </div>
     </div>
-   </PasswordGate>
   );
 }
