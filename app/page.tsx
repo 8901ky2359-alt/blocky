@@ -88,7 +88,7 @@ export default function Home() {
 
   return (
    <PasswordGate title="売上管理" onExit={goHome}>
-    <div className="min-h-screen overflow-x-hidden bg-gradient-to-b from-slate-100 to-slate-300">
+    <div className="min-h-screen overflow-x-hidden hud-bg">
       <div className="mx-auto flex min-h-screen w-full max-w-[1180px]">
         {/* PC用サイドナビ（スマホでは非表示） */}
         <SideNav

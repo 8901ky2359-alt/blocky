@@ -11,7 +11,7 @@ export default function ReportPage() {
   }, []);
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-b from-slate-100 to-slate-300">
+    <div className="min-h-[100dvh] hud-bg">
       <div className="mx-auto min-h-[100dvh] w-full max-w-[560px] bg-brand-bg shadow-xl md:my-8 md:min-h-[calc(100vh-4rem)] md:rounded-3xl">
         <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur">
           <span className="grid h-7 w-7 place-items-center rounded-md bg-brand-primary text-xs font-black text-white">

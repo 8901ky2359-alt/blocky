@@ -61,7 +61,7 @@ export default function PasswordGate({
   }
 
   return (
-    <div className="grid min-h-[100dvh] place-items-center bg-gradient-to-b from-slate-100 to-slate-300 px-6">
+    <div className="grid min-h-[100dvh] place-items-center hud-bg px-6">
       <div className="w-full max-w-[360px] rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
         <div className="mb-4 text-center">
           <span className="mx-auto mb-2 grid h-12 w-12 place-items-center rounded-2xl bg-brand-primary text-2xl text-white">

@@ -13,6 +13,15 @@ body {
 body {
   @apply bg-brand-bg text-black;
   -webkit-tap-highlight-color: transparent;
+  /* テック系（等幅）フォント。日本語はシステムフォントにフォールバック */
+  font-family: ui-monospace, 'SFMono-Regular', 'Menlo', 'Consolas', 'Hiragino Sans',
+    'Noto Sans JP', 'Yu Gothic', system-ui, sans-serif;
+  letter-spacing: 0.01em;
+}
+
+/* 見出しは少し字間を広げてHUDっぽく */
+h1, h2, h3 {
+  letter-spacing: 0.03em;
 }
 
 /* 画像・メディアがはみ出さないように */
@@ -22,13 +31,22 @@ canvas {
   max-width: 100%;
 }
 
-.card {
-  @apply rounded-2xl border border-black/10 bg-white p-4 shadow-sm;
+/* SF風の暗いグリッド背景（各ページの外枠に使用） */
+.hud-bg {
+  background-color: #060b14;
+  background-image:
+    linear-gradient(rgba(6, 182, 212, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(6, 182, 212, 0.07) 1px, transparent 1px);
+  background-size: 28px 28px;
 }
 
-/* 共通の入力欄 */
+.card {
+  @apply border border-black/10 bg-white p-4 shadow-card;
+}
+
+/* 共通の入力欄（角ばり・cyanフォーカス） */
 .input {
-  @apply w-full rounded-xl border border-black/15 bg-white p-3 text-base outline-none;
+  @apply w-full border border-slate-300 bg-white p-3 text-base outline-none;
   box-sizing: border-box;
   min-width: 0;
   max-width: 100%;
@@ -36,7 +54,8 @@ canvas {
   appearance: none;
 }
 .input:focus {
-  @apply border-brand-primary ring-2 ring-brand-primary/20;
+  @apply border-neon;
+  box-shadow: 0 0 0 1px #06b6d4, 0 0 10px rgba(6, 182, 212, 0.3);
 }
 
 /* iOS/モバイルで日付・時刻入力が枠からはみ出さないように */
