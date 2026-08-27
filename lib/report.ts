@@ -61,6 +61,24 @@ function reportBodyLines(mKey: string, entries: Entry[]): string[] {
     lines.push('');
   }
 
+  // 請求先別の合計（請負＋常駐。未入力は「請求先なし」）
+  const billGroups = new Map<string, { total: number; count: number }>();
+  for (const e of [...d.ukeoi, ...d.jouchu]) {
+    const key = e.billTo && e.billTo.trim() ? e.billTo.trim() : '請求先なし';
+    const g = billGroups.get(key) ?? { total: 0, count: 0 };
+    g.total += e.amount;
+    g.count += 1;
+    billGroups.set(key, g);
+  }
+  if (billGroups.size > 0) {
+    const sorted = [...billGroups.entries()].sort((a, b) => b[1].total - a[1].total);
+    lines.push('■請求先別');
+    for (const [name, g] of sorted) {
+      lines.push(`${name}　${yen(g.total)}（${g.count}件）`);
+    }
+    lines.push('');
+  }
+
   // 合計
   lines.push('■合計');
   lines.push(`請負　${yen(d.ukTotal)}`);
