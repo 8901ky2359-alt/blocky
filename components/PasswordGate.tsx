@@ -118,7 +118,7 @@ export default function PasswordGate({
           ‹ ホームに戻る
         </button>
         <p className="mt-3 text-center text-[10px] leading-relaxed text-slate-400">
-          ※ 端末内の簡易ロックです。設定後は同じパスワードで現場メモ・雇用ページが開きます。
+          ※ 端末内の簡易ロックです。設定後は同じパスワードで売上管理・雇用ページが開きます。
         </p>
       </div>
     </div>

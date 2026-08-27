@@ -19,6 +19,7 @@ function buildText(e: Entry): string {
   if (e.address) lines.push(`住所: ${e.address}`);
   if (e.lat != null && e.lng != null) lines.push(`地図: https://www.google.com/maps?q=${e.lat},${e.lng}`);
   lines.push(`売上: ${yen(e.amount)}`);
+  if (e.billTo) lines.push(`請求先: ${e.billTo}`);
   if (e.expense) lines.push(`経費: ${yen(e.expense)}`);
   if (e.memo) lines.push(`メモ: ${e.memo}`);
   return lines.join('\n');
@@ -62,6 +63,9 @@ export default function EntryCard({
           {showDate && <p className="mt-0.5 text-xs text-slate-400">{entry.date}</p>}
           {entry.address && (
             <p className="mt-0.5 truncate text-xs text-slate-500">📍 {entry.address}</p>
+          )}
+          {entry.billTo && (
+            <p className="mt-0.5 truncate text-xs font-semibold text-emerald-700">請求先: {entry.billTo}</p>
           )}
           {entry.memo && <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">{entry.memo}</p>}
         </div>

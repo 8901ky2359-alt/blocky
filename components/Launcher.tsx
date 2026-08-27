@@ -16,7 +16,7 @@ export default function Launcher({ onOpenMemo }: { onOpenMemo: () => void }) {
   const items: Item[] = [
     {
       key: 'memo',
-      label: '現場メモ',
+      label: '売上管理',
       desc: '売上・現場記録／カレンダー・収支・請求書',
       icon: '📒',
       onClick: onOpenMemo,

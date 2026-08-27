@@ -29,7 +29,7 @@ export default function SideNav({
           現
         </span>
         <div className="leading-tight">
-          <div className="text-base font-bold tracking-tight text-brand-primary">現場メモ</div>
+          <div className="text-base font-bold tracking-tight text-brand-primary">売上管理</div>
           <div className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">ホームに戻る</div>
         </div>
       </button>

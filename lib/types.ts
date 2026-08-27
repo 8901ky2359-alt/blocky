@@ -31,6 +31,7 @@ export interface Entry {
   lat?: number; // 緯度（住所検索で自動取得）
   lng?: number; // 経度
   workType?: WorkType; // 常駐 / 請負
+  billTo?: string; // 請求先（常駐のときに使用）
   deleted?: boolean; // 削除済み（同期用の墓標。表示はしない）
   createdAt: number;
   updatedAt: number;

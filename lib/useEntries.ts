@@ -70,6 +70,7 @@ export function useEntries() {
         lat: input.lat,
         lng: input.lng,
         workType: input.workType,
+        billTo: input.billTo,
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
       };

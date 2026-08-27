@@ -87,7 +87,7 @@ export default function Home() {
   }
 
   return (
-   <PasswordGate title="現場メモ" onExit={goHome}>
+   <PasswordGate title="売上管理" onExit={goHome}>
     <div className="min-h-screen overflow-x-hidden bg-gradient-to-b from-slate-100 to-slate-300">
       <div className="mx-auto flex min-h-screen w-full max-w-[1180px]">
         {/* PC用サイドナビ（スマホでは非表示） */}
@@ -106,7 +106,7 @@ export default function Home() {
               <span className="grid h-7 w-7 place-items-center rounded-md bg-brand-primary text-xs font-black text-white">
                 現
               </span>
-              <span className="text-base font-bold tracking-tight text-brand-primary">現場メモ</span>
+              <span className="text-base font-bold tracking-tight text-brand-primary">売上管理</span>
               <span className="text-xs text-slate-400">／ホーム</span>
             </button>
             <button onClick={() => setShowBackup(true)} className="text-lg text-slate-500" aria-label="バックアップ">
@@ -192,7 +192,7 @@ function PasscodeSettings() {
     setTimeout(() => setMsg(''), 2600);
   }
   function remove() {
-    if (!confirm('パスワードを解除しますか？（現場メモ・雇用ページのロックが外れます）')) return;
+    if (!confirm('パスワードを解除しますか？（売上管理・雇用ページのロックが外れます）')) return;
     clearPasscode();
     setSet(false);
     setMsg('パスワードを解除しました');
@@ -201,7 +201,7 @@ function PasscodeSettings() {
 
   return (
     <div>
-      <h3 className="mb-1 text-lg font-bold">🔒 パスワード（現場メモ・雇用）</h3>
+      <h3 className="mb-1 text-lg font-bold">🔒 パスワード（売上管理・雇用）</h3>
       <p className="mb-2 text-sm text-black/50">
         {set ? 'パスワード設定中。変更するには新しいパスワードを入力してください。' : 'パスワードは未設定です。'}
       </p>

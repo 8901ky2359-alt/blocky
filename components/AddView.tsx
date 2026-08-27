@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Entry, Photo, Template, WorkType, workTypeOf } from '@/lib/types';
 import { shiftDay, todayStr, yen } from '@/lib/format';
 import { addTemplate, loadTemplates } from '@/lib/templates';
+import { getBillTos, addBillTo, removeBillTo } from '@/lib/billto';
 import { geocodeAddress } from '@/lib/geocode';
 
 type KnownSite = { site: string; address?: string; lat?: number; lng?: number };
@@ -36,9 +37,12 @@ export default function AddView({
   const [geoStatus, setGeoStatus] = useState<'idle' | 'searching' | 'ok' | 'fail'>('idle');
   const [saving, setSaving] = useState(false);
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [billTo, setBillTo] = useState(editing?.billTo ?? '');
+  const [billTos, setBillTos] = useState<string[]>([]);
 
   useEffect(() => {
     if (!editing) setTemplates(loadTemplates());
+    setBillTos(getBillTos());
   }, [editing]);
 
   function applyTemplate(t: Template) {
@@ -107,6 +111,8 @@ export default function AddView({
         const r = await geocodeAddress(address);
         if (r) loc = { lat: r.lat, lng: r.lng };
       }
+      const bill = workType === '常駐' ? billTo.trim() : '';
+      if (bill) setBillTos(addBillTo(bill)); // 請求先を登録して次回から候補に
       await onSave({
         id: editing?.id,
         date,
@@ -121,6 +127,7 @@ export default function AddView({
         lat: loc?.lat,
         lng: loc?.lng,
         workType,
+        billTo: bill || undefined,
       });
       onSaved();
     } finally {
@@ -157,6 +164,48 @@ export default function AddView({
           請負
         </button>
       </div>
+
+      {/* 請求先（常駐のときだけ） */}
+      {workType === '常駐' && (
+        <div className="space-y-1 rounded-xl border border-emerald-200 bg-emerald-50/50 p-3">
+          <span className="text-sm font-medium text-emerald-800">請求先（常駐）</span>
+          <input
+            list="bill-tos"
+            value={billTo}
+            onChange={(e) => setBillTo(e.target.value)}
+            placeholder="例: 中野さん / ◯◯建設"
+            className="input"
+          />
+          <datalist id="bill-tos">
+            {billTos.map((b) => (
+              <option key={b} value={b} />
+            ))}
+          </datalist>
+          {billTos.length > 0 && (
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {billTos.map((b) => (
+                <span key={b} className="flex items-center gap-1 rounded-full border border-black/15 bg-white pl-3 pr-1 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setBillTo(b)}
+                    className={`py-1 ${billTo === b ? 'font-bold text-emerald-700' : 'text-black/60'}`}
+                  >
+                    {b}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBillTos(removeBillTo(b))}
+                    className="grid h-5 w-5 place-items-center text-black/30"
+                    aria-label="削除"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* よく使う作業（定型ボタン） */}
       {!editing && templates.length > 0 && (
