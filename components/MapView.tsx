@@ -1,14 +1,19 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
-import type { Map as LeafletMap, LayerGroup } from 'leaflet';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { Map as LeafletMap, LayerGroup, TileLayer } from 'leaflet';
 import { Entry } from '@/lib/types';
 import { yen } from '@/lib/format';
+
+const STD_URL = 'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png';
+const PHOTO_URL = 'https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg';
 
 export default function MapView({ entries }: { entries: Entry[] }) {
   const mapEl = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const layerRef = useRef<LayerGroup | null>(null);
+  const tileRef = useRef<TileLayer | null>(null);
+  const [photo, setPhoto] = useState(false);
 
   // 位置情報を持つ記録だけ
   const located = useMemo(
@@ -24,7 +29,7 @@ export default function MapView({ entries }: { entries: Entry[] }) {
       if (cancelled || !mapEl.current || mapRef.current) return;
 
       const map = L.map(mapEl.current, { center: [36.5, 137.5], zoom: 5 });
-      L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
+      tileRef.current = L.tileLayer(photo ? PHOTO_URL : STD_URL, {
         attribution:
           "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>",
         maxZoom: 18,
@@ -47,6 +52,11 @@ export default function MapView({ entries }: { entries: Entry[] }) {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [located]);
+
+  // 標準地図 / 航空写真の切替
+  useEffect(() => {
+    if (tileRef.current) tileRef.current.setUrl(photo ? PHOTO_URL : STD_URL);
+  }, [photo]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function renderMarkers(L: any) {
@@ -88,9 +98,25 @@ export default function MapView({ entries }: { entries: Entry[] }) {
         <span className="text-sm text-black/50">{located.length}件</span>
       </div>
 
+      {/* 標準地図 / 航空写真 切替 */}
+      <div className="flex overflow-hidden border border-slate-300">
+        <button
+          onClick={() => setPhoto(false)}
+          className={`flex-1 py-2 text-xs font-bold ${!photo ? 'bg-brand-primary text-white' : 'bg-white text-slate-500'}`}
+        >
+          🗺 標準地図
+        </button>
+        <button
+          onClick={() => setPhoto(true)}
+          className={`flex-1 border-l border-slate-300 py-2 text-xs font-bold ${photo ? 'bg-brand-primary text-white' : 'bg-white text-slate-500'}`}
+        >
+          🛰 航空写真
+        </button>
+      </div>
+
       <div
         ref={mapEl}
-        className="h-[62vh] w-full overflow-hidden rounded-xl border border-black/10 bg-brand-soft"
+        className="h-[62vh] w-full overflow-hidden border border-black/10 bg-brand-soft"
       />
 
       {located.length === 0 && (

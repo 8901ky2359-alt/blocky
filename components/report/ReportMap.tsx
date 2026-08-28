@@ -1,9 +1,12 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import type { Map as LeafletMap, LayerGroup } from 'leaflet';
+import { useEffect, useRef, useState } from 'react';
+import type { Map as LeafletMap, LayerGroup, TileLayer } from 'leaflet';
 import { SiteSeed, SiteProgress } from '@/lib/report/types';
 import { OVERALL_META, overallOf, mapsUrl, statusLabel, typeOf, isReportTarget, codeOf } from '@/lib/report/status';
+
+const STD_URL = 'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png';
+const PHOTO_URL = 'https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg';
 
 function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -22,6 +25,8 @@ export default function ReportMap({
   const mapEl = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const layerRef = useRef<LayerGroup | null>(null);
+  const tileRef = useRef<TileLayer | null>(null);
+  const [photo, setPhoto] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -29,7 +34,7 @@ export default function ReportMap({
       const L = (await import('leaflet')).default;
       if (cancelled || !mapEl.current || mapRef.current) return;
       const map = L.map(mapEl.current, { center: [36.3, 140.1], zoom: 9 });
-      L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
+      tileRef.current = L.tileLayer(photo ? PHOTO_URL : STD_URL, {
         attribution:
           "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>",
         maxZoom: 18,
@@ -43,6 +48,11 @@ export default function ReportMap({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 標準地図 / 航空写真の切替
+  useEffect(() => {
+    if (tileRef.current) tileRef.current.setUrl(photo ? PHOTO_URL : STD_URL);
+  }, [photo]);
 
   useEffect(() => {
     (async () => {
@@ -110,9 +120,24 @@ export default function ReportMap({
         ))}
         <span className="ml-auto">{sites.length}件</span>
       </div>
+      {/* 標準地図 / 航空写真 切替 */}
+      <div className="flex overflow-hidden border border-slate-300">
+        <button
+          onClick={() => setPhoto(false)}
+          className={`flex-1 py-2 text-xs font-bold ${!photo ? 'bg-brand-primary text-white' : 'bg-white text-slate-500'}`}
+        >
+          🗺 標準地図
+        </button>
+        <button
+          onClick={() => setPhoto(true)}
+          className={`flex-1 border-l border-slate-300 py-2 text-xs font-bold ${photo ? 'bg-brand-primary text-white' : 'bg-white text-slate-500'}`}
+        >
+          🛰 航空写真
+        </button>
+      </div>
       <div
         ref={mapEl}
-        className="h-[66vh] w-full overflow-hidden rounded-xl border border-black/10 bg-brand-soft"
+        className="h-[66vh] w-full overflow-hidden border border-black/10 bg-brand-soft"
       />
       <p className="text-center text-[11px] text-black/40">
         ピンをタップ → 除草／防草シート／施工完了のステータスとGoogleマップリンクが開きます（地図表示にはネット接続が必要）。
