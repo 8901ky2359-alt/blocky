@@ -9,6 +9,7 @@ import HireForm from '@/components/hire/HireForm';
 import HireDoc from '@/components/hire/HireDoc';
 import HireCalendar from '@/components/hire/HireCalendar';
 import HireByName from '@/components/hire/HireByName';
+import HireByClient from '@/components/hire/HireByClient';
 import AppMenu from '@/components/AppMenu';
 
 type View =
@@ -20,7 +21,7 @@ export default function HirePage() {
   const [records, setRecords] = useState<HireRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>({ kind: 'list' });
-  const [listMode, setListMode] = useState<'calendar' | 'name'>('calendar');
+  const [listMode, setListMode] = useState<'calendar' | 'name' | 'client'>('calendar');
 
   const refresh = useCallback(async () => {
     setRecords(await listHire());
@@ -108,20 +109,26 @@ export default function HirePage() {
             />
           ) : (
             <>
-              {/* カレンダー / 名前別 切替 */}
+              {/* カレンダー / 名前別 / 請求先別 切替 */}
               <div className="mb-3 flex justify-center">
-                <div className="flex overflow-hidden rounded-full border border-slate-200 bg-white">
+                <div className="flex overflow-hidden rounded-full border border-slate-200 bg-white text-xs font-bold">
                   <button
                     onClick={() => setListMode('calendar')}
-                    className={`px-4 py-1.5 text-xs font-bold ${listMode === 'calendar' ? 'bg-brand-primary text-white' : 'text-slate-500'}`}
+                    className={`px-3 py-1.5 ${listMode === 'calendar' ? 'bg-brand-primary text-white' : 'text-slate-500'}`}
                   >
                     📅 カレンダー
                   </button>
                   <button
                     onClick={() => setListMode('name')}
-                    className={`px-4 py-1.5 text-xs font-bold ${listMode === 'name' ? 'bg-brand-primary text-white' : 'text-slate-500'}`}
+                    className={`border-l border-slate-200 px-3 py-1.5 ${listMode === 'name' ? 'bg-brand-primary text-white' : 'text-slate-500'}`}
                   >
                     👤 名前別
+                  </button>
+                  <button
+                    onClick={() => setListMode('client')}
+                    className={`border-l border-slate-200 px-3 py-1.5 ${listMode === 'client' ? 'bg-brand-primary text-white' : 'text-slate-500'}`}
+                  >
+                    🏢 請求先別
                   </button>
                 </div>
               </div>
@@ -131,6 +138,8 @@ export default function HirePage() {
                   onOpen={(rec) => setView({ kind: 'doc', rec })}
                   onAddOnDate={(date) => setView({ kind: 'form', editing: null, date })}
                 />
+              ) : listMode === 'client' ? (
+                <HireByClient records={records} onOpen={(rec) => setView({ kind: 'doc', rec })} />
               ) : (
                 <HireByName records={records} onOpen={(rec) => setView({ kind: 'doc', rec })} />
               )}

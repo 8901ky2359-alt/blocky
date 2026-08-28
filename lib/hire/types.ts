@@ -5,6 +5,7 @@ export interface HireRecord {
   date: string; // 日付 YYYY-MM-DD
   name: string; // 名前（作業者）
   site: string; // 現場名
+  client?: string; // 発注元・請求先（誰の現場か）
   amount: number; // 金額
   memo?: string;
   createdAt: number;
@@ -30,6 +31,7 @@ export function normalizeHire(raw: any): HireRecord {
     date: raw?.date ?? raw?.dateStart ?? '',
     name: raw?.name ?? raw?.worker ?? '',
     site: raw?.site ?? raw?.location ?? '',
+    client: raw?.client ?? raw?.orderer ?? undefined,
     amount: raw?.amount != null ? parseAmount(raw.amount) : parseAmount(raw?.rate),
     memo: raw?.memo ?? '',
     createdAt: Number(raw?.createdAt) || 0,

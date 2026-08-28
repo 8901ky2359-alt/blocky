@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { HireRecord } from '@/lib/hire/types';
 import { shiftDay, todayStr, yen } from '@/lib/format';
 import { getWorkers, addWorker, removeWorker, getSites, addSite, removeSite } from '@/lib/hire/presets';
+import { getBillTos, addBillTo, removeBillTo } from '@/lib/billto';
 
 export default function HireForm({
   editing,
@@ -19,14 +20,17 @@ export default function HireForm({
   const [date, setDate] = useState(editing?.date ?? defaultDate ?? todayStr());
   const [name, setName] = useState(editing?.name ?? '');
   const [site, setSite] = useState(editing?.site ?? '');
+  const [client, setClient] = useState(editing?.client ?? '');
   const [amount, setAmount] = useState(editing?.amount ? String(editing.amount) : '');
   const [memo, setMemo] = useState(editing?.memo ?? '');
   const [workers, setWorkers] = useState<string[]>([]);
   const [sites, setSites] = useState<string[]>([]);
+  const [clients, setClients] = useState<string[]>([]);
 
   useEffect(() => {
     setWorkers(getWorkers());
     setSites(getSites());
+    setClients(getBillTos());
   }, []);
 
   function onNameInput(v: string) {
@@ -41,12 +45,14 @@ export default function HireForm({
     const num = Number(amount.replace(/[, ¥]/g, '')) || 0;
     if (name.trim()) setWorkers(addWorker(name.trim())); // 名前を登録して次回から候補に
     if (site.trim()) setSites(addSite(site.trim())); // 現場名も登録
+    if (client.trim()) setClients(addBillTo(client.trim())); // 発注元・請求先も登録（売上と共通）
     const now = Date.now();
     onSave({
       id: editing?.id ?? Math.random().toString(36).slice(2, 12),
       date,
       name: name.trim(),
       site: site.trim(),
+      client: client.trim() || undefined,
       amount: num,
       memo: memo.trim(),
       createdAt: editing?.createdAt ?? now,
@@ -128,6 +134,37 @@ export default function HireForm({
                   {s}
                 </button>
                 <button type="button" onClick={() => setSites(removeSite(s))} className="grid h-5 w-5 place-items-center text-black/30" aria-label="削除">
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+      </label>
+
+      {/* 発注元・請求先（誰の現場か） */}
+      <label className="block space-y-1">
+        <span className="text-sm font-medium text-black/70">発注元・請求先（誰の現場か）</span>
+        <input
+          list="hire-clients"
+          value={client}
+          onChange={(e) => setClient(e.target.value)}
+          placeholder="例: 中野さん / ◯◯建設"
+          className="input"
+        />
+        <datalist id="hire-clients">
+          {clients.map((c) => (
+            <option key={c} value={c} />
+          ))}
+        </datalist>
+        {clients.length > 0 && (
+          <div className="mt-1 flex flex-wrap gap-1.5">
+            {clients.map((c) => (
+              <span key={c} className="flex items-center gap-1 rounded-full border border-black/15 pl-3 pr-1 text-xs">
+                <button type="button" onClick={() => setClient(c)} className={`py-1 ${client === c ? 'font-bold text-emerald-700' : 'text-black/60'}`}>
+                  {c}
+                </button>
+                <button type="button" onClick={() => setClients(removeBillTo(c))} className="grid h-5 w-5 place-items-center text-black/30" aria-label="削除">
                   ×
                 </button>
               </span>

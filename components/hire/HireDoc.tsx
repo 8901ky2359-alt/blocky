@@ -10,6 +10,7 @@ function buildText(r: HireRecord): string {
     `【雇用記録】${formatJpDate(r.date)}`,
     `名前: ${r.name}`,
     `現場: ${r.site || '—'}`,
+    `発注元・請求先: ${r.client || '—'}`,
     `金額: ${yen(r.amount)}`,
   ];
   if (r.memo) lines.push(`メモ: ${r.memo}`);
@@ -56,6 +57,7 @@ export default function HireDoc({
         <Row label="日付" value={formatJpDate(rec.date)} />
         <Row label="名前" value={rec.name} />
         <Row label="現場名" value={rec.site} />
+        <Row label="発注元・請求先" value={rec.client || ''} />
         {rec.memo && <Row label="メモ" value={rec.memo} />}
       </div>
 
