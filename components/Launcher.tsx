@@ -46,28 +46,29 @@ export default function Launcher({ onOpenMemo }: { onOpenMemo: () => void }) {
         </div>
 
         {/* モジュール一覧 */}
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {items.map((it, i) => {
             const inner = (
               <>
-                <span className="w-7 shrink-0 font-mono text-sm text-cyan-500/60">
+                <span className="w-7 shrink-0 font-mono text-base text-cyan-500/60">
                   {String(i + 1).padStart(2, '0')}
                 </span>
-                <span className="grid h-11 w-11 shrink-0 place-items-center border border-cyan-400/40 bg-cyan-400/10 text-xl text-cyan-300">
+                <span className="grid h-16 w-16 shrink-0 place-items-center border border-cyan-400/40 bg-cyan-400/10 text-3xl text-cyan-300">
                   {it.icon}
                 </span>
                 <span className="min-w-0 flex-1 text-left">
-                  <span className="flex items-baseline gap-2">
-                    <span className="truncate text-base font-bold tracking-wide text-slate-100">{it.label}</span>
-                    <span className="shrink-0 text-[9px] uppercase tracking-[0.25em] text-cyan-400/60">{it.sub}</span>
+                  <span className="block truncate text-xl font-bold tracking-wide text-slate-100">{it.label}</span>
+                  <span className="mt-1 block truncate text-xs text-slate-400">
+                    <span className="uppercase tracking-[0.2em] text-cyan-400/60">{it.sub}</span>
+                    <span className="mx-1 text-slate-600">/</span>
+                    {it.desc}
                   </span>
-                  <span className="mt-0.5 block truncate text-[11px] text-slate-400">{it.desc}</span>
                 </span>
-                <span className="shrink-0 text-cyan-500/60">›</span>
+                <span className="shrink-0 text-xl text-cyan-500/60">›</span>
               </>
             );
             const cls =
-              'group relative flex w-full items-center gap-3 border border-slate-700 bg-slate-900/70 p-3 transition hover:border-cyan-400/70 hover:bg-slate-800/80 hover:shadow-glow active:translate-x-0.5';
+              'group relative flex w-full items-center gap-3.5 border border-slate-700 bg-slate-900/70 p-4 transition hover:border-cyan-400/70 hover:bg-slate-800/80 hover:shadow-glow active:translate-x-0.5';
             return it.href ? (
               <a key={it.key} href={it.href} className={cls}>
                 {inner}
