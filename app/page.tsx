@@ -7,6 +7,7 @@ import { Entry } from '@/lib/types';
 import { todayStr } from '@/lib/format';
 import { generateCode, getSpace, setSpace, type SyncResult } from '@/lib/sync';
 import Launcher from '@/components/Launcher';
+import AppMenu from '@/components/AppMenu';
 import BottomNav, { Tab } from '@/components/BottomNav';
 import SideNav from '@/components/SideNav';
 import CalendarView from '@/components/CalendarView';
@@ -106,9 +107,12 @@ export default function Home() {
               <span className="text-base font-bold tracking-tight text-brand-primary">売上管理</span>
               <span className="text-xs text-slate-400">／ホーム</span>
             </button>
-            <button onClick={() => setShowBackup(true)} className="text-lg text-slate-500" aria-label="バックアップ">
-              ⚙
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setShowBackup(true)} className="text-lg text-slate-500" aria-label="バックアップ">
+                ⚙
+              </button>
+              <AppMenu />
+            </div>
           </header>
 
           <main className="w-full px-4 pb-28 pt-4 md:px-6 md:pb-10 md:pt-7">

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useEntries } from '@/lib/useEntries';
 import { Entry } from '@/lib/types';
 import { todayStr } from '@/lib/format';
+import AppMenu from '@/components/AppMenu';
 import ExpenseCalendar from '@/components/expense/ExpenseCalendar';
 import ExpenseAddView from '@/components/expense/ExpenseAddView';
 import ExpenseReport from '@/components/expense/ExpenseReport';
@@ -47,6 +48,7 @@ export default function ExpensePage() {
             <span className="text-base font-bold tracking-tight text-brand-primary">経費</span>
             <span className="text-xs text-slate-400">／ホーム</span>
           </a>
+          <AppMenu />
         </header>
 
         <main className="w-full px-4 pb-28 pt-4">

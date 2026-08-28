@@ -9,6 +9,7 @@ import HireForm from '@/components/hire/HireForm';
 import HireDoc from '@/components/hire/HireDoc';
 import HireCalendar from '@/components/hire/HireCalendar';
 import HireByName from '@/components/hire/HireByName';
+import AppMenu from '@/components/AppMenu';
 
 type View =
   | { kind: 'list' }
@@ -80,14 +81,17 @@ export default function HirePage() {
             <span className="text-base font-bold tracking-tight text-brand-primary">雇用・作業依頼</span>
             <span className="text-xs text-slate-400">／ホーム</span>
           </a>
-          {view.kind === 'list' && (
-            <button
-              onClick={() => setView({ kind: 'form', editing: null })}
-              className="rounded-lg bg-brand-primary px-3 py-1.5 text-sm font-bold text-white"
-            >
-              ＋作成
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {view.kind === 'list' && (
+              <button
+                onClick={() => setView({ kind: 'form', editing: null })}
+                className="rounded-lg bg-brand-primary px-3 py-1.5 text-sm font-bold text-white"
+              >
+                ＋作成
+              </button>
+            )}
+            <AppMenu />
+          </div>
         </header>
 
         <main className="w-full px-4 pb-16 pt-4">
