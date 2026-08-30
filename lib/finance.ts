@@ -68,6 +68,7 @@ export function summarizeExpenses(entries: Entry[]): ExpenseTotals {
 export interface DayInfo {
   ukeoi: number; // 請負の売上
   jouchu: number; // 常駐の売上
+  koyo: number; // 雇用の売上
   expense: number; // その日の経費合計
   photo: boolean;
 }
@@ -75,14 +76,16 @@ export interface DayInfo {
 export function byDateInfo(entries: Entry[]): Map<string, DayInfo> {
   const map = new Map<string, DayInfo>();
   const touch = (date: string) => {
-    const cur = map.get(date) ?? { ukeoi: 0, jouchu: 0, expense: 0, photo: false };
+    const cur = map.get(date) ?? { ukeoi: 0, jouchu: 0, koyo: 0, expense: 0, photo: false };
     map.set(date, cur);
     return cur;
   };
   for (const e of entries) {
     if (e.kind === 'income') {
       const cur = touch(e.date);
-      if (workTypeOf(e) === '常駐') cur.jouchu += e.amount || 0;
+      const wt = workTypeOf(e);
+      if (wt === '常駐') cur.jouchu += e.amount || 0;
+      else if (wt === '雇用') cur.koyo += e.amount || 0;
       else cur.ukeoi += e.amount || 0;
       cur.expense += e.expense || 0; // 旧データ互換
       if (e.photos.length > 0) cur.photo = true;

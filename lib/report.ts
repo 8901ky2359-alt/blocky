@@ -15,18 +15,20 @@ function byDate(a: Entry, b: Entry): number {
   return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
 }
 
-// 月の記録を常駐/請負に分けて集計
+// 月の記録を常駐/請負/雇用に分けて集計
 function buildReportData(mKey: string, entries: Entry[]) {
   const rows = entries.filter((e) => e.date.slice(0, 7) === mKey && e.kind === 'income');
   const ukeoi = rows.filter((e) => workTypeOf(e) === '請負').sort(byDate);
   const jouchu = rows.filter((e) => workTypeOf(e) === '常駐').sort(byDate);
+  const koyo = rows.filter((e) => workTypeOf(e) === '雇用').sort(byDate);
   const ukTotal = ukeoi.reduce((s, e) => s + e.amount, 0);
   const joTotal = jouchu.reduce((s, e) => s + e.amount, 0);
+  const koTotal = koyo.reduce((s, e) => s + e.amount, 0);
   // 常駐は金額ごとにまとめる（例: ¥20,000 × 9件）
   const amtMap = new Map<number, number>();
   for (const e of jouchu) amtMap.set(e.amount, (amtMap.get(e.amount) ?? 0) + 1);
   const jouchuByAmount = [...amtMap.entries()].sort((a, b) => b[0] - a[0]);
-  return { ukeoi, jouchu, ukTotal, joTotal, jouchuByAmount };
+  return { ukeoi, jouchu, koyo, ukTotal, joTotal, koTotal, jouchuByAmount };
 }
 
 // 報告本文の行（タイトルを除く）
@@ -34,7 +36,7 @@ function reportBodyLines(mKey: string, entries: Entry[]): string[] {
   const d = buildReportData(mKey, entries);
   const lines: string[] = [];
 
-  if (d.ukeoi.length === 0 && d.jouchu.length === 0) {
+  if (d.ukeoi.length === 0 && d.jouchu.length === 0 && d.koyo.length === 0) {
     lines.push('（記録なし）');
     return lines;
   }
@@ -61,9 +63,20 @@ function reportBodyLines(mKey: string, entries: Entry[]): string[] {
     lines.push('');
   }
 
-  // 請求先別の合計（請負＋常駐。未入力は「請求先なし」）
+  // 雇用（明細: 日付・金額・雇用した人・現場名）
+  if (d.koyo.length > 0) {
+    lines.push(`■雇用（${d.koyo.length}件）`);
+    for (const e of d.koyo) {
+      lines.push(`${shortDate(e.date)}　${yen(e.amount)}${e.hiredName ? `　${e.hiredName}` : ''}`);
+      if (e.site) lines.push(`　${e.site}`);
+    }
+    lines.push(`雇用計 ${yen(d.koTotal)}`);
+    lines.push('');
+  }
+
+  // 請求先別の合計（請負＋常駐＋雇用。未入力は「請求先なし」）
   const billGroups = new Map<string, { total: number; count: number }>();
-  for (const e of [...d.ukeoi, ...d.jouchu]) {
+  for (const e of [...d.ukeoi, ...d.jouchu, ...d.koyo]) {
     const key = e.billTo && e.billTo.trim() ? e.billTo.trim() : '請求先なし';
     const g = billGroups.get(key) ?? { total: 0, count: 0 };
     g.total += e.amount;
@@ -83,7 +96,8 @@ function reportBodyLines(mKey: string, entries: Entry[]): string[] {
   lines.push('■合計');
   lines.push(`請負　${yen(d.ukTotal)}`);
   lines.push(`常駐　${yen(d.joTotal)}`);
-  lines.push(`総合計　${yen(d.ukTotal + d.joTotal)}`);
+  if (d.koTotal > 0) lines.push(`雇用　${yen(d.koTotal)}`);
+  lines.push(`総合計　${yen(d.ukTotal + d.joTotal + d.koTotal)}`);
   return lines;
 }
 

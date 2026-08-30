@@ -30,14 +30,15 @@ export interface Entry {
   address?: string; // 現場の住所（地図マッピング用）
   lat?: number; // 緯度（住所検索で自動取得）
   lng?: number; // 経度
-  workType?: WorkType; // 常駐 / 請負
-  billTo?: string; // 請求先（常駐のときに使用）
+  workType?: WorkType; // 常駐 / 請負 / 雇用
+  billTo?: string; // 請求先（常駐・雇用のときに使用）
+  hiredName?: string; // 雇用した人（雇用のときに使用）
   deleted?: boolean; // 削除済み（同期用の墓標。表示はしない）
   createdAt: number;
   updatedAt: number;
 }
 
-export type WorkType = '常駐' | '請負';
+export type WorkType = '常駐' | '請負' | '雇用';
 
 // 記録の区分を判定（未設定の旧データはメモから推定、既定は請負）
 export function workTypeOf(e: { workType?: WorkType; memo?: string }): WorkType {

@@ -115,7 +115,7 @@ export default function CalendarView({
               <button
                 key={c}
                 onClick={() => setSelected(c)}
-                className={`flex min-h-[66px] flex-col items-center rounded-lg px-0.5 py-1 text-xs ${
+                className={`flex min-h-[74px] flex-col items-center rounded-lg px-0.5 py-1 text-xs ${
                   isSel ? 'bg-brand-soft' : ''
                 } ${isToday ? 'ring-1 ring-brand-primary' : ''}`}
               >
@@ -132,6 +132,11 @@ export default function CalendarView({
                   {info?.jouchu ? (
                     <span className="w-full truncate text-center text-[10px] font-semibold text-emerald-600">
                       常{manYen(info.jouchu)}
+                    </span>
+                  ) : null}
+                  {info?.koyo ? (
+                    <span className="w-full truncate text-center text-[10px] font-semibold text-indigo-600">
+                      雇{manYen(info.koyo)}
                     </span>
                   ) : null}
                   {info?.expense ? (
@@ -153,6 +158,9 @@ export default function CalendarView({
         </span>
         <span>
           <span className="font-bold text-emerald-600">常</span> = 常駐
+        </span>
+        <span>
+          <span className="font-bold text-indigo-600">雇</span> = 雇用
         </span>
         <span>
           <span className="font-bold text-red-400">経</span> = 経費

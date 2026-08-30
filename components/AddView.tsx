@@ -5,6 +5,7 @@ import { Entry, Photo, Template, WorkType, workTypeOf } from '@/lib/types';
 import { shiftDay, todayStr, yen } from '@/lib/format';
 import { addTemplate, loadTemplates } from '@/lib/templates';
 import { getBillTos, addBillTo, removeBillTo } from '@/lib/billto';
+import { getWorkers, addWorker, removeWorker } from '@/lib/hire/presets';
 import { geocodeAddress } from '@/lib/geocode';
 
 type KnownSite = { site: string; address?: string; lat?: number; lng?: number };
@@ -39,10 +40,13 @@ export default function AddView({
   const [templates, setTemplates] = useState<Template[]>([]);
   const [billTo, setBillTo] = useState(editing?.billTo ?? '');
   const [billTos, setBillTos] = useState<string[]>([]);
+  const [hiredName, setHiredName] = useState(editing?.hiredName ?? '');
+  const [workers, setWorkers] = useState<string[]>([]);
 
   useEffect(() => {
     if (!editing) setTemplates(loadTemplates());
     setBillTos(getBillTos());
+    setWorkers(getWorkers());
   }, [editing]);
 
   function applyTemplate(t: Template) {
@@ -111,8 +115,10 @@ export default function AddView({
         const r = await geocodeAddress(address);
         if (r) loc = { lat: r.lat, lng: r.lng };
       }
-      const bill = workType === '常駐' ? billTo.trim() : '';
+      const bill = workType !== '請負' ? billTo.trim() : ''; // 常駐・雇用は請求先を持てる
       if (bill) setBillTos(addBillTo(bill)); // 請求先を登録して次回から候補に
+      const hired = workType === '雇用' ? hiredName.trim() : '';
+      if (hired) setWorkers(addWorker(hired)); // 雇用した人を登録
       await onSave({
         id: editing?.id,
         date,
@@ -128,6 +134,7 @@ export default function AddView({
         lng: loc?.lng,
         workType,
         billTo: bill || undefined,
+        hiredName: hired || undefined,
       });
       onSaved();
     } finally {
@@ -139,15 +146,13 @@ export default function AddView({
     <div className="space-y-4 pb-4">
       <h2 className="text-lg font-bold">{editing ? '記録を編集' : '売上を記録する'}</h2>
 
-      {/* 常駐 / 請負（必須） */}
-      <div className="grid grid-cols-2 gap-2">
+      {/* 常駐 / 請負 / 雇用（必須） */}
+      <div className="grid grid-cols-3 gap-2">
         <button
           type="button"
           onClick={() => setWorkType('常駐')}
-          className={`rounded-xl border py-3 font-bold ${
-            workType === '常駐'
-              ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-              : 'border-black/10 text-black/50'
+          className={`border py-3 font-bold ${
+            workType === '常駐' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-black/10 text-black/50'
           }`}
         >
           常駐
@@ -155,20 +160,60 @@ export default function AddView({
         <button
           type="button"
           onClick={() => setWorkType('請負')}
-          className={`rounded-xl border py-3 font-bold ${
-            workType === '請負'
-              ? 'border-blue-500 bg-blue-50 text-blue-700'
-              : 'border-black/10 text-black/50'
+          className={`border py-3 font-bold ${
+            workType === '請負' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-black/10 text-black/50'
           }`}
         >
           請負
         </button>
+        <button
+          type="button"
+          onClick={() => setWorkType('雇用')}
+          className={`border py-3 font-bold ${
+            workType === '雇用' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-black/10 text-black/50'
+          }`}
+        >
+          雇用
+        </button>
       </div>
 
-      {/* 請求先（常駐のときだけ） */}
-      {workType === '常駐' && (
-        <div className="space-y-1 rounded-xl border border-emerald-200 bg-emerald-50/50 p-3">
-          <span className="text-sm font-medium text-emerald-800">請求先（常駐）</span>
+      {/* 雇用した人（雇用のときだけ） */}
+      {workType === '雇用' && (
+        <div className="space-y-1 border border-indigo-200 bg-indigo-50/50 p-3">
+          <span className="text-sm font-medium text-indigo-800">雇用した人（作業者）</span>
+          <input
+            list="hired-workers"
+            value={hiredName}
+            onChange={(e) => setHiredName(e.target.value)}
+            placeholder="例: 田中太郎（山田が連れてきた人）"
+            className="input"
+          />
+          <datalist id="hired-workers">
+            {workers.map((w) => (
+              <option key={w} value={w} />
+            ))}
+          </datalist>
+          {workers.length > 0 && (
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {workers.map((w) => (
+                <span key={w} className="flex items-center gap-1 rounded-full border border-black/15 bg-white pl-3 pr-1 text-xs">
+                  <button type="button" onClick={() => setHiredName(w)} className={`py-1 ${hiredName === w ? 'font-bold text-indigo-700' : 'text-black/60'}`}>
+                    {w}
+                  </button>
+                  <button type="button" onClick={() => setWorkers(removeWorker(w))} className="grid h-5 w-5 place-items-center text-black/30" aria-label="削除">
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 請求先（常駐・雇用のとき） */}
+      {workType !== '請負' && (
+        <div className="space-y-1 border border-emerald-200 bg-emerald-50/50 p-3">
+          <span className="text-sm font-medium text-emerald-800">請求先（{workType}）</span>
           <input
             list="bill-tos"
             value={billTo}
