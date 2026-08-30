@@ -105,3 +105,86 @@ input[type='number'].input::-webkit-inner-spin-button {
     display: none !important;
   }
 }
+
+/* =====================================================================
+   ダークHUDスキン（トップページと統一）
+   各ページの外枠 .hud-bg 配下の明るい配色を暗色へ一括変換する。
+   ===================================================================== */
+.hud-bg { color: #dbe4ee; }
+
+/* 面（パネル・カード・ヘッダー・ナビ） */
+.hud-bg .bg-brand-bg { background-color: #0a1220 !important; }
+.hud-bg .bg-white,
+.hud-bg .bg-white\/95,
+.hud-bg .bg-white\/90,
+.hud-bg .bg-white\/70 { background-color: #101d31 !important; }
+
+/* 薄い面（選択候補・帯など） */
+.hud-bg .bg-slate-50,
+.hud-bg .bg-slate-100,
+.hud-bg .bg-slate-200,
+.hud-bg .bg-brand-soft { background-color: rgba(148,163,184,0.12) !important; }
+
+/* 文字色 */
+.hud-bg .text-black,
+.hud-bg .text-slate-900,
+.hud-bg .text-slate-800,
+.hud-bg .text-slate-700,
+.hud-bg .text-brand-primary { color: #e6eef7 !important; }
+.hud-bg .text-slate-600,
+.hud-bg .text-slate-500,
+.hud-bg .text-black\/70,
+.hud-bg .text-black\/60,
+.hud-bg .text-black\/50 { color: #9fb2c6 !important; }
+.hud-bg .text-slate-400,
+.hud-bg .text-slate-300,
+.hud-bg .text-black\/40,
+.hud-bg .text-black\/30 { color: #6b7f95 !important; }
+
+/* 枠線（グレー系のみ。色付き枠はそのまま） */
+.hud-bg .border-slate-100,
+.hud-bg .border-slate-200,
+.hud-bg .border-slate-300,
+.hud-bg .border-black\/5,
+.hud-bg .border-black\/10,
+.hud-bg .border-black\/15 { border-color: rgba(148,163,184,0.20) !important; }
+.hud-bg .divide-slate-100 > * + *,
+.hud-bg .divide-black\/5 > * + * { border-color: rgba(148,163,184,0.14) !important; }
+
+/* アクセント文字（暗い色→明るいトーンへ） */
+.hud-bg .text-emerald-800,
+.hud-bg .text-emerald-700,
+.hud-bg .text-emerald-600 { color: #6ee7b7 !important; }
+.hud-bg .text-blue-700,
+.hud-bg .text-blue-600 { color: #7dd3fc !important; }
+.hud-bg .text-amber-800,
+.hud-bg .text-amber-700,
+.hud-bg .text-amber-600 { color: #fcd34d !important; }
+.hud-bg .text-indigo-800,
+.hud-bg .text-indigo-700,
+.hud-bg .text-indigo-600 { color: #a5b4fc !important; }
+.hud-bg .text-red-600,
+.hud-bg .text-red-500 { color: #fca5a5 !important; }
+
+/* アクセントの淡い背景（選択/バッジ）→ 半透明ティント */
+.hud-bg .bg-emerald-50,
+.hud-bg .bg-emerald-100 { background-color: rgba(16,185,129,0.16) !important; }
+.hud-bg .bg-blue-50,
+.hud-bg .bg-blue-100 { background-color: rgba(56,189,248,0.16) !important; }
+.hud-bg .bg-amber-50,
+.hud-bg .bg-amber-100 { background-color: rgba(245,158,11,0.16) !important; }
+.hud-bg .bg-indigo-50 { background-color: rgba(99,102,241,0.18) !important; }
+.hud-bg .bg-red-100 { background-color: rgba(239,68,68,0.16) !important; }
+
+/* 入力欄 */
+.hud-bg .input {
+  background-color: #0c1626 !important;
+  border-color: rgba(148,163,184,0.28) !important;
+  color: #e6eef7 !important;
+}
+.hud-bg .input::placeholder { color: #64748b !important; }
+.hud-bg .input:focus {
+  border-color: #06b6d4 !important;
+  box-shadow: 0 0 0 1px #06b6d4, 0 0 10px rgba(6,182,212,0.35) !important;
+}
+.hud-bg select.input option { background-color: #0c1626; color: #e6eef7; }

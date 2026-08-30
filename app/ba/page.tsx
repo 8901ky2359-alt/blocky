@@ -80,12 +80,12 @@ export default function BAPage() {
 
   if (!loaded) {
     return (
-      <div className="grid min-h-[100dvh] place-items-center bg-slate-50 text-slate-400">読み込み中…</div>
+      <div className="grid min-h-[100dvh] place-items-center hud-bg text-slate-400">読み込み中…</div>
     );
   }
 
   return (
-    <div className="min-h-[100dvh] bg-slate-50 text-slate-900">
+    <div className="min-h-[100dvh] hud-bg text-slate-100">
       <div className="px-4 pt-3">
         <div className="mx-auto flex max-w-md items-start gap-2">
           <div className="min-w-0 flex-1">
