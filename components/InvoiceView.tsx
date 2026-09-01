@@ -34,6 +34,7 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
     lastClient: '',
   }));
   const [client, setClient] = useState('');
+  const [billFilter, setBillFilter] = useState('すべて'); // 請求先で絞り込む
   const [honorific, setHonorific] = useState('様'); // 個人=様 / 法人=御中
   const [invoiceNo, setInvoiceNo] = useState('');
   const [dueDate, setDueDate] = useState(defaultDue());
@@ -46,10 +47,21 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
     setClient(p.lastClient);
   }, []);
 
+  // 請求先の候補（記録に入っている請求先）
+  const billCandidates = useMemo(() => {
+    const set = new Set<string>();
+    for (const e of entries) {
+      if (e.kind === 'income' && e.billTo && e.billTo.trim()) set.add(e.billTo.trim());
+    }
+    return [...set];
+  }, [entries]);
+
   const { displayRows, subtotal } = useMemo(() => {
-    const income = entries.filter((e) => e.kind === 'income' && e.date.slice(0, 7) === mKey);
+    let income = entries.filter((e) => e.kind === 'income' && e.date.slice(0, 7) === mKey);
+    if (billFilter !== 'すべて') income = income.filter((e) => (e.billTo || '').trim() === billFilter);
     const ukeoi = income.filter((e) => workTypeOf(e) === '請負').sort((a, b) => (a.date < b.date ? -1 : 1));
     const jouchu = income.filter((e) => workTypeOf(e) === '常駐');
+    const koyo = income.filter((e) => workTypeOf(e) === '雇用').sort((a, b) => (a.date < b.date ? -1 : 1));
     const amtMap = new Map<number, number>();
     for (const e of jouchu) amtMap.set(e.amount, (amtMap.get(e.amount) ?? 0) + 1);
     const rows: { date: string; label: string; amount: number }[] = [];
@@ -62,8 +74,17 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
     for (const [amt, cnt] of [...amtMap.entries()].sort((a, b) => b[0] - a[0])) {
       rows.push({ date: '', label: `常駐　${yen(amt)} × ${cnt}件`, amount: amt * cnt });
     }
+    for (const e of koyo) {
+      const label = ['雇用', e.hiredName, e.site].filter(Boolean).join('　');
+      rows.push({ date: shortDate(e.date), label, amount: e.amount });
+    }
     return { displayRows: rows, subtotal: income.reduce((s, e) => s + e.amount, 0) };
-  }, [entries, mKey]);
+  }, [entries, mKey, billFilter]);
+
+  function pickBill(v: string) {
+    setBillFilter(v);
+    if (v !== 'すべて') setClient(v); // 宛名を請求先に自動入力
+  }
 
   const tax = Math.floor((subtotal * taxRate) / 100);
   const total = subtotal + tax;
@@ -104,6 +125,16 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
             ›
           </button>
         </div>
+        <Row label="請求先で絞り込む">
+          <select className="input" value={billFilter} onChange={(e) => pickBill(e.target.value)}>
+            <option value="すべて">すべて（全件）</option>
+            {billCandidates.map((b) => (
+              <option key={b} value={b}>
+                {b}
+              </option>
+            ))}
+          </select>
+        </Row>
         <Row label="宛名（取引先名）">
           <div className="flex gap-2">
             <input
