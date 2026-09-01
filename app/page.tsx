@@ -15,6 +15,7 @@ import AddView from '@/components/AddView';
 import SummaryView from '@/components/SummaryView';
 import MapView from '@/components/MapView';
 import ReportView from '@/components/ReportView';
+import EntriesEditor from '@/components/EntriesEditor';
 
 type View = Tab | 'add';
 
@@ -87,7 +88,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen overflow-x-hidden hud-bg">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1180px]">
+      <div className="mx-auto flex min-h-screen w-full max-w-[1600px]">
         {/* PC用サイドナビ（スマホでは非表示） */}
         <SideNav
           tab={view}
@@ -97,8 +98,10 @@ export default function Home() {
           onHome={goHome}
         />
 
+        {/* カード＋（PCのみ）編集パネルをまとめて中央寄せ */}
+        <div className="flex w-full min-w-0 flex-1 justify-center gap-6 xl:gap-8">
         {/* アプリ本体（スマホ幅のカード。PCでは中央にフローティング） */}
-        <div className="relative mx-auto min-h-screen w-full max-w-[520px] overflow-x-hidden bg-brand-bg shadow-xl md:my-8 md:min-h-[calc(100vh-4rem)] md:self-start md:rounded-3xl md:shadow-2xl md:ring-1 md:ring-black/5">
+        <div className="relative min-h-screen w-full max-w-[520px] shrink-0 overflow-x-hidden bg-brand-bg shadow-xl md:my-8 md:min-h-[calc(100vh-4rem)] md:self-start md:rounded-3xl md:shadow-2xl md:ring-1 md:ring-black/5">
           <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur md:hidden">
             <button onClick={goHome} className="flex items-center gap-2" aria-label="ホームに戻る">
               <span className="grid h-7 w-7 place-items-center rounded-md bg-brand-primary text-xs font-black text-white">
@@ -139,6 +142,16 @@ export default function Home() {
             </>
           )}
           </main>
+        </div>
+
+        {/* PC用：カレンダーの右隣にそのまま編集できる一覧（大画面のみ表示） */}
+        {view === 'calendar' && !loading && (
+          <aside className="sticky top-8 my-8 hidden h-[calc(100vh-4rem)] w-full min-w-0 max-w-[840px] self-start xl:block">
+            <div className="flex h-full flex-col rounded-3xl bg-brand-bg p-5 shadow-2xl ring-1 ring-black/5">
+              <EntriesEditor entries={entries} onSave={save} onDelete={remove} knownSites={knownSites} />
+            </div>
+          </aside>
+        )}
         </div>
       </div>
 
