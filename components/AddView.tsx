@@ -1,12 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Entry, Photo, Template, WorkType, workTypeOf } from '@/lib/types';
+import { Entry, Photo, WorkType, workTypeOf } from '@/lib/types';
 import { shiftDay, todayStr, yen } from '@/lib/format';
-import { addTemplate, loadTemplates } from '@/lib/templates';
 import { getBillTos, addBillTo, removeBillTo } from '@/lib/billto';
+import { getAmounts, addAmount, removeAmount } from '@/lib/amounts';
 import { getWorkers, addWorker, removeWorker } from '@/lib/hire/presets';
-import { geocodeAddress } from '@/lib/geocode';
 
 type KnownSite = { site: string; address?: string; lat?: number; lng?: number };
 
@@ -31,75 +30,26 @@ export default function AddView({
   const [amount, setAmount] = useState(editing?.amount ? String(editing.amount) : '');
   const [memo, setMemo] = useState(editing?.memo ?? '');
   const [photos, setPhotos] = useState<Photo[]>(editing?.photos ?? []);
-  const [address, setAddress] = useState(editing?.address ?? '');
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
-    editing?.lat != null && editing?.lng != null ? { lat: editing.lat, lng: editing.lng } : null,
-  );
-  const [geoStatus, setGeoStatus] = useState<'idle' | 'searching' | 'ok' | 'fail'>('idle');
   const [saving, setSaving] = useState(false);
-  const [templates, setTemplates] = useState<Template[]>([]);
+  const [amounts, setAmounts] = useState<number[]>([]);
   const [billTo, setBillTo] = useState(editing?.billTo ?? '');
   const [billTos, setBillTos] = useState<string[]>([]);
   const [hiredName, setHiredName] = useState(editing?.hiredName ?? '');
   const [workers, setWorkers] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!editing) setTemplates(loadTemplates());
+    setAmounts(getAmounts());
     setBillTos(getBillTos());
     setWorkers(getWorkers());
   }, [editing]);
 
-  function applyTemplate(t: Template) {
-    if (t.amount) setAmount(String(t.amount));
-    if (t.memo) setMemo(t.memo);
-  }
-
-  function saveAsTemplate() {
-    const label = prompt('この内容を「よく使う作業」に登録します。ボタン名を入力してください', memo || '作業');
-    if (!label) return;
-    const num = Number(amount.replace(/[, ¥]/g, '')) || 0;
-    setTemplates(addTemplate({ label, kind: 'income', category: '', amount: num, memo: memo.trim() }));
-  }
-
-  // 過去の現場を選んだとき、住所（と位置）も一致させる
+  // 過去の現場を選んだとき、現場名を一致させる
   function pickSite(k: KnownSite) {
     setSite(k.site);
-    if (k.address) {
-      setAddress(k.address);
-      if (k.lat != null && k.lng != null) {
-        setCoords({ lat: k.lat, lng: k.lng });
-        setGeoStatus('ok');
-      } else {
-        setCoords(null);
-        setGeoStatus('idle');
-      }
-    }
   }
 
-  // 現場名を手入力/候補選択したとき、既知の現場なら住所が空欄なら自動補完
   function onSiteInput(value: string) {
     setSite(value);
-    const match = knownSites.find((k) => k.site === value);
-    if (match?.address && !address.trim()) {
-      setAddress(match.address);
-      if (match.lat != null && match.lng != null) {
-        setCoords({ lat: match.lat, lng: match.lng });
-        setGeoStatus('ok');
-      }
-    }
-  }
-
-  async function doGeocode() {
-    if (!address.trim()) return;
-    setGeoStatus('searching');
-    const r = await geocodeAddress(address);
-    if (r) {
-      setCoords({ lat: r.lat, lng: r.lng });
-      setGeoStatus('ok');
-    } else {
-      setCoords(null);
-      setGeoStatus('fail');
-    }
   }
 
   async function handleSubmit() {
@@ -108,13 +58,17 @@ export default function AddView({
       alert('金額を正しく入力してください');
       return;
     }
+    if (!site.trim()) {
+      alert('現場名を入力してください');
+      return;
+    }
+    if (!memo.trim()) {
+      alert('作業内容を入力してください');
+      return;
+    }
     setSaving(true);
     try {
-      let loc = coords;
-      if (address.trim() && !loc) {
-        const r = await geocodeAddress(address);
-        if (r) loc = { lat: r.lat, lng: r.lng };
-      }
+      if (num > 0) setAmounts(addAmount(num)); // 入力した金額を次回の候補に登録
       const bill = workType !== '請負' ? billTo.trim() : ''; // 常駐・雇用は請求先を持てる
       if (bill) setBillTos(addBillTo(bill)); // 請求先を登録して次回から候補に
       const hired = workType === '雇用' ? hiredName.trim() : '';
@@ -129,9 +83,6 @@ export default function AddView({
         expense: editing?.expense, // 経費は「経費」ページで管理（旧データは保持）
         memo: memo.trim(),
         photos,
-        address: address.trim() || undefined,
-        lat: loc?.lat,
-        lng: loc?.lng,
         workType,
         billTo: bill || undefined,
         hiredName: hired || undefined,
@@ -252,26 +203,6 @@ export default function AddView({
         </div>
       )}
 
-      {/* よく使う作業（定型ボタン） */}
-      {!editing && templates.length > 0 && (
-        <div>
-          <p className="mb-1 text-sm font-medium text-black/70">よく使う金額（タップで入力）</p>
-          <div className="flex flex-wrap gap-2">
-            {templates.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => applyTemplate(t)}
-                className="rounded-full border border-blue-300 bg-blue-50 px-3 py-1.5 text-sm text-blue-700"
-              >
-                {t.label}
-                {t.amount ? ` ${yen(t.amount)}` : ''}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       <div className="space-y-1">
         <span className="text-sm font-medium text-black/70">日付</span>
         <div className="flex items-center gap-2">
@@ -308,9 +239,32 @@ export default function AddView({
           className="input text-right text-xl font-bold"
         />
         {amount && <p className="mt-1 text-right text-sm text-black/50">{yen(Number(amount) || 0)}</p>}
+        {amounts.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {amounts.map((a) => (
+              <span key={a} className="flex items-center gap-1 rounded-full border border-black/15 bg-white pl-3 pr-1 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setAmount(String(a))}
+                  className={`py-1 ${Number(amount) === a ? 'font-bold text-brand-primary' : 'text-black/60'}`}
+                >
+                  {yen(a)}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAmounts(removeAmount(a))}
+                  className="grid h-5 w-5 place-items-center text-black/30"
+                  aria-label="削除"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
       </Field>
 
-      <Field label="現場名">
+      <Field label="現場名（必須）">
         <input
           list="known-sites"
           value={site}
@@ -347,36 +301,7 @@ export default function AddView({
         )}
       </Field>
 
-      <Field label="住所（地図に登録・任意）">
-        <div className="flex gap-2">
-          <input
-            value={address}
-            onChange={(e) => {
-              setAddress(e.target.value);
-              setCoords(null);
-              setGeoStatus('idle');
-            }}
-            placeholder="例: 山口県〇〇市△△町1-2"
-            className="input flex-1"
-          />
-          <button
-            type="button"
-            onClick={doGeocode}
-            disabled={!address.trim() || geoStatus === 'searching'}
-            className="shrink-0 rounded-xl border border-brand-primary px-3 text-sm font-semibold text-brand-primary disabled:opacity-40"
-          >
-            {geoStatus === 'searching' ? '検索中' : '地図に登録'}
-          </button>
-        </div>
-        {geoStatus === 'ok' && coords && (
-          <p className="mt-1 text-xs text-brand-primary">✓ 地図に登録できます（保存すると地図タブにピンが立ちます）</p>
-        )}
-        {geoStatus === 'fail' && (
-          <p className="mt-1 text-xs text-red-500">住所が見つかりませんでした。市区町村まで入れると見つかりやすいです</p>
-        )}
-      </Field>
-
-      <Field label="メモ">
+      <Field label="作業内容（必須）">
         <textarea
           value={memo}
           onChange={(e) => setMemo(e.target.value)}
@@ -388,16 +313,6 @@ export default function AddView({
       <p className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
         経費（ガソリン・高速・人件費・レシートなど）は、ホームの「🧾 経費」ページで記録・報告します。
       </p>
-
-      {!editing && (amount || memo) && (
-        <button
-          type="button"
-          onClick={saveAsTemplate}
-          className="w-full rounded-xl border border-dashed border-brand-primary/50 py-2 text-sm text-brand-primary"
-        >
-          ＋ この内容を「よく使う金額」に登録
-        </button>
-      )}
 
       <div className="flex gap-2 pt-2">
         {onCancel && (

@@ -27,11 +27,11 @@ const DEFAULT: Profile = {
   address: '宮城県仙台市青葉区大町2丁目15-13-702',
   phone: '080-1814-5592',
   regNo: '',
-  bankName: '',
-  bankBranch: '',
+  bankName: 'PayPay銀行',
+  bankBranch: 'はやぶさ支店',
   bankType: '普通',
-  bankNumber: '',
-  bankHolder: '',
+  bankNumber: '2581246',
+  bankHolder: 'ヤマダカズキ',
   lastClient: '',
 };
 

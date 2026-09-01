@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Entry, workTypeOf } from '@/lib/types';
 import { currentMonthKey, formatJpDate, formatJpMonth, shiftMonth, todayStr, toDateStr, yen } from '@/lib/format';
 import { Profile, loadProfile, saveProfile } from '@/lib/profile';
+import { BankInfo, getBanks, addBank, removeBank, bankLabel } from '@/lib/banks';
 
 const WEEK = ['日', '月', '火', '水', '木', '金', '土'];
 function shortDate(d: string): string {
@@ -39,13 +40,26 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
   const [invoiceNo, setInvoiceNo] = useState('');
   const [dueDate, setDueDate] = useState(defaultDue());
   const [taxRate, setTaxRate] = useState(0); // 既定なし（インボイス登録後に10%へ）
-  const [note, setNote] = useState('お振込手数料は貴社にてご負担くださいますようお願い申し上げます。');
+  const [note, setNote] = useState('');
+  const [banks, setBanks] = useState<BankInfo[]>([]);
 
   useEffect(() => {
     const p = loadProfile();
     setProfile(p);
     setClient(p.lastClient);
+    setBanks(getBanks());
   }, []);
+
+  function pickBank(b: BankInfo) {
+    setProfile((prev) => ({
+      ...prev,
+      bankName: b.bankName,
+      bankBranch: b.bankBranch,
+      bankType: b.bankType || '普通',
+      bankNumber: b.bankNumber,
+      bankHolder: b.bankHolder,
+    }));
+  }
 
   // 請求先の候補（記録に入っている請求先）
   const billCandidates = useMemo(() => {
@@ -90,6 +104,17 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
 
   function persist() {
     saveProfile({ ...profile, lastClient: client });
+    if (profile.bankName.trim() || profile.bankNumber.trim()) {
+      setBanks(
+        addBank({
+          bankName: profile.bankName,
+          bankBranch: profile.bankBranch,
+          bankType: profile.bankType,
+          bankNumber: profile.bankNumber,
+          bankHolder: profile.bankHolder,
+        }),
+      );
+    }
   }
   function doPrint() {
     persist();
@@ -133,15 +158,15 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
           </select>
         </Row>
         <Row label="宛名（取引先名）">
-          <div className="flex gap-2">
+          <div className="flex items-stretch gap-2">
             <input
-              className="input flex-1"
+              className="input min-w-0 flex-1"
               value={client}
               onChange={(e) => setClient(e.target.value)}
               placeholder="例: 山田 太郎"
             />
             <select
-              className="input w-24 shrink-0"
+              className="input w-20 shrink-0"
               value={honorific}
               onChange={(e) => setHonorific(e.target.value)}
             >
@@ -180,6 +205,25 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
         </Row>
 
         <p className="pt-1 text-xs font-semibold text-black/60">お振込先</p>
+        {banks.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {banks.map((b) => (
+              <span key={bankLabel(b)} className="flex items-center gap-1 rounded-full border border-black/15 bg-white pl-3 pr-1 text-xs">
+                <button type="button" onClick={() => pickBank(b)} className="py-1 text-black/70">
+                  {bankLabel(b)}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBanks(removeBank(b))}
+                  className="grid h-5 w-5 place-items-center text-black/30"
+                  aria-label="削除"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <Row label="銀行名">
             <input className="input" value={profile.bankName} onChange={(e) => setP('bankName', e.target.value)} placeholder="〇〇銀行" />
