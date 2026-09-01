@@ -59,25 +59,22 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
   const { displayRows, subtotal } = useMemo(() => {
     let income = entries.filter((e) => e.kind === 'income' && e.date.slice(0, 7) === mKey);
     if (billFilter !== 'すべて') income = income.filter((e) => (e.billTo || '').trim() === billFilter);
-    const ukeoi = income.filter((e) => workTypeOf(e) === '請負').sort((a, b) => (a.date < b.date ? -1 : 1));
-    const jouchu = income.filter((e) => workTypeOf(e) === '常駐');
-    const koyo = income.filter((e) => workTypeOf(e) === '雇用').sort((a, b) => (a.date < b.date ? -1 : 1));
-    const amtMap = new Map<number, number>();
-    for (const e of jouchu) amtMap.set(e.amount, (amtMap.get(e.amount) ?? 0) + 1);
-    const rows: { date: string; label: string; amount: number }[] = [];
-    for (const e of ukeoi) {
-      const label = [e.site, e.address && e.address !== e.site ? e.address : '']
-        .filter(Boolean)
-        .join('　');
-      rows.push({ date: shortDate(e.date), label: label || '請負', amount: e.amount });
-    }
-    for (const [amt, cnt] of [...amtMap.entries()].sort((a, b) => b[0] - a[0])) {
-      rows.push({ date: '', label: `常駐　${yen(amt)} × ${cnt}件`, amount: amt * cnt });
-    }
-    for (const e of koyo) {
-      const label = ['雇用', e.hiredName, e.site].filter(Boolean).join('　');
-      rows.push({ date: shortDate(e.date), label, amount: e.amount });
-    }
+    income = income.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+
+    // 作業内容欄の文言（雇用は「作業員手配（氏名）」／それ以外はメモ、なければ種別）
+    const contentOf = (e: Entry): string => {
+      if (workTypeOf(e) === '雇用') return `作業員手配${e.hiredName ? `（${e.hiredName}）` : ''}`;
+      const m = (e.memo || '').trim();
+      if (m) return m;
+      return workTypeOf(e) === '常駐' ? '常駐' : '請負';
+    };
+
+    const rows = income.map((e) => ({
+      date: shortDate(e.date),
+      site: e.site || '',
+      content: contentOf(e),
+      amount: e.amount,
+    }));
     return { displayRows: rows, subtotal: income.reduce((s, e) => s + e.amount, 0) };
   }, [entries, mKey, billFilter]);
 
@@ -261,14 +258,15 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
             <thead>
               <tr className="border-y border-black/40 bg-black/5">
                 <th className="p-1.5 text-left">日付</th>
-                <th className="p-1.5 text-left">内容（現場・作業）</th>
+                <th className="p-1.5 text-left">現場名</th>
+                <th className="p-1.5 text-left">作業内容</th>
                 <th className="p-1.5 text-right">金額</th>
               </tr>
             </thead>
             <tbody>
               {displayRows.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="p-3 text-center text-black/40">
+                  <td colSpan={4} className="p-3 text-center text-black/40">
                     この月の売上記録がありません
                   </td>
                 </tr>
@@ -276,7 +274,8 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
                 displayRows.map((r, i) => (
                   <tr key={i} className="border-b border-black/10">
                     <td className="whitespace-nowrap p-1.5">{r.date}</td>
-                    <td className="p-1.5">{r.label}</td>
+                    <td className="p-1.5">{r.site || '—'}</td>
+                    <td className="p-1.5">{r.content}</td>
                     <td className="whitespace-nowrap p-1.5 text-right">{yen(r.amount)}</td>
                   </tr>
                 ))
