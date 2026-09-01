@@ -62,7 +62,7 @@ export function shiftMonth(mKey: string, delta: number): string {
 export function calendarCells(mKey: string): (string | null)[] {
   const [y, m] = mKey.split('-').map(Number);
   const first = new Date(y, m - 1, 1);
-  const startPad = first.getDay(); // 0=日
+  const startPad = (first.getDay() + 6) % 7; // 月曜始まり（月=0 … 日=6）
   const daysInMonth = new Date(y, m, 0).getDate();
   const cells: (string | null)[] = [];
   for (let i = 0; i < startPad; i++) cells.push(null);
@@ -73,7 +73,8 @@ export function calendarCells(mKey: string): (string | null)[] {
   return cells;
 }
 
-export const WEEK_LABELS = WEEK;
+// 曜日ヘッダの表示順（月曜始まり）
+export const WEEK_LABELS = ['月', '火', '水', '木', '金', '土', '日'];
 
 // 簡易なランダムID（Date.now非依存でも動くよう乱数主体）
 export function uid(): string {

@@ -77,7 +77,7 @@ export default function ExpenseCalendar({
       <div className="rounded-xl bg-white p-2 shadow-sm">
         <div className="grid grid-cols-7 text-center text-xs text-black/40">
           {WEEK_LABELS.map((w, i) => (
-            <div key={w} className={`py-1 ${i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : ''}`}>
+            <div key={w} className={`py-1 ${i === 6 ? 'text-red-400' : i === 5 ? 'text-blue-400' : ''}`}>
               {w}
             </div>
           ))}
