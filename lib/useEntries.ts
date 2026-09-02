@@ -71,6 +71,7 @@ export function useEntries() {
         lng: input.lng,
         workType: input.workType,
         billTo: input.billTo,
+        billGroup: input.billGroup,
         hiredName: input.hiredName,
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,

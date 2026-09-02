@@ -5,6 +5,7 @@ import { Entry, workTypeOf } from '@/lib/types';
 import { currentMonthKey, formatJpDate, formatJpMonth, shiftMonth, todayStr, toDateStr, yen } from '@/lib/format';
 import { Profile, loadProfile, saveProfile } from '@/lib/profile';
 import { BankInfo, getBanks, addBank, removeBank, bankLabel } from '@/lib/banks';
+import { BILL_GROUPS, billGroupOptionLabel, billGroupText, billGroupDueDate, isBillGroup } from '@/lib/billgroup';
 
 const WEEK = ['日', '月', '火', '水', '木', '金', '土'];
 function shortDate(d: string): string {
@@ -36,6 +37,7 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
   }));
   const [client, setClient] = useState('');
   const [billFilter, setBillFilter] = useState('すべて'); // 請求先で絞り込む
+  const [groupFilter, setGroupFilter] = useState('すべて'); // 締日グループ(A/B/C)で絞り込む
   const [honorific, setHonorific] = useState('様'); // 個人=様 / 法人=御中
   const [invoiceNo, setInvoiceNo] = useState('');
   const [dueDate, setDueDate] = useState(defaultDue());
@@ -73,6 +75,7 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
   const { displayRows, subtotal } = useMemo(() => {
     let income = entries.filter((e) => e.kind === 'income' && e.date.slice(0, 7) === mKey);
     if (billFilter !== 'すべて') income = income.filter((e) => (e.billTo || '').trim() === billFilter);
+    if (groupFilter !== 'すべて') income = income.filter((e) => (e.billGroup || '') === groupFilter);
     income = income.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 
     // 作業内容欄の文言（雇用は「作業員手配（氏名）」／それ以外はメモ、なければ種別）
@@ -90,7 +93,13 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
       amount: e.amount,
     }));
     return { displayRows: rows, subtotal: income.reduce((s, e) => s + e.amount, 0) };
-  }, [entries, mKey, billFilter]);
+  }, [entries, mKey, billFilter, groupFilter]);
+
+  // 締日グループを選ぶと、支払期限を締日ルールから自動で入れる（後から手直し可）
+  useEffect(() => {
+    const d = billGroupDueDate(mKey, groupFilter);
+    if (d) setDueDate(d);
+  }, [mKey, groupFilter]);
 
   function pickBill(v: string) {
     setBillFilter(v);
@@ -99,7 +108,7 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
 
   const tax = Math.floor((subtotal * taxRate) / 100);
   const total = subtotal + tax;
-  const shownNo = invoiceNo || `${mKey.replace('-', '')}-01`;
+  const shownNo = invoiceNo || `${mKey.replace('-', '')}-${isBillGroup(groupFilter) ? groupFilter : '01'}`;
   const hasBank = profile.bankName || profile.bankNumber;
 
   function persist() {
@@ -156,6 +165,21 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
               </option>
             ))}
           </select>
+        </Row>
+        <Row label="締日グループで絞り込む（同じ請求先で締日が違うとき）">
+          <select className="input" value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)}>
+            <option value="すべて">すべて（締日で分けない）</option>
+            {BILL_GROUPS.map((g) => (
+              <option key={g} value={g}>
+                {billGroupOptionLabel(g)}
+              </option>
+            ))}
+          </select>
+          {isBillGroup(groupFilter) && (
+            <p className="mt-1 text-[11px] text-emerald-700">
+              {groupFilter}グループ（{billGroupText(groupFilter)}）の現場だけを請求します。
+            </p>
+          )}
         </Row>
         <Row label="宛名（取引先名）">
           <div className="flex items-stretch gap-2">
@@ -272,6 +296,7 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
             <p>請求書番号: {shownNo}</p>
             <p>発行日: {todayStr()}</p>
             <p>支払期限: {formatJpDate(dueDate)}</p>
+            {isBillGroup(groupFilter) && <p>締日: {billGroupText(groupFilter)}</p>}
           </div>
         </div>
 

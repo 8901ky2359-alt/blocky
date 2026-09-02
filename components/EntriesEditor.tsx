@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Entry, WorkType, workTypeOf } from '@/lib/types';
 import { getMemos, addMemo } from '@/lib/memos';
+import { BILL_GROUPS } from '@/lib/billgroup';
 import {
   currentMonthKey,
   formatJpMonth,
@@ -14,7 +15,9 @@ import {
 type KnownSite = { site: string; address?: string; lat?: number; lng?: number };
 
 // 編集中の変更をためておく型（idごと）
-type Patch = Partial<Pick<Entry, 'date' | 'workType' | 'site' | 'memo' | 'amount' | 'billTo' | 'hiredName'>>;
+type Patch = Partial<
+  Pick<Entry, 'date' | 'workType' | 'site' | 'memo' | 'amount' | 'billTo' | 'billGroup' | 'hiredName'>
+>;
 
 export default function EntriesEditor({
   entries,
@@ -83,6 +86,8 @@ export default function EntriesEditor({
         workType,
         billTo:
           workType !== '請負' ? (patch.billTo ?? base.billTo ?? '').trim() || undefined : undefined,
+        billGroup:
+          workType !== '請負' ? (patch.billGroup ?? base.billGroup ?? '') || undefined : undefined,
         hiredName:
           workType === '雇用' ? (patch.hiredName ?? base.hiredName ?? '').trim() || undefined : undefined,
       });
@@ -103,10 +108,10 @@ export default function EntriesEditor({
     await applyPatch(e.id, p);
   }
 
-  // 区分を変えたら即保存（プルダウンはblurが分かりにくいため）
-  async function changeWorkType(e: Entry, wt: WorkType) {
-    setPending((prev) => ({ ...prev, [e.id]: { ...prev[e.id], workType: wt } }));
-    await applyPatch(e.id, { ...pending[e.id], workType: wt });
+  // プルダウンはblurが分かりにくいので、変更したら即保存
+  async function changeField(e: Entry, part: Patch) {
+    setPending((prev) => ({ ...prev, [e.id]: { ...prev[e.id], ...part } }));
+    await applyPatch(e.id, { ...pending[e.id], ...part });
   }
 
   async function addRow() {
@@ -165,6 +170,7 @@ export default function EntriesEditor({
             <col />
             <col style={{ width: '84px' }} />
             <col style={{ width: '120px' }} />
+            <col style={{ width: '58px' }} />
             <col style={{ width: '28px' }} />
           </colgroup>
           <thead className="sticky top-0 z-[1] bg-slate-50 text-left text-xs text-black/50">
@@ -175,13 +181,14 @@ export default function EntriesEditor({
               <th className="px-1.5 py-2 font-semibold">作業内容</th>
               <th className="whitespace-nowrap px-1.5 py-2 text-right font-semibold">金額(円)</th>
               <th className="px-1.5 py-2 font-semibold">請求先 / 作業員</th>
+              <th className="whitespace-nowrap px-1.5 py-2 font-semibold">締日</th>
               <th className="px-1 py-2 font-semibold"></th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-3 py-10 text-center text-black/40">
+                <td colSpan={8} className="px-3 py-10 text-center text-black/40">
                   この月の記録はまだありません
                 </td>
               </tr>
@@ -202,7 +209,7 @@ export default function EntriesEditor({
                     <td className="px-1.5 py-1.5">
                       <select
                         value={wt}
-                        onChange={(ev) => changeWorkType(e, ev.target.value as WorkType)}
+                        onChange={(ev) => changeField(e, { workType: ev.target.value as WorkType })}
                         className="input !w-full !py-1 !text-xs"
                       >
                         <option value="請負">請負</option>
@@ -263,6 +270,25 @@ export default function EntriesEditor({
                             />
                           )}
                         </div>
+                      )}
+                    </td>
+                    <td className="px-1.5 py-1.5">
+                      {wt === '請負' ? (
+                        <span className="text-xs text-black/30">—</span>
+                      ) : (
+                        <select
+                          value={(val(e, 'billGroup') as string) || ''}
+                          onChange={(ev) => changeField(e, { billGroup: ev.target.value })}
+                          className="input !w-full !py-1 !text-xs"
+                          title="締日グループ"
+                        >
+                          <option value="">—</option>
+                          {BILL_GROUPS.map((g) => (
+                            <option key={g} value={g}>
+                              {g}
+                            </option>
+                          ))}
+                        </select>
                       )}
                     </td>
                     <td className="px-1 py-1.5 text-center">

@@ -6,6 +6,7 @@ import { shiftDay, todayStr, yen } from '@/lib/format';
 import { getBillTos, addBillTo, removeBillTo } from '@/lib/billto';
 import { getAmounts, addAmount, removeAmount } from '@/lib/amounts';
 import { getMemos, addMemo, removeMemo } from '@/lib/memos';
+import { BILL_GROUPS, billGroupOptionLabel } from '@/lib/billgroup';
 import { getWorkers, addWorker, removeWorker } from '@/lib/hire/presets';
 
 type KnownSite = { site: string; address?: string; lat?: number; lng?: number };
@@ -36,6 +37,7 @@ export default function AddView({
   const [memoOptions, setMemoOptions] = useState<string[]>([]);
   const [billTo, setBillTo] = useState(editing?.billTo ?? '');
   const [billTos, setBillTos] = useState<string[]>([]);
+  const [billGroup, setBillGroup] = useState(editing?.billGroup ?? '');
   const [hiredName, setHiredName] = useState(editing?.hiredName ?? '');
   const [workers, setWorkers] = useState<string[]>([]);
 
@@ -75,6 +77,7 @@ export default function AddView({
       if (memo.trim()) setMemoOptions(addMemo(memo)); // 作業内容を次回の候補に登録
       const bill = workType !== '請負' ? billTo.trim() : ''; // 常駐・雇用は請求先を持てる
       if (bill) setBillTos(addBillTo(bill)); // 請求先を登録して次回から候補に
+      const group = workType !== '請負' ? billGroup : ''; // 締日グループも常駐・雇用のみ
       const hired = workType === '雇用' ? hiredName.trim() : '';
       if (hired) setWorkers(addWorker(hired)); // 雇用した人を登録
       await onSave({
@@ -89,6 +92,7 @@ export default function AddView({
         photos,
         workType,
         billTo: bill || undefined,
+        billGroup: group || undefined,
         hiredName: hired || undefined,
       });
       onSaved();
@@ -204,6 +208,21 @@ export default function AddView({
               ))}
             </div>
           )}
+          <div className="pt-1">
+            <span className="text-xs font-medium text-emerald-800">締日グループ（同じ請求先で締日が違うとき）</span>
+            <select
+              value={billGroup}
+              onChange={(e) => setBillGroup(e.target.value)}
+              className="input mt-1"
+            >
+              <option value="">指定なし</option>
+              {BILL_GROUPS.map((g) => (
+                <option key={g} value={g}>
+                  {billGroupOptionLabel(g)}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       )}
 

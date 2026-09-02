@@ -32,6 +32,7 @@ export interface Entry {
   lng?: number; // 経度
   workType?: WorkType; // 常駐 / 請負 / 雇用
   billTo?: string; // 請求先（常駐・雇用のときに使用）
+  billGroup?: string; // 締日グループ（同じ請求先で締日が違う場合の A/B/C）
   hiredName?: string; // 雇用した人（雇用のときに使用）
   deleted?: boolean; // 削除済み（同期用の墓標。表示はしない）
   createdAt: number;
