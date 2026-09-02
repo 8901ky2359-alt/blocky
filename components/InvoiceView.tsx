@@ -2,15 +2,24 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Entry, workTypeOf } from '@/lib/types';
-import { currentMonthKey, formatJpDate, formatJpMonth, shiftMonth, todayStr, toDateStr, yen } from '@/lib/format';
+import { currentMonthKey, formatJpMonth, shiftMonth, todayStr, toDateStr, yen } from '@/lib/format';
 import { Profile, loadProfile, saveProfile } from '@/lib/profile';
 import { BankInfo, getBanks, addBank, removeBank, bankLabel } from '@/lib/banks';
 import { BILL_GROUPS, billGroupOptionLabel, billGroupText, billGroupDueDate, isBillGroup } from '@/lib/billgroup';
+import { INVOICE_PROJECT_PROMPT } from '@/lib/invoicePrompt';
 
 const WEEK = ['日', '月', '火', '水', '木', '金', '土'];
 function shortDate(d: string): string {
   const [y, m, day] = d.split('-').map(Number);
   return `${m}/${day}(${WEEK[new Date(y, m - 1, day).getDay()]})`;
+}
+
+// 作業内容欄の文言（雇用は「作業員手配（氏名）」／それ以外はメモ、なければ種別）
+function contentOf(e: Entry): string {
+  if (workTypeOf(e) === '雇用') return `作業員手配${e.hiredName ? `（${e.hiredName}）` : ''}`;
+  const m = (e.memo || '').trim();
+  if (m) return m;
+  return workTypeOf(e) === '常駐' ? '常駐' : '請負';
 }
 
 // 既定の支払期限：発行月の翌月末日
@@ -78,16 +87,9 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
     if (groupFilter !== 'すべて') income = income.filter((e) => (e.billGroup || '') === groupFilter);
     income = income.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 
-    // 作業内容欄の文言（雇用は「作業員手配（氏名）」／それ以外はメモ、なければ種別）
-    const contentOf = (e: Entry): string => {
-      if (workTypeOf(e) === '雇用') return `作業員手配${e.hiredName ? `（${e.hiredName}）` : ''}`;
-      const m = (e.memo || '').trim();
-      if (m) return m;
-      return workTypeOf(e) === '常駐' ? '常駐' : '請負';
-    };
-
     const rows = income.map((e) => ({
-      date: shortDate(e.date),
+      date: e.date,
+      dateShort: shortDate(e.date),
       site: e.site || '',
       content: contentOf(e),
       amount: e.amount,
@@ -111,6 +113,94 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
   const shownNo = invoiceNo || `${mKey.replace('-', '')}-${isBillGroup(groupFilter) ? groupFilter : '01'}`;
   const hasBank = profile.bankName || profile.bankNumber;
 
+  // Claudeに貼り付ける請求データ（テキスト）
+  const invoiceText = useMemo(() => {
+    const L: string[] = [];
+    L.push('■請求データ（この内容から請求書を作成してください）');
+    L.push('');
+    L.push(`宛名: ${client || '（未設定）'} ${client ? honorific : ''}`.trim());
+    if (isBillGroup(groupFilter)) L.push(`締日グループ: ${groupFilter}（${billGroupText(groupFilter)}）`);
+    if (billFilter !== 'すべて') L.push(`請求先: ${billFilter}`);
+    L.push(`対象月: ${formatJpMonth(mKey)}分`);
+    L.push(`請求書番号: ${shownNo}`);
+    L.push(`発行日: ${todayStr()}`);
+    L.push(`支払期限: ${dueDate}`);
+    L.push(`消費税: ${taxRate > 0 ? `${taxRate}%` : 'なし（対象外）'}`);
+    L.push('');
+    L.push('―― 明細（日付 / 現場名 / 作業内容 / 金額）――');
+    if (displayRows.length === 0) {
+      L.push('（この条件の売上記録がありません）');
+    } else {
+      for (const r of displayRows) {
+        L.push(`${r.date} / ${r.site || '—'} / ${r.content} / ${yen(r.amount)}`);
+      }
+    }
+    L.push('');
+    L.push(`小計: ${yen(subtotal)}`);
+    if (taxRate > 0) L.push(`消費税(${taxRate}%): ${yen(tax)}`);
+    L.push(`合計: ${yen(total)}`);
+    L.push('');
+    L.push('―― 振込先 ――');
+    L.push(
+      hasBank
+        ? `${profile.bankName} ${profile.bankBranch}　${profile.bankType} ${profile.bankNumber}${
+            profile.bankHolder ? `　${profile.bankHolder}` : ''
+          }`
+        : '（未設定）',
+    );
+    L.push('');
+    L.push('―― 発行元 ――');
+    if (profile.businessName) L.push(profile.businessName);
+    L.push(profile.name || '（氏名未設定）');
+    if (profile.postal) L.push(`〒${profile.postal}`);
+    if (profile.address) L.push(profile.address);
+    if (profile.phone) L.push(`TEL ${profile.phone}`);
+    L.push(`登録番号: ${profile.regNo || '（未登録）'}`);
+    if (note.trim()) {
+      L.push('');
+      L.push(`備考: ${note.trim()}`);
+    }
+    return L.join('\n');
+  }, [
+    client,
+    honorific,
+    groupFilter,
+    billFilter,
+    mKey,
+    shownNo,
+    dueDate,
+    taxRate,
+    displayRows,
+    subtotal,
+    tax,
+    total,
+    hasBank,
+    profile,
+    note,
+  ]);
+
+  const [copied, setCopied] = useState('');
+  async function copyText(text: string, which: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // クリップボードAPIが使えない環境向けのフォールバック
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+      } catch {
+        /* noop */
+      }
+      document.body.removeChild(ta);
+    }
+    persist();
+    setCopied(which);
+    setTimeout(() => setCopied(''), 2000);
+  }
+
   function persist() {
     saveProfile({ ...profile, lastClient: client });
     if (profile.bankName.trim() || profile.bankNumber.trim()) {
@@ -124,10 +214,6 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
         }),
       );
     }
-  }
-  function doPrint() {
-    persist();
-    setTimeout(() => window.print(), 50);
   }
   const setP = (k: keyof Profile, v: string) => setProfile({ ...profile, [k]: v });
 
@@ -282,116 +368,50 @@ export default function InvoiceView({ entries, onBack }: { entries: Entry[]; onB
         </Row>
       </div>
 
-      {/* 請求書プレビュー（このまま印刷される） */}
-      <div id="invoice-print" className="rounded-xl border border-black/10 bg-white p-6 text-sm text-black">
-        <h1 className="mb-4 text-center text-2xl font-bold tracking-[0.3em]">請 求 書</h1>
-
-        <div className="mb-4 flex items-start justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <p className="border-b border-black pb-1 text-lg font-semibold">
-              {client || '　　　　　'} {honorific}
-            </p>
-          </div>
-          <div className="shrink-0 text-right text-xs leading-relaxed">
-            <p>請求書番号: {shownNo}</p>
-            <p>発行日: {todayStr()}</p>
-            <p>支払期限: {formatJpDate(dueDate)}</p>
-            {isBillGroup(groupFilter) && <p>締日: {billGroupText(groupFilter)}</p>}
-          </div>
+      {/* 請求データ（テキスト）→ コピーしてClaudeへ */}
+      <div className="space-y-2 rounded-xl bg-white p-3 shadow-sm">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold">請求データ（コピーしてClaudeに送信）</h3>
+          <span className="text-xs text-black/40">合計 {yen(total)} / {displayRows.length}件</span>
         </div>
-
-        <div className="mb-4 flex items-start justify-between gap-4">
-          <p className="pt-2">下記の通りご請求申し上げます。</p>
-          <div className="shrink-0 text-right text-xs leading-relaxed">
-            {profile.businessName && <p className="text-sm font-semibold">{profile.businessName}</p>}
-            <div className="flex items-center justify-end gap-2">
-              <p className="text-sm font-semibold">{profile.name || '（氏名）'}</p>
-              <span className="grid h-9 w-9 place-items-center rounded-full border border-red-300 text-[9px] text-red-300">
-                印
-              </span>
-            </div>
-            {profile.postal && <p>〒{profile.postal}</p>}
-            {profile.address && <p>{profile.address}</p>}
-            {profile.phone && <p>TEL {profile.phone}</p>}
-            {profile.regNo && <p>登録番号: {profile.regNo}</p>}
-          </div>
-        </div>
-
-        <div className="mb-4 inline-block border-b-2 border-brand-primary bg-brand-soft px-4 py-2 text-lg font-bold">
-          ご請求金額　{yen(total)}
-          {taxRate > 0 ? '（税込）' : ''}
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-xs">
-            <thead>
-              <tr className="border-y border-black/40 bg-black/5">
-                <th className="p-1.5 text-left">日付</th>
-                <th className="p-1.5 text-left">現場名</th>
-                <th className="p-1.5 text-left">作業内容</th>
-                <th className="p-1.5 text-right">金額</th>
-              </tr>
-            </thead>
-            <tbody>
-              {displayRows.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="p-3 text-center text-black/40">
-                    この月の売上記録がありません
-                  </td>
-                </tr>
-              ) : (
-                displayRows.map((r, i) => (
-                  <tr key={i} className="border-b border-black/10">
-                    <td className="whitespace-nowrap p-1.5">{r.date}</td>
-                    <td className="p-1.5">{r.site || '—'}</td>
-                    <td className="p-1.5">{r.content}</td>
-                    <td className="whitespace-nowrap p-1.5 text-right">{yen(r.amount)}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="mt-2 ml-auto w-56 text-xs">
-          <div className="flex justify-between border-b border-black/10 py-1">
-            <span>小計</span>
-            <span>{yen(subtotal)}</span>
-          </div>
-          {taxRate > 0 && (
-            <div className="flex justify-between border-b border-black/10 py-1">
-              <span>消費税（{taxRate}%）</span>
-              <span>{yen(tax)}</span>
-            </div>
-          )}
-          <div className="flex justify-between border-y-2 border-black py-1.5 text-sm font-bold">
-            <span>合計</span>
-            <span>{yen(total)}</span>
-          </div>
-        </div>
-
-        {/* お振込先 */}
-        <div className="mt-5 rounded-md border border-black/20 p-2 text-xs">
-          <p className="mb-1 font-semibold">お振込先</p>
-          {hasBank ? (
-            <p>
-              {profile.bankName} {profile.bankBranch}　{profile.bankType} {profile.bankNumber}
-              {profile.bankHolder ? `　${profile.bankHolder}` : ''}
-            </p>
-          ) : (
-            <p className="text-black/40">（振込先を入力してください）</p>
-          )}
-        </div>
-
-        {note && <p className="mt-3 text-xs text-black/70">※ {note}</p>}
+        <textarea
+          readOnly
+          value={invoiceText}
+          onFocus={(e) => e.currentTarget.select()}
+          className="input h-72 w-full whitespace-pre font-mono text-xs leading-relaxed"
+        />
+        <button
+          onClick={() => copyText(invoiceText, 'data')}
+          className="w-full rounded-xl bg-brand-primary py-3 font-bold text-white"
+        >
+          {copied === 'data' ? '✓ コピーしました' : '📋 請求データをコピー'}
+        </button>
+        <p className="text-center text-xs text-black/40">
+          コピーして、Claudeの「請求書作成」プロジェクトに貼り付けてください。
+        </p>
       </div>
 
-      <button onClick={doPrint} className="no-print w-full rounded-xl bg-brand-primary py-3 font-bold text-white">
-        🖨 印刷 / PDFで保存する
-      </button>
-      <p className="no-print text-center text-xs text-black/40">
-        印刷画面で「PDFに保存」を選ぶと、PDFファイルとして保存でき、LINEでも送れます。
-      </p>
+      {/* Claudeプロジェクト用プロンプト（初回だけ設定） */}
+      <details className="rounded-xl border border-black/10 bg-white p-3 text-sm">
+        <summary className="cursor-pointer font-semibold text-black/70">
+          Claudeプロジェクト用プロンプト（初回だけ設定）
+        </summary>
+        <p className="mt-2 text-xs text-black/50">
+          Claudeで「プロジェクト」を1つ作り、下のプロンプトを「プロジェクトの指示」に貼り付けてください。以後はそのプロジェクトに請求データを送るだけで請求書ができ、確認が必要なときは質問してくれます。
+        </p>
+        <textarea
+          readOnly
+          value={INVOICE_PROJECT_PROMPT}
+          onFocus={(e) => e.currentTarget.select()}
+          className="input mt-2 h-52 w-full whitespace-pre-wrap text-xs leading-relaxed"
+        />
+        <button
+          onClick={() => copyText(INVOICE_PROJECT_PROMPT, 'prompt')}
+          className="mt-2 w-full rounded-xl border border-brand-primary py-2.5 text-sm font-semibold text-brand-primary"
+        >
+          {copied === 'prompt' ? '✓ コピーしました' : '📋 プロンプトをコピー'}
+        </button>
+      </details>
     </div>
   );
 }
