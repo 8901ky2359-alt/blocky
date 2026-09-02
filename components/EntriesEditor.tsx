@@ -84,10 +84,8 @@ export default function EntriesEditor({
         memo,
         amount: patch.amount != null ? patch.amount : base.amount,
         workType,
-        billTo:
-          workType !== '請負' ? (patch.billTo ?? base.billTo ?? '').trim() || undefined : undefined,
-        billGroup:
-          workType !== '請負' ? (patch.billGroup ?? base.billGroup ?? '') || undefined : undefined,
+        billTo: (patch.billTo ?? base.billTo ?? '').trim() || undefined,
+        billGroup: (patch.billGroup ?? base.billGroup ?? '') || undefined,
         hiredName:
           workType === '雇用' ? (patch.hiredName ?? base.hiredName ?? '').trim() || undefined : undefined,
       });
@@ -248,48 +246,40 @@ export default function EntriesEditor({
                       />
                     </td>
                     <td className="px-1.5 py-1.5">
-                      {wt === '請負' ? (
-                        <span className="text-xs text-black/30">—</span>
-                      ) : (
-                        <div className="space-y-1">
+                      <div className="space-y-1">
+                        <input
+                          list="editor-clients"
+                          value={val(e, 'billTo') as string}
+                          onChange={(ev) => setField(e.id, 'billTo', ev.target.value)}
+                          onBlur={() => commit(e)}
+                          placeholder="請求先"
+                          className="input !w-full !py-1 !text-xs"
+                        />
+                        {wt === '雇用' && (
                           <input
-                            list="editor-clients"
-                            value={val(e, 'billTo') as string}
-                            onChange={(ev) => setField(e.id, 'billTo', ev.target.value)}
+                            value={val(e, 'hiredName') as string}
+                            onChange={(ev) => setField(e.id, 'hiredName', ev.target.value)}
                             onBlur={() => commit(e)}
-                            placeholder="請求先"
+                            placeholder="作業員名"
                             className="input !w-full !py-1 !text-xs"
                           />
-                          {wt === '雇用' && (
-                            <input
-                              value={val(e, 'hiredName') as string}
-                              onChange={(ev) => setField(e.id, 'hiredName', ev.target.value)}
-                              onBlur={() => commit(e)}
-                              placeholder="作業員名"
-                              className="input !w-full !py-1 !text-xs"
-                            />
-                          )}
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </td>
                     <td className="px-1.5 py-1.5">
-                      {wt === '請負' ? (
-                        <span className="text-xs text-black/30">—</span>
-                      ) : (
-                        <select
-                          value={(val(e, 'billGroup') as string) || ''}
-                          onChange={(ev) => changeField(e, { billGroup: ev.target.value })}
-                          className="input !w-full !py-1 !text-xs"
-                          title="締日グループ"
-                        >
-                          <option value="">—</option>
-                          {BILL_GROUPS.map((g) => (
-                            <option key={g} value={g}>
-                              {g}
-                            </option>
-                          ))}
-                        </select>
-                      )}
+                      <select
+                        value={(val(e, 'billGroup') as string) || ''}
+                        onChange={(ev) => changeField(e, { billGroup: ev.target.value })}
+                        className="input !w-full !py-1 !text-xs"
+                        title="締日グループ"
+                      >
+                        <option value="">—</option>
+                        {BILL_GROUPS.map((g) => (
+                          <option key={g} value={g}>
+                            {g}
+                          </option>
+                        ))}
+                      </select>
                     </td>
                     <td className="px-1 py-1.5 text-center">
                       {savingId === e.id ? (

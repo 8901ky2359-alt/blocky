@@ -75,9 +75,9 @@ export default function AddView({
     try {
       if (num > 0) setAmounts(addAmount(num)); // 入力した金額を次回の候補に登録
       if (memo.trim()) setMemoOptions(addMemo(memo)); // 作業内容を次回の候補に登録
-      const bill = workType !== '請負' ? billTo.trim() : ''; // 常駐・雇用は請求先を持てる
+      const bill = billTo.trim(); // 請求先はすべての区分で持てる
       if (bill) setBillTos(addBillTo(bill)); // 請求先を登録して次回から候補に
-      const group = workType !== '請負' ? billGroup : ''; // 締日グループも常駐・雇用のみ
+      const group = billGroup; // 締日グループもすべての区分で持てる
       const hired = workType === '雇用' ? hiredName.trim() : '';
       if (hired) setWorkers(addWorker(hired)); // 雇用した人を登録
       await onSave({
@@ -169,9 +169,8 @@ export default function AddView({
         </div>
       )}
 
-      {/* 請求先（常駐・雇用のとき） */}
-      {workType !== '請負' && (
-        <div className="space-y-1 border border-emerald-200 bg-emerald-50/50 p-3">
+      {/* 請求先（すべての区分で入力可） */}
+      <div className="space-y-1 border border-emerald-200 bg-emerald-50/50 p-3">
           <span className="text-sm font-medium text-emerald-800">請求先（{workType}）</span>
           <input
             list="bill-tos"
@@ -224,7 +223,6 @@ export default function AddView({
             </select>
           </div>
         </div>
-      )}
 
       <div className="space-y-1">
         <span className="text-sm font-medium text-black/70">日付</span>
