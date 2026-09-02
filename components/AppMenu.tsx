@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 
 const LINKS = [
   { href: '/', label: 'ホーム', icon: '🏠' },
-  { href: '/expense', label: '経費', icon: '🧾' },
   { href: '/ba', label: 'ビフォーアフター', icon: '📷' },
   { href: '/report', label: '防草シート案件', icon: '🗺' },
   { href: '/hire', label: '雇用', icon: '🤝' },
