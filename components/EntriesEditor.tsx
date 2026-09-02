@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Entry, WorkType, workTypeOf } from '@/lib/types';
+import { getMemos, addMemo } from '@/lib/memos';
 import {
   currentMonthKey,
   formatJpMonth,
@@ -29,6 +30,11 @@ export default function EntriesEditor({
   const [mKey, setMKey] = useState(currentMonthKey());
   const [pending, setPending] = useState<Record<string, Patch>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [memoOptions, setMemoOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    setMemoOptions(getMemos());
+  }, []);
 
   // 保存時に「最新の元データ」を参照するためのref（連続編集で古い値に戻さない）
   const entriesRef = useRef(entries);
@@ -64,13 +70,15 @@ export default function EntriesEditor({
     const base = entriesRef.current.find((x) => x.id === id);
     if (!base) return;
     const workType = (patch.workType ?? workTypeOf(base)) as WorkType;
+    const memo = (patch.memo ?? base.memo).trim();
+    if (patch.memo !== undefined && memo) setMemoOptions(addMemo(memo)); // 作業内容を次回の候補に登録
     setSavingId(id);
     try {
       await onSave({
         ...base,
         date: patch.date ?? base.date,
         site: (patch.site ?? base.site).trim(),
-        memo: (patch.memo ?? base.memo).trim(),
+        memo,
         amount: patch.amount != null ? patch.amount : base.amount,
         workType,
         billTo:
@@ -151,7 +159,7 @@ export default function EntriesEditor({
       <div className="min-h-0 flex-1 overflow-auto rounded-xl border border-black/10 bg-white">
         <table className="w-full table-fixed border-collapse text-sm">
           <colgroup>
-            <col style={{ width: '116px' }} />
+            <col style={{ width: '150px' }} />
             <col style={{ width: '64px' }} />
             <col />
             <col />
@@ -214,6 +222,7 @@ export default function EntriesEditor({
                     </td>
                     <td className="px-1.5 py-1.5">
                       <input
+                        list="editor-memos"
                         value={val(e, 'memo') as string}
                         onChange={(ev) => setField(e.id, 'memo', ev.target.value)}
                         onBlur={() => commit(e)}
@@ -299,6 +308,11 @@ export default function EntriesEditor({
       <datalist id="editor-clients">
         {[...new Set(entries.map((e) => e.billTo).filter((x): x is string => !!x))].map((c) => (
           <option key={c} value={c} />
+        ))}
+      </datalist>
+      <datalist id="editor-memos">
+        {[...new Set([...memoOptions, ...entries.map((e) => e.memo).filter((x) => !!x)])].map((m) => (
+          <option key={m} value={m} />
         ))}
       </datalist>
     </div>

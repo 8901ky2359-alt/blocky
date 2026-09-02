@@ -5,6 +5,7 @@ import { Entry, Photo, WorkType, workTypeOf } from '@/lib/types';
 import { shiftDay, todayStr, yen } from '@/lib/format';
 import { getBillTos, addBillTo, removeBillTo } from '@/lib/billto';
 import { getAmounts, addAmount, removeAmount } from '@/lib/amounts';
+import { getMemos, addMemo, removeMemo } from '@/lib/memos';
 import { getWorkers, addWorker, removeWorker } from '@/lib/hire/presets';
 
 type KnownSite = { site: string; address?: string; lat?: number; lng?: number };
@@ -32,6 +33,7 @@ export default function AddView({
   const [photos, setPhotos] = useState<Photo[]>(editing?.photos ?? []);
   const [saving, setSaving] = useState(false);
   const [amounts, setAmounts] = useState<number[]>([]);
+  const [memoOptions, setMemoOptions] = useState<string[]>([]);
   const [billTo, setBillTo] = useState(editing?.billTo ?? '');
   const [billTos, setBillTos] = useState<string[]>([]);
   const [hiredName, setHiredName] = useState(editing?.hiredName ?? '');
@@ -39,6 +41,7 @@ export default function AddView({
 
   useEffect(() => {
     setAmounts(getAmounts());
+    setMemoOptions(getMemos());
     setBillTos(getBillTos());
     setWorkers(getWorkers());
   }, [editing]);
@@ -69,6 +72,7 @@ export default function AddView({
     setSaving(true);
     try {
       if (num > 0) setAmounts(addAmount(num)); // 入力した金額を次回の候補に登録
+      if (memo.trim()) setMemoOptions(addMemo(memo)); // 作業内容を次回の候補に登録
       const bill = workType !== '請負' ? billTo.trim() : ''; // 常駐・雇用は請求先を持てる
       if (bill) setBillTos(addBillTo(bill)); // 請求先を登録して次回から候補に
       const hired = workType === '雇用' ? hiredName.trim() : '';
@@ -308,6 +312,29 @@ export default function AddView({
           placeholder="作業内容（草刈作業・軽土木作業など）・台数・面積など"
           className="input h-24"
         />
+        {memoOptions.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {memoOptions.map((m) => (
+              <span key={m} className="flex items-center gap-1 rounded-full border border-black/15 bg-white pl-3 pr-1 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setMemo(m)}
+                  className={`py-1 ${memo === m ? 'font-bold text-brand-primary' : 'text-black/60'}`}
+                >
+                  {m}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMemoOptions(removeMemo(m))}
+                  className="grid h-5 w-5 place-items-center text-black/30"
+                  aria-label="削除"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
       </Field>
 
       <p className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
