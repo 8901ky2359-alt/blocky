@@ -17,7 +17,7 @@ export default function Launcher({ onOpenMemo }: { onOpenMemo: () => void }) {
     { key: 'memo', label: '売上管理', sub: 'SALES', desc: '売上・現場記録／収支・請求', icon: '▤', onClick: onOpenMemo },
     { key: 'ba', label: 'ビフォーアフター', sub: 'PHOTO', desc: '作業前後の写真を記録・共有', icon: '◨', href: '/ba' },
     { key: 'report', label: '防草シート案件', sub: 'ROUTE', desc: '工番検索・地図・進捗・報告', icon: '⊞', href: '/report' },
-    { key: 'hire', label: '雇用', sub: 'LABOR', desc: '日付・名前・現場・金額で記録', icon: '☰', href: '/hire' },
+    { key: 'hire', label: '作業依頼管理', sub: 'LABOR', desc: '作業依頼書の作成・共有／記録', icon: '☰', href: '/hire' },
   ];
 
   return (

@@ -62,7 +62,7 @@ export default function HireForm({
 
   return (
     <div className="space-y-4 pb-4">
-      <h2 className="text-lg font-bold">{editing ? '記録を編集' : '雇用を記録する'}</h2>
+      <h2 className="text-lg font-bold">{editing ? '記録を編集' : '作業依頼を記録する'}</h2>
 
       {/* 日付 */}
       <div className="space-y-1">

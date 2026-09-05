@@ -77,9 +77,9 @@ export default function HirePage() {
         <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur">
           <a href="/" className="flex items-center gap-2" aria-label="ホームに戻る">
             <span className="grid h-7 w-7 place-items-center rounded-md bg-indigo-600 text-xs font-black text-white">
-              雇
+              依
             </span>
-            <span className="text-base font-bold tracking-tight text-brand-primary">雇用・作業依頼</span>
+            <span className="text-base font-bold tracking-tight text-brand-primary">作業依頼管理</span>
             <span className="text-xs text-slate-400">／ホーム</span>
           </a>
           <div className="flex items-center gap-2">

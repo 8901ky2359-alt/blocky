@@ -7,7 +7,7 @@ const LINKS = [
   { href: '/', label: 'ホーム', icon: '🏠' },
   { href: '/ba', label: 'ビフォーアフター', icon: '📷' },
   { href: '/report', label: '防草シート案件', icon: '🗺' },
-  { href: '/hire', label: '雇用', icon: '🤝' },
+  { href: '/hire', label: '作業依頼管理', icon: '🤝' },
 ];
 
 // 各ページ右上のメニュー（全ページへの移動）
