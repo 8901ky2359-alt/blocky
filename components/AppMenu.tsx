@@ -2,13 +2,14 @@
 
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { TIMESHEET_URL } from '@/lib/config';
 
 const LINKS = [
   { href: '/', label: 'ホーム', icon: '🏠' },
   { href: '/ba', label: 'ビフォーアフター', icon: '📷' },
   { href: '/report', label: '防草シート案件', icon: '🗺' },
   { href: '/hire', label: '作業依頼管理', icon: '🤝' },
-  { href: '/timesheet', label: '作業日報', icon: '📝' },
+  { href: TIMESHEET_URL, label: '作業日報', icon: '📝' },
 ];
 
 // 各ページ右上のメニュー（全ページへの移動）

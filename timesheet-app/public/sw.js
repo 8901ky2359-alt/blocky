@@ -1,15 +1,13 @@
-// シンプルなサービスワーカー（オフライン対応）
-// - ナビゲーション(HTML): ネット優先→失敗時キャッシュ（オフライン起動用）
-// - 静的アセット(/_next/static 等): キャッシュ優先（ハッシュ付きで不変）
-// - /api/ やPOST: 介入しない（同期を壊さない）
+// シンプルなサービスワーカー（オフライン起動用のアプリシェルキャッシュ）
+// - ナビゲーション(HTML): ネット優先→失敗時キャッシュ
+// - 静的アセット: キャッシュ優先＋裏で更新
+// - /api/ やPOST: 介入しない
 
-const CACHE = 'genba-cache-v4';
+const CACHE = 'timesheet-cache-v1';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(['/', '/ba']).catch(() => undefined)),
-  );
+  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(['/']).catch(() => undefined)));
 });
 
 self.addEventListener('activate', (event) => {
@@ -24,7 +22,7 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const req = event.request;
-  if (req.method !== 'GET') return; // POST(/api/sync)等は介入しない
+  if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith('/api/')) return;
@@ -33,7 +31,6 @@ self.addEventListener('fetch', (event) => {
     req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html');
 
   if (isNavigation) {
-    // ネット優先、オフライン時はキャッシュ
     event.respondWith(
       fetch(req)
         .then((res) => {
@@ -41,12 +38,11 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => undefined);
           return res;
         })
-        .catch(() => caches.match(req).then((m) => m || caches.match('/ba') || caches.match('/'))),
+        .catch(() => caches.match(req).then((m) => m || caches.match('/'))),
     );
     return;
   }
 
-  // 静的アセット：キャッシュ優先＋裏で更新
   event.respondWith(
     caches.match(req).then((cached) => {
       const network = fetch(req)

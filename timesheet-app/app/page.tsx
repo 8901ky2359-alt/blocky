@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { me, setupStatus } from '@/lib/timesheet/api';
-import { clearSession, getStoredUser, getToken } from '@/lib/timesheet/auth';
-import { TimesheetUser } from '@/lib/timesheet/types';
-import LoginView from '@/components/timesheet/LoginView';
-import WorkerHome from '@/components/timesheet/WorkerHome';
-import AdminHome from '@/components/timesheet/AdminHome';
+import { me, setupStatus } from '@/lib/api';
+import { clearSession, getStoredUser, getToken } from '@/lib/auth';
+import { TimesheetUser } from '@/lib/types';
+import LoginView from '@/components/LoginView';
+import WorkerHome from '@/components/WorkerHome';
+import AdminHome from '@/components/AdminHome';
 
 export default function TimesheetPage() {
   const [ready, setReady] = useState(false);

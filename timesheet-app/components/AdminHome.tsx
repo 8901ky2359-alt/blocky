@@ -1,9 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { TimesheetEntry, TimesheetUser } from '@/lib/timesheet/types';
-import { listEntries, listUsers } from '@/lib/timesheet/api';
-import { clearSession } from '@/lib/timesheet/auth';
+import { TimesheetEntry, TimesheetUser } from '@/lib/types';
+import { listEntries, listUsers } from '@/lib/api';
+import { clearSession } from '@/lib/auth';
 import { currentMonthKey, formatJpMonth, shiftMonth, yen } from '@/lib/format';
 import ApprovalCard from './ApprovalCard';
 import WorkerManage from './WorkerManage';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { exportText } from '@/lib/timesheet/api';
+import { exportText } from '@/lib/api';
 import { currentMonthKey, shiftMonth, formatJpMonth } from '@/lib/format';
 
 export default function ExportPanel({

@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { login, setupAdmin, ApiError } from '@/lib/timesheet/api';
-import { setSession } from '@/lib/timesheet/auth';
-import { TimesheetUser } from '@/lib/timesheet/types';
+import { login, setupAdmin, ApiError } from '@/lib/api';
+import { setSession } from '@/lib/auth';
+import { TimesheetUser } from '@/lib/types';
 
 const ERROR_MESSAGES: Record<string, string> = {
   'invalid-credentials': 'メールアドレスまたはパスワードが違います',

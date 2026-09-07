@@ -2,15 +2,15 @@
   "name": "作業日報",
   "short_name": "作業日報",
   "description": "作業員がログインして作業日・現場・作業内容・金額を記録し、管理者が承認・集計できるアプリ",
-  "start_url": "/timesheet",
-  "scope": "/timesheet",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0f1b2d",
   "theme_color": "#0f1b2d",
   "lang": "ja",
   "icons": [
     {
-      "src": "/timesheet-icon.svg",
+      "src": "/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

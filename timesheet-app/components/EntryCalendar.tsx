@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { TimesheetEntry } from '@/lib/timesheet/types';
+import { TimesheetEntry } from '@/lib/types';
 import {
   WEEK_LABELS,
   calendarCells,
