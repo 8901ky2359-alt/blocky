@@ -5,6 +5,9 @@
 /.next/
 /out/
 
+# wrangler local dev state
+/.wrangler/
+
 # production
 /build
 
