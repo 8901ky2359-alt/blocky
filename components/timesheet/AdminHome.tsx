@@ -46,12 +46,12 @@ export default function AdminHome({ user }: { user: TimesheetUser }) {
     <div className="min-h-[100dvh] hud-bg">
       <div className="relative mx-auto min-h-[100dvh] w-full max-w-[520px] bg-brand-bg shadow-xl md:my-8 md:min-h-[calc(100vh-4rem)] md:rounded-3xl">
         <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur">
-          <a href="/" className="flex items-center gap-2" aria-label="ホームに戻る">
+          <button onClick={() => setTab('pending')} className="flex items-center gap-2" aria-label="承認待ち一覧に戻る">
             <span className="grid h-7 w-7 place-items-center rounded-md bg-brand-primary text-xs font-black text-white">
               管
             </span>
             <span className="text-base font-bold tracking-tight text-brand-primary">作業日報（管理画面）</span>
-          </a>
+          </button>
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-400">{user.name} さん</span>
             <button onClick={() => setShowExport(true)} className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-600">
