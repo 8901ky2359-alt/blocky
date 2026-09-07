@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { clearSession } from '@/lib/timesheet/auth';
 
 const LINKS = [
   { href: '/', label: 'ホーム', icon: '🏠' },
@@ -47,6 +48,16 @@ export default function AppMenu() {
                 </a>
               );
             })}
+            <button
+              onClick={() => {
+                clearSession();
+                location.href = '/';
+              }}
+              className="flex w-full items-center gap-2.5 border-t border-slate-100 px-4 py-3 text-left text-sm text-slate-500 hover:bg-slate-50"
+            >
+              <span className="text-base">🚪</span>
+              ログアウト
+            </button>
           </div>
         </>
       )}

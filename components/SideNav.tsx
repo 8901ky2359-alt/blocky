@@ -1,6 +1,7 @@
 'use client';
 
 import { Tab } from './BottomNav';
+import { clearSession } from '@/lib/timesheet/auth';
 
 const ITEMS: { key: Tab; label: string; icon: string }[] = [
   { key: 'calendar', label: 'カレンダー', icon: '📅' },
@@ -65,6 +66,15 @@ export default function SideNav({
           className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-black/50 transition hover:bg-black/5"
         >
           <span className="text-lg">⚙</span> バックアップ
+        </button>
+        <button
+          onClick={() => {
+            clearSession();
+            location.href = '/';
+          }}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-black/50 transition hover:bg-black/5"
+        >
+          <span className="text-lg">🚪</span> ログアウト
         </button>
         <p className="px-3 text-[11px] leading-relaxed text-black/30">
           草刈り・軽トラ作業の

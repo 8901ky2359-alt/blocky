@@ -3,8 +3,17 @@
 import { useEffect } from 'react';
 import AppMenu from '@/components/AppMenu';
 import ReportListView from '@/components/report/ReportListView';
+import RequireRole from '@/components/RequireRole';
 
 export default function ReportPage() {
+  return (
+    <RequireRole role="admin">
+      {() => <ReportPageInner />}
+    </RequireRole>
+  );
+}
+
+function ReportPageInner() {
   useEffect(() => {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => {});

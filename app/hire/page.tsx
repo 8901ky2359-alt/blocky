@@ -11,6 +11,7 @@ import HireCalendar from '@/components/hire/HireCalendar';
 import HireByName from '@/components/hire/HireByName';
 import HireByClient from '@/components/hire/HireByClient';
 import AppMenu from '@/components/AppMenu';
+import RequireRole from '@/components/RequireRole';
 
 type View =
   | { kind: 'list' }
@@ -18,6 +19,14 @@ type View =
   | { kind: 'doc'; rec: HireRecord };
 
 export default function HirePage() {
+  return (
+    <RequireRole role="admin">
+      {() => <HirePageInner />}
+    </RequireRole>
+  );
+}
+
+function HirePageInner() {
   const [records, setRecords] = useState<HireRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>({ kind: 'list' });

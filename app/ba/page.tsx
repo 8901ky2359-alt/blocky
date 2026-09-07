@@ -7,8 +7,17 @@ import AppNav from '@/components/AppNav';
 import AppMenu from '@/components/AppMenu';
 import Setup from '@/components/ba/Setup';
 import WorkScreen from '@/components/ba/WorkScreen';
+import RequireRole from '@/components/RequireRole';
 
 export default function BAPage() {
+  return (
+    <RequireRole role="admin">
+      {() => <BAPageInner />}
+    </RequireRole>
+  );
+}
+
+function BAPageInner() {
   const [project, setProject] = useState<Project | null>(null);
   const [loaded, setLoaded] = useState(false);
 

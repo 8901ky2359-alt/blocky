@@ -16,10 +16,22 @@ import SummaryView from '@/components/SummaryView';
 import MapView from '@/components/MapView';
 import ReportView from '@/components/ReportView';
 import EntriesEditor from '@/components/EntriesEditor';
+import RequireRole from '@/components/RequireRole';
+import WorkerHome from '@/components/timesheet/WorkerHome';
+import { TimesheetUser } from '@/lib/timesheet/types';
 
 type View = Tab | 'add';
 
+// ログイン画面 → 役割で振り分け（作業員＝作業日報、管理者＝これまでの全ページ）
 export default function Home() {
+  return (
+    <RequireRole>
+      {(user: TimesheetUser) => (user.role === 'worker' ? <WorkerHome user={user} /> : <BusinessHome />)}
+    </RequireRole>
+  );
+}
+
+function BusinessHome() {
   const { entries, loading, syncing, save, remove, sync } = useEntries();
   const [view, setView] = useState<View>('calendar');
   const [editing, setEditing] = useState<Entry | null>(null);
