@@ -101,19 +101,19 @@ export default function AdminHome({ user }: { user: TimesheetUser }) {
             <div className="flex overflow-hidden rounded-full border border-slate-200 bg-white text-xs font-bold">
               <button
                 onClick={() => setTab('pending')}
-                className={`px-3 py-1.5 ${tab === 'pending' ? 'bg-brand-primary text-white' : 'text-slate-500'}`}
+                className={`px-3 py-1.5 ${tab === 'pending' ? 'bg-brand-accent text-white' : 'text-slate-500'}`}
               >
                 承認待ち {pending.length > 0 && `(${pending.length})`}
               </button>
               <button
                 onClick={() => setTab('approved')}
-                className={`border-l border-slate-200 px-3 py-1.5 ${tab === 'approved' ? 'bg-brand-primary text-white' : 'text-slate-500'}`}
+                className={`border-l border-slate-200 px-3 py-1.5 ${tab === 'approved' ? 'bg-brand-accent text-white' : 'text-slate-500'}`}
               >
                 承認済み
               </button>
               <button
                 onClick={() => setTab('workers')}
-                className={`border-l border-slate-200 px-3 py-1.5 ${tab === 'workers' ? 'bg-brand-primary text-white' : 'text-slate-500'}`}
+                className={`border-l border-slate-200 px-3 py-1.5 ${tab === 'workers' ? 'bg-brand-accent text-white' : 'text-slate-500'}`}
               >
                 作業員管理
               </button>

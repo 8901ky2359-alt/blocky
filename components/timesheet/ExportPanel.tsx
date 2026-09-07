@@ -77,7 +77,7 @@ export default function ExportPanel({
             </select>
           )}
 
-          <button onClick={run} disabled={busy} className="ml-auto rounded-lg bg-brand-primary px-3 py-1.5 text-sm font-bold text-white disabled:opacity-50">
+          <button onClick={run} disabled={busy} className="ml-auto rounded-lg bg-brand-accent px-3 py-1.5 text-sm font-bold text-white disabled:opacity-50">
             {busy ? '作成中…' : '出力する'}
           </button>
         </div>

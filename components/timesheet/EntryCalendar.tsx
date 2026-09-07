@@ -124,7 +124,7 @@ export default function EntryCalendar({
             <h3 className="font-semibold">{formatJpDate(selected)}</h3>
             <button
               onClick={() => onAddOnDate(selected)}
-              className="rounded-lg bg-brand-primary px-3 py-1.5 text-sm font-semibold text-white"
+              className="rounded-lg bg-brand-accent px-3 py-1.5 text-sm font-semibold text-white"
             >
               ＋この日に記録
             </button>

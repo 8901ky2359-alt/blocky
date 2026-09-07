@@ -1,12 +1,26 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { TimesheetEntry, TimesheetUser } from '@/lib/timesheet/types';
 import { createEntry, deleteEntry, listEntries, updateEntry, ApiError } from '@/lib/timesheet/api';
 import { clearSession } from '@/lib/timesheet/auth';
 import EntryCalendar from './EntryCalendar';
 import EntryForm from './EntryForm';
 import ExportPanel from './ExportPanel';
+
+// 使った順（新しい方が先）で重複を除いた値の一覧を作る
+function recentUnique<T>(entries: TimesheetEntry[], pick: (e: TimesheetEntry) => T | null | undefined): T[] {
+  const sorted = [...entries].sort((a, b) => b.updatedAt - a.updatedAt);
+  const seen = new Set<T>();
+  const out: T[] = [];
+  for (const e of sorted) {
+    const v = pick(e);
+    if (v == null || seen.has(v)) continue;
+    seen.add(v);
+    out.push(v);
+  }
+  return out;
+}
 
 type View = { kind: 'calendar' } | { kind: 'form'; editing?: TimesheetEntry | null; date: string } | { kind: 'detail'; entry: TimesheetEntry };
 
@@ -32,6 +46,11 @@ export default function WorkerHome({ user }: { user: TimesheetUser }) {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // 現場名・作業内容・金額は、自分の過去の入力から候補を作る（新しく使った順）
+  const knownSites = useMemo(() => recentUnique(entries, (e) => e.site || null), [entries]);
+  const knownWorkContents = useMemo(() => recentUnique(entries, (e) => e.workContent || null), [entries]);
+  const knownAmounts = useMemo(() => recentUnique(entries, (e) => (e.amount > 0 ? e.amount : null)), [entries]);
 
   async function save(input: Parameters<typeof createEntry>[0]) {
     setBusy(true);
@@ -101,6 +120,9 @@ export default function WorkerHome({ user }: { user: TimesheetUser }) {
             <EntryForm
               editing={view.editing}
               defaultDate={view.date}
+              knownSites={knownSites}
+              knownWorkContents={knownWorkContents}
+              knownAmounts={knownAmounts}
               onSave={save}
               onCancel={() => setView({ kind: 'calendar' })}
               busy={busy}

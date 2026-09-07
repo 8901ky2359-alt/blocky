@@ -109,7 +109,7 @@ export default function ApprovalCard({
           <button
             onClick={approve}
             disabled={busy}
-            className="w-full rounded-xl bg-brand-primary py-2.5 text-sm font-bold text-white disabled:opacity-50"
+            className="w-full rounded-xl bg-brand-accent py-2.5 text-sm font-bold text-white disabled:opacity-50"
           >
             {busy ? '処理中…' : '承認する'}
           </button>

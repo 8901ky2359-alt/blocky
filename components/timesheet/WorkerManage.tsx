@@ -73,7 +73,7 @@ export default function WorkerManage({ users, onChanged }: { users: TimesheetUse
           <button
             onClick={add}
             disabled={busy || !name || !email || !password}
-            className="w-full rounded-xl bg-brand-primary py-2.5 text-sm font-bold text-white disabled:opacity-50"
+            className="w-full rounded-xl bg-brand-accent py-2.5 text-sm font-bold text-white disabled:opacity-50"
           >
             {busy ? '追加中…' : '追加する'}
           </button>

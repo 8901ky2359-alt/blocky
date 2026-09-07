@@ -87,7 +87,7 @@ export default function LoginView({
           <button
             onClick={submit}
             disabled={busy || !email || !password || (needsSetup && !name)}
-            className="w-full rounded-xl bg-brand-primary py-3 font-bold text-white disabled:opacity-50"
+            className="w-full rounded-xl bg-brand-accent py-3 font-bold text-white disabled:opacity-50"
           >
             {busy ? '処理中…' : needsSetup ? '管理者として開始' : 'ログイン'}
           </button>
