@@ -4,9 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Map as LeafletMap, LayerGroup, TileLayer } from 'leaflet';
 import { Project, doneCount, isProjectDone } from '@/lib/ba/types';
 import { formatJpDate } from '@/lib/format';
-
-const STD_URL = 'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png';
-const PHOTO_URL = 'https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg';
+import { MAP_MAX_ZOOM, PHOTO_ATTRIBUTION, PHOTO_URL, STD_ATTRIBUTION, STD_URL } from '@/lib/mapTiles';
 
 export default function BaMap({ projects, onOpen }: { projects: Project[]; onOpen: (p: Project) => void }) {
   const mapEl = useRef<HTMLDivElement>(null);
@@ -27,9 +25,8 @@ export default function BaMap({ projects, onOpen }: { projects: Project[]; onOpe
       if (cancelled || !mapEl.current || mapRef.current) return;
       const map = L.map(mapEl.current, { center: [36.5, 137.5], zoom: 5 });
       tileRef.current = L.tileLayer(photo ? PHOTO_URL : STD_URL, {
-        attribution:
-          "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>",
-        maxZoom: 18,
+        attribution: photo ? PHOTO_ATTRIBUTION : STD_ATTRIBUTION,
+        maxZoom: MAP_MAX_ZOOM,
       }).addTo(map);
       layerRef.current = L.layerGroup().addTo(map);
       mapRef.current = map;
@@ -49,8 +46,19 @@ export default function BaMap({ projects, onOpen }: { projects: Project[]; onOpe
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [located]);
 
+  // 標準地図 / 航空写真の切替（出典表記が異なるためレイヤーごと差し替える）
   useEffect(() => {
-    if (tileRef.current) tileRef.current.setUrl(photo ? PHOTO_URL : STD_URL);
+    const map = mapRef.current;
+    if (!map) return;
+    (async () => {
+      const L = (await import('leaflet')).default;
+      if (tileRef.current) map.removeLayer(tileRef.current);
+      tileRef.current = L.tileLayer(photo ? PHOTO_URL : STD_URL, {
+        attribution: photo ? PHOTO_ATTRIBUTION : STD_ATTRIBUTION,
+        maxZoom: MAP_MAX_ZOOM,
+      }).addTo(map);
+      tileRef.current.bringToBack();
+    })();
   }, [photo]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

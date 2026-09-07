@@ -4,9 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Map as LeafletMap, LayerGroup, TileLayer } from 'leaflet';
 import { SiteSeed, SiteProgress } from '@/lib/report/types';
 import { OVERALL_META, overallOf, mapsUrl, statusLabel, typeOf, isReportTarget, codeOf } from '@/lib/report/status';
-
-const STD_URL = 'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png';
-const PHOTO_URL = 'https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg';
+import { MAP_MAX_ZOOM, PHOTO_ATTRIBUTION, PHOTO_URL, STD_ATTRIBUTION, STD_URL } from '@/lib/mapTiles';
 
 function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -35,9 +33,8 @@ export default function ReportMap({
       if (cancelled || !mapEl.current || mapRef.current) return;
       const map = L.map(mapEl.current, { center: [36.3, 140.1], zoom: 9 });
       tileRef.current = L.tileLayer(photo ? PHOTO_URL : STD_URL, {
-        attribution:
-          "<a href='https://maps.gsi.go.jp/development/ichiran.html' target='_blank'>地理院タイル</a>",
-        maxZoom: 18,
+        attribution: photo ? PHOTO_ATTRIBUTION : STD_ATTRIBUTION,
+        maxZoom: MAP_MAX_ZOOM,
       }).addTo(map);
       layerRef.current = L.layerGroup().addTo(map);
       mapRef.current = map;
@@ -49,9 +46,19 @@ export default function ReportMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 標準地図 / 航空写真の切替
+  // 標準地図 / 航空写真の切替（出典表記が異なるためレイヤーごと差し替える）
   useEffect(() => {
-    if (tileRef.current) tileRef.current.setUrl(photo ? PHOTO_URL : STD_URL);
+    const map = mapRef.current;
+    if (!map) return;
+    (async () => {
+      const L = (await import('leaflet')).default;
+      if (tileRef.current) map.removeLayer(tileRef.current);
+      tileRef.current = L.tileLayer(photo ? PHOTO_URL : STD_URL, {
+        attribution: photo ? PHOTO_ATTRIBUTION : STD_ATTRIBUTION,
+        maxZoom: MAP_MAX_ZOOM,
+      }).addTo(map);
+      tileRef.current.bringToBack();
+    })();
   }, [photo]);
 
   useEffect(() => {
