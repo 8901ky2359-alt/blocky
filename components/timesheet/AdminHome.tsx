@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { TimesheetEntry, TimesheetUser } from '@/lib/timesheet/types';
 import { listEntries, listUsers } from '@/lib/timesheet/api';
-import { clearSession } from '@/lib/timesheet/auth';
 import { currentMonthKey, formatJpMonth, shiftMonth, yen } from '@/lib/format';
 import ApprovalCard from './ApprovalCard';
 import WorkerManage from './WorkerManage';
 import ExportPanel from './ExportPanel';
+import AppMenu from '@/components/AppMenu';
 
 type Tab = 'pending' | 'approved' | 'workers';
 
@@ -57,15 +57,7 @@ export default function AdminHome({ user }: { user: TimesheetUser }) {
             <button onClick={() => setShowExport(true)} className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-600">
               📄 出力
             </button>
-            <button
-              onClick={() => {
-                clearSession();
-                location.reload();
-              }}
-              className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-600"
-            >
-              ログアウト
-            </button>
+            <AppMenu />
           </div>
         </header>
 
