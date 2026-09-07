@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { EntryInput } from '@/lib/api';
-import { TimesheetEntry } from '@/lib/types';
+import { EntryInput } from '@/lib/timesheet/api';
+import { TimesheetEntry } from '@/lib/timesheet/types';
 import { formatJpDate } from '@/lib/format';
 
 export default function EntryForm({

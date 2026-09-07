@@ -2,8 +2,6 @@
 
 // サイトを開いて最初に出るホーム画面。SF風HUDの角ばったデザイン。
 
-import { TIMESHEET_URL } from '@/lib/config';
-
 type Item = {
   key: string;
   label: string;
@@ -20,7 +18,7 @@ export default function Launcher({ onOpenMemo }: { onOpenMemo: () => void }) {
     { key: 'ba', label: 'ビフォーアフター', sub: 'PHOTO', desc: '作業前後の写真を記録・共有', icon: '◨', href: '/ba' },
     { key: 'report', label: '防草シート案件', sub: 'ROUTE', desc: '工番検索・地図・進捗・報告', icon: '⊞', href: '/report' },
     { key: 'hire', label: '作業依頼管理', sub: 'LABOR', desc: '作業依頼書の作成・共有／記録', icon: '☰', href: '/hire' },
-    { key: 'timesheet', label: '作業日報', sub: 'TIMESHEET', desc: '作業員がログインして記録／管理者が承認・集計', icon: '📝', href: TIMESHEET_URL },
+    { key: 'timesheet', label: '作業日報', sub: 'TIMESHEET', desc: '作業員がログインして記録／管理者が承認・集計', icon: '📝', href: '/timesheet' },
   ];
 
   return (

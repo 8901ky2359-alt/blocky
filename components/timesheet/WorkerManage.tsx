@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { TimesheetUser } from '@/lib/types';
-import { createWorker, deleteWorker, resetWorkerPassword, ApiError } from '@/lib/api';
+import { TimesheetUser } from '@/lib/timesheet/types';
+import { createWorker, deleteWorker, resetWorkerPassword, ApiError } from '@/lib/timesheet/api';
 
 const ERROR_MESSAGES: Record<string, string> = {
   'invalid-email': 'メールアドレスの形式が正しくありません',

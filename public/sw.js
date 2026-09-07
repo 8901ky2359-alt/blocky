@@ -8,7 +8,7 @@ const CACHE = 'genba-cache-v4';
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(['/', '/ba']).catch(() => undefined)),
+    caches.open(CACHE).then((c) => c.addAll(['/', '/ba', '/timesheet']).catch(() => undefined)),
   );
 });
 

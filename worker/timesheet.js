@@ -1,6 +1,6 @@
-// 作業日報 単独サイト用 Cloudflare Worker
-// - /api/* : 認証（メール+パスワード、PBKDF2ハッシュ→署名付きトークン）・入力・承認API（D1: ts_users / ts_entries）
-// - それ以外 : 静的アセット(out/)を配信
+// 作業日報（複数作業員ログイン・カレンダー入力・承認フロー）API
+// - 認証: メール+パスワード（PBKDF2ハッシュ）→ 署名付きトークン（HMAC-SHA256）
+// - データ: D1 (ts_users / ts_entries)
 // - ロール: admin（管理者・全体承認/集計） / worker（自分の入力のみ）
 
 const ITERATIONS = 100000;
@@ -262,25 +262,9 @@ function buildExportText(entries, { title, groupByUser }) {
 
 // ---- ルーティング --------------------------------------------------------
 
-export default {
-  async fetch(request, env) {
-    const url = new URL(request.url);
-    if (url.pathname === '/api/ping') return json({ ok: true });
-    if (url.pathname.startsWith('/api/')) {
-      try {
-        return await handleApi(request, env, url);
-      } catch (e) {
-        return json({ error: String((e && e.message) || e) }, 500);
-      }
-    }
-    if (env.ASSETS) return env.ASSETS.fetch(request);
-    return new Response('Not found', { status: 404 });
-  },
-};
-
-async function handleApi(request, env, url) {
+export async function handleTimesheet(request, env, url) {
   await ensureSchema(env);
-  const sub = url.pathname.slice('/api'.length) || '/';
+  const sub = url.pathname.slice('/api/timesheet'.length) || '/';
   const method = request.method;
 
   if (sub === '/setup-status' && method === 'GET') {

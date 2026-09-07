@@ -5,7 +5,7 @@
 import { TimesheetEntry, TimesheetUser } from './types';
 import { getToken } from './auth';
 
-const BASE = '/api';
+const BASE = '/api/timesheet';
 
 export class ApiError extends Error {
   code: string;

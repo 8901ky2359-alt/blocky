@@ -1,9 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { TimesheetEntry, TimesheetUser } from '@/lib/types';
-import { createEntry, deleteEntry, listEntries, updateEntry, ApiError } from '@/lib/api';
-import { clearSession } from '@/lib/auth';
+import { TimesheetEntry, TimesheetUser } from '@/lib/timesheet/types';
+import { createEntry, deleteEntry, listEntries, updateEntry, ApiError } from '@/lib/timesheet/api';
+import { clearSession } from '@/lib/timesheet/auth';
 import EntryCalendar from './EntryCalendar';
 import EntryForm from './EntryForm';
 import ExportPanel from './ExportPanel';

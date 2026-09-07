@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { TimesheetEntry } from '@/lib/types';
-import { approveEntry, reopenEntry, ApiError } from '@/lib/api';
+import { TimesheetEntry } from '@/lib/timesheet/types';
+import { approveEntry, reopenEntry, ApiError } from '@/lib/timesheet/api';
 import { formatJpDate, yen } from '@/lib/format';
 
 export default function ApprovalCard({
