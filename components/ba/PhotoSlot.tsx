@@ -13,6 +13,7 @@ const STYLE: Record<Kind, { label: string; badge: string; ring: string }> = {
 export default function PhotoSlot({
   kind,
   shot,
+  displayUrl,
   busy,
   onRequestCamera,
   onPickFile,
@@ -21,6 +22,7 @@ export default function PhotoSlot({
 }: {
   kind: Kind;
   shot: Shot | null;
+  displayUrl?: string; // 指定時はこちらを表示（例: 看板を合成した画像）
   busy?: boolean;
   onRequestCamera: () => void;
   onPickFile: (file: File) => void;
@@ -55,7 +57,7 @@ export default function PhotoSlot({
       <div className={`relative aspect-[5/4] overflow-hidden rounded-sm bg-slate-100 ring-1 ${s.ring}`}>
         {shot ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={shot.dataUrl} alt={s.label} className="h-full w-full object-cover" />
+          <img src={displayUrl ?? shot.dataUrl} alt={s.label} className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2 p-2">
             <button

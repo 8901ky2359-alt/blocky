@@ -7,6 +7,7 @@ import PhotoSlot from './PhotoSlot';
 export default function ItemRow({
   index,
   item,
+  afterDisplayUrl,
   busyKind,
   onRequestCamera,
   onPickFile,
@@ -15,6 +16,7 @@ export default function ItemRow({
 }: {
   index: number;
   item: Item;
+  afterDisplayUrl?: string;
   busyKind: 'before' | 'after' | null;
   onRequestCamera: (kind: 'before' | 'after') => void;
   onPickFile: (kind: 'before' | 'after', file: File) => void;
@@ -27,7 +29,8 @@ export default function ItemRow({
   function saveOne(kind: 'before' | 'after') {
     const shot = item[kind];
     if (!shot) return;
-    downloadFile(dataUrlToFile(shot.dataUrl, `${no}_${kind}.jpg`));
+    const url = kind === 'after' && afterDisplayUrl ? afterDisplayUrl : shot.dataUrl;
+    downloadFile(dataUrlToFile(url, `${no}_${kind}.jpg`));
     notify('写真を保存しました');
   }
 
@@ -60,6 +63,7 @@ export default function ItemRow({
         <PhotoSlot
           kind="after"
           shot={item.after}
+          displayUrl={afterDisplayUrl}
           busy={busyKind === 'after'}
           onRequestCamera={() => onRequestCamera('after')}
           onPickFile={(f) => onPickFile('after', f)}
