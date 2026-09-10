@@ -9,6 +9,7 @@ const LINKS = [
   { href: '/ba', label: 'ビフォーアフター', icon: '📷' },
   { href: '/report', label: '防草シート案件', icon: '🗺' },
   { href: '/hire', label: '作業依頼管理', icon: '🤝' },
+  { href: '/photo-sign', label: '看板入り写真撮影', icon: '📷' },
   { href: '/timesheet', label: '作業日報', icon: '📝' },
 ];
 

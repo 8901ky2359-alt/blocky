@@ -18,6 +18,7 @@ export default function Launcher({ onOpenMemo }: { onOpenMemo: () => void }) {
     { key: 'ba', label: 'ビフォーアフター', sub: 'PHOTO', desc: '作業前後の写真を記録・共有', icon: '◨', href: '/ba' },
     { key: 'report', label: '防草シート案件', sub: 'ROUTE', desc: '工番検索・地図・進捗・報告', icon: '⊞', href: '/report' },
     { key: 'hire', label: '作業依頼管理', sub: 'LABOR', desc: '作業依頼書の作成・共有／記録', icon: '☰', href: '/hire' },
+    { key: 'signphoto', label: '看板入り写真撮影', sub: 'SIGN PHOTO', desc: '看板を合成して現場写真を撮影・一括保存', icon: '📷', href: '/photo-sign' },
     { key: 'timesheet', label: '作業日報', sub: 'TIMESHEET', desc: '作業員がログインして記録／管理者が承認・集計', icon: '📝', href: '/timesheet' },
   ];
 
