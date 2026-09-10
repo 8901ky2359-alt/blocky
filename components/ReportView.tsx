@@ -107,10 +107,15 @@ export default function ReportView({ entries }: { entries: Entry[] }) {
         </button>
       </div>
 
-      {/* プレビュー */}
-      <div className="rounded-xl border border-black/10 bg-white p-3">
-        <p className="mb-1 text-xs text-black/40">プレビュー（このままLINEに送れます）</p>
-        <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-black/80">
+      {/* プレビュー（暗い画面でも読みやすいよう、薄い青の背景＋黒文字で固定） */}
+      <div className="rounded-xl border p-3" style={{ backgroundColor: '#eef3fb', borderColor: '#c9d7ec' }}>
+        <p className="mb-1 text-xs" style={{ color: '#5b6b82' }}>
+          プレビュー（このままLINEに送れます）
+        </p>
+        <pre
+          className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed"
+          style={{ color: '#111111' }}
+        >
           {text}
         </pre>
       </div>
