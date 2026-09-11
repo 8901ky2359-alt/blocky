@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { drawSignboard, signboardHeight, SignFields } from '@/lib/signboard';
+import { drawSignboard, signboardHeight, SignFields, SignColor } from '@/lib/signboard';
 import { dataUrlToFile, shareOrDownload } from '@/lib/ba/share';
 
 type Phase = 'setup' | 'grid';
@@ -15,8 +15,14 @@ const CAPTURE_MAX_W = 1600;
 // 出力比率 5:4（横長）
 const OUT_RATIO = 5 / 4;
 
-// 写真を5:4にセンター切り出しし、看板（＋自撮り棒）を合成して dataURL を返す
-function compositeImage(source: CanvasImageSource, sw: number, sh: number, fields: SignFields): string | null {
+// 写真を5:4にセンター切り出しし、看板を合成して dataURL を返す
+function compositeImage(
+  source: CanvasImageSource,
+  sw: number,
+  sh: number,
+  fields: SignFields,
+  color: SignColor,
+): string | null {
   const outW = CAPTURE_MAX_W;
   const outH = Math.round(outW / OUT_RATIO); // 5:4
   const canvas = document.createElement('canvas');
@@ -31,7 +37,7 @@ function compositeImage(source: CanvasImageSource, sw: number, sh: number, field
   ctx.drawImage(source, (outW - dw) / 2, (outH - dh) / 2, dw, dh);
   // 左下にぴったり詰める（余白なし・スタンドなし）
   const bw = outW * BOARD_W_RATIO;
-  drawSignboard(ctx, 0, outH - signboardHeight(bw), bw, fields, false);
+  drawSignboard(ctx, 0, outH - signboardHeight(bw), bw, fields, false, color);
   return canvas.toDataURL('image/jpeg', 0.85);
 }
 
@@ -55,6 +61,7 @@ export default function SignPhoto() {
   const [title, setTitle] = useState('除草');
   const [place, setPlace] = useState('');
   const [kind, setKind] = useState('除草前');
+  const [color, setColor] = useState<SignColor>('white');
   const [startNo, setStartNo] = useState('1'); // 文字列で保持（先頭の数字を消せるように）
   const [count, setCount] = useState('20');
   const [slots, setSlots] = useState<(string | null)[]>([]); // 各枠の合成済みdataURL
@@ -80,7 +87,7 @@ export default function SignPhoto() {
   async function pickFromAlbum(i: number, file: File | undefined) {
     if (!file) return;
     const img = await loadImage(URL.createObjectURL(file));
-    const url = compositeImage(img, img.naturalWidth, img.naturalHeight, fieldsFor(i));
+    const url = compositeImage(img, img.naturalWidth, img.naturalHeight, fieldsFor(i), color);
     if (url) setSlot(i, url);
   }
 
@@ -144,6 +151,30 @@ export default function SignPhoto() {
           <p className="text-[11px] text-black/40">この種別が、これから撮る全ての看板に入ります。</p>
         </div>
 
+        <div className="space-y-1">
+          <span className="text-sm font-medium text-black/70">看板の色</span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setColor('white')}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg border py-2.5 text-sm font-bold ${
+                color === 'white' ? 'border-brand-primary bg-brand-soft text-brand-primary' : 'border-black/15 text-black/60'
+              }`}
+            >
+              <span className="inline-block h-4 w-4 rounded border border-black/30 bg-white" /> 白の看板
+            </button>
+            <button
+              type="button"
+              onClick={() => setColor('green')}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg border py-2.5 text-sm font-bold ${
+                color === 'green' ? 'border-brand-primary bg-brand-soft text-brand-primary' : 'border-black/15 text-black/60'
+              }`}
+            >
+              <span className="inline-block h-4 w-4 rounded border border-black/20 bg-[#2f8f43]" /> 緑の看板
+            </button>
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 gap-3">
           <Field label="開始番号">
             <input
@@ -171,7 +202,7 @@ export default function SignPhoto() {
         {/* プレビュー */}
         <div className="space-y-1">
           <span className="text-sm font-medium text-black/70">看板プレビュー</span>
-          <SignPreview fields={{ title: title.trim(), place: place.trim(), kind, no: startNoNum }} />
+          <SignPreview fields={{ title: title.trim(), place: place.trim(), kind, no: startNoNum }} color={color} />
         </div>
 
         <button
@@ -272,6 +303,7 @@ export default function SignPhoto() {
       {active !== null && (
         <CameraModal
           fields={fieldsFor(active)}
+          color={color}
           onCapture={(url) => {
             setSlot(active, url);
             setActive(null);
@@ -290,11 +322,13 @@ export default function SignPhoto() {
 // カメラのフルスクリーンモーダル（看板＋自撮り棒をライブ表示）
 function CameraModal({
   fields,
+  color,
   onCapture,
   onAlbum,
   onClose,
 }: {
   fields: SignFields;
+  color: SignColor;
   onCapture: (dataUrl: string) => void;
   onAlbum: (file: File | undefined) => void;
   onClose: () => void;
@@ -317,8 +351,8 @@ function CameraModal({
     if (!ctx) return;
     ctx.clearRect(0, 0, cw, ch);
     const bw = cw * BOARD_W_RATIO;
-    drawSignboard(ctx, 0, ch - signboardHeight(bw), bw, fields, false);
-  }, [fields.title, fields.place, fields.kind, fields.no]);
+    drawSignboard(ctx, 0, ch - signboardHeight(bw), bw, fields, false, color);
+  }, [fields.title, fields.place, fields.kind, fields.no, color]);
 
   useEffect(() => {
     let cancelled = false;
@@ -362,7 +396,7 @@ function CameraModal({
   function shoot() {
     const v = videoRef.current;
     if (!v || !v.videoWidth) return;
-    const url = compositeImage(v, v.videoWidth, v.videoHeight, fields);
+    const url = compositeImage(v, v.videoWidth, v.videoHeight, fields, color);
     if (url) onCapture(url);
   }
 
@@ -411,7 +445,7 @@ function CameraModal({
 }
 
 // 設定画面のプレビュー（Canvasで実物と同じ見た目を描画）
-function SignPreview({ fields }: { fields: SignFields }) {
+function SignPreview({ fields, color }: { fields: SignFields; color: SignColor }) {
   const ref = useRef<HTMLCanvasElement | null>(null);
   useEffect(() => {
     const cv = ref.current;
@@ -424,8 +458,8 @@ function SignPreview({ fields }: { fields: SignFields }) {
     if (!ctx) return;
     ctx.fillStyle = '#5b6b82';
     ctx.fillRect(0, 0, cv.width, cv.height);
-    drawSignboard(ctx, 12, 12, bw, fields, false);
-  }, [fields.title, fields.place, fields.kind, fields.no]);
+    drawSignboard(ctx, 12, 12, bw, fields, false, color);
+  }, [fields.title, fields.place, fields.kind, fields.no, color]);
   return <canvas ref={ref} className="w-full rounded-lg border border-black/10" />;
 }
 

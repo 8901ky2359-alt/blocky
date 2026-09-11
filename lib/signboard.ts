@@ -96,6 +96,40 @@ function drawStand(ctx: CanvasRenderingContext2D, x: number, boardBottom: number
   ctx.restore();
 }
 
+// 看板の色（白 / 緑）
+export type SignColor = 'white' | 'green';
+
+interface Palette {
+  panelTop: string;
+  panelBottom: string;
+  ink: string; // 文字・番号・丸
+  frame: string; // 外枠
+  inner: string; // 内枠
+  grid: string; // 罫線
+  rivet: string; // 四隅のビス
+}
+
+const PALETTES: Record<SignColor, Palette> = {
+  white: {
+    panelTop: '#ffffff',
+    panelBottom: '#e9ecef',
+    ink: '#111111',
+    frame: '#141414',
+    inner: 'rgba(0,0,0,0.28)',
+    grid: '#1a1a1a',
+    rivet: 'rgba(90,100,112,0.9)',
+  },
+  green: {
+    panelTop: '#2f8f43',
+    panelBottom: '#1f6d31',
+    ink: '#ffffff',
+    frame: '#0e3d1c',
+    inner: 'rgba(255,255,255,0.4)',
+    grid: '#ffffff',
+    rivet: 'rgba(255,255,255,0.85)',
+  },
+};
+
 // 指定位置(x,y)に幅wの看板を描く（withStand=trueで下に自撮り棒を付ける）
 export function drawSignboard(
   ctx: CanvasRenderingContext2D,
@@ -104,7 +138,9 @@ export function drawSignboard(
   w: number,
   f: SignFields,
   withStand = false,
+  color: SignColor = 'white',
 ): void {
+  const pal = PALETTES[color] ?? PALETTES.white;
   if (withStand) drawStand(ctx, x, y + signboardHeight(w), w);
   const rowH = w * 0.15; // 工事名/場所の行の高さ
   const bodyH = w * 0.4; // 種別＋番号エリアの高さ
@@ -122,28 +158,28 @@ export function drawSignboard(
   ctx.shadowOffsetX = w * 0.012;
   ctx.shadowOffsetY = w * 0.022;
   const panel = ctx.createLinearGradient(x, y, x, y + h);
-  panel.addColorStop(0, '#ffffff');
-  panel.addColorStop(1, '#e9ecef');
+  panel.addColorStop(0, pal.panelTop);
+  panel.addColorStop(1, pal.panelBottom);
   ctx.fillStyle = panel;
   roundRect(ctx, x, y, w, h, rad);
   ctx.fill();
   ctx.restore();
 
-  // 外枠（黒・太）＋内枠（細いグレー）
+  // 外枠（太）＋内枠（細）
   ctx.lineJoin = 'round';
-  ctx.strokeStyle = '#141414';
+  ctx.strokeStyle = pal.frame;
   ctx.lineWidth = Math.max(2, w * 0.013);
   roundRect(ctx, x, y, w, h, rad);
   ctx.stroke();
   const inset = w * 0.02;
-  ctx.strokeStyle = 'rgba(0,0,0,0.28)';
+  ctx.strokeStyle = pal.inner;
   ctx.lineWidth = Math.max(1, w * 0.004);
   roundRect(ctx, x + inset, y + inset, w - inset * 2, h - inset * 2, Math.max(1, rad - inset));
   ctx.stroke();
 
   // 罫線（角の丸みからはみ出ないよう少し内側で描く）
   const gi = Math.max(2, w * 0.013);
-  ctx.strokeStyle = '#1a1a1a';
+  ctx.strokeStyle = pal.grid;
   ctx.lineWidth = Math.max(1, w * 0.007);
   ctx.beginPath();
   ctx.moveTo(x + gi, y + rowH);
@@ -155,7 +191,7 @@ export function drawSignboard(
   ctx.stroke();
 
   // 四隅のリベット（ビス）
-  ctx.fillStyle = 'rgba(90,100,112,0.9)';
+  ctx.fillStyle = pal.rivet;
   const rv = w * 0.012;
   const ro = w * 0.045;
   for (const [rx, ry] of [
@@ -169,7 +205,8 @@ export function drawSignboard(
     ctx.fill();
   }
 
-  ctx.fillStyle = '#111111';
+  ctx.fillStyle = pal.ink;
+  ctx.strokeStyle = pal.ink;
   ctx.textBaseline = 'middle';
 
   // ラベル（工事名 / 場所）
