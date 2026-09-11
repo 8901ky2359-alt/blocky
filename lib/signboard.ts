@@ -10,19 +10,69 @@ export interface SignFields {
 
 // 看板の縦横比（高さ = 幅 × RATIO）
 export const SIGN_RATIO = 0.7;
+// 看板下の自撮り棒（スタンド）の高さ比（幅に対して）
+export const STAND_RATIO = 0.32;
 
 export function signboardHeight(w: number): number {
   return w * SIGN_RATIO;
 }
 
-// 指定位置(x,y)に幅wの看板を描く
+// 看板＋スタンドを含む全体の高さ
+export function assemblyHeight(w: number): number {
+  return w * (SIGN_RATIO + STAND_RATIO);
+}
+
+function roundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+): void {
+  const rr = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+}
+
+// 看板の下に自撮り棒（持ち手のスタンド）を描く
+function drawStand(ctx: CanvasRenderingContext2D, x: number, boardBottom: number, w: number): void {
+  const poleW = w * 0.055;
+  const poleH = w * STAND_RATIO;
+  const poleX = x + w * 0.32 - poleW / 2;
+  ctx.save();
+  ctx.fillStyle = '#111111';
+  // 看板と棒をつなぐクランプ（少し太い横バー）
+  const clampW = w * 0.17;
+  const clampH = w * 0.05;
+  roundRect(ctx, poleX + poleW / 2 - clampW / 2, boardBottom - clampH * 0.2, clampW, clampH, clampH * 0.4);
+  ctx.fill();
+  // 棒
+  roundRect(ctx, poleX, boardBottom + clampH * 0.4, poleW, poleH, poleW * 0.45);
+  ctx.fill();
+  // 持ち手（先端の少し太いグリップ）
+  const gripW = poleW * 1.9;
+  const gripH = poleH * 0.34;
+  roundRect(ctx, poleX + poleW / 2 - gripW / 2, boardBottom + clampH * 0.4 + poleH - gripH, gripW, gripH, gripW * 0.45);
+  ctx.fill();
+  ctx.restore();
+}
+
+// 指定位置(x,y)に幅wの看板を描く（withStand=trueで下に自撮り棒を付ける）
 export function drawSignboard(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
   w: number,
   f: SignFields,
+  withStand = false,
 ): void {
+  if (withStand) drawStand(ctx, x, y + signboardHeight(w), w);
   const rowH = w * 0.15; // 工事名/場所の行の高さ
   const bodyH = w * 0.4; // 種別＋番号エリアの高さ
   const h = rowH * 2 + bodyH; // = w * 0.70
