@@ -42,23 +42,56 @@ function roundRect(
 
 // 看板の下に自撮り棒（持ち手のスタンド）を描く
 function drawStand(ctx: CanvasRenderingContext2D, x: number, boardBottom: number, w: number): void {
-  const poleW = w * 0.055;
+  const cxPole = x + w * 0.32;
+  const poleW = w * 0.05;
   const poleH = w * STAND_RATIO;
-  const poleX = x + w * 0.32 - poleW / 2;
+  const top = boardBottom - w * 0.008;
   ctx.save();
-  ctx.fillStyle = '#111111';
-  // 看板と棒をつなぐクランプ（少し太い横バー）
-  const clampW = w * 0.17;
+  // 影
+  ctx.shadowColor = 'rgba(0,0,0,0.3)';
+  ctx.shadowBlur = w * 0.02;
+  ctx.shadowOffsetY = w * 0.012;
+
+  // 棒（金属っぽいグラデーション）
+  const pg = ctx.createLinearGradient(cxPole - poleW / 2, 0, cxPole + poleW / 2, 0);
+  pg.addColorStop(0, '#3b4149');
+  pg.addColorStop(0.45, '#aeb6c0');
+  pg.addColorStop(0.55, '#c9d0d8');
+  pg.addColorStop(1, '#3b4149');
+  ctx.fillStyle = pg;
+  roundRect(ctx, cxPole - poleW / 2, top, poleW, poleH, poleW * 0.45);
+  ctx.fill();
+
+  ctx.shadowColor = 'transparent';
+
+  // 看板を挟むクランプ（ホルダー）
+  ctx.fillStyle = '#23272e';
+  const clampW = w * 0.15;
   const clampH = w * 0.05;
-  roundRect(ctx, poleX + poleW / 2 - clampW / 2, boardBottom - clampH * 0.2, clampW, clampH, clampH * 0.4);
+  roundRect(ctx, cxPole - clampW / 2, top - clampH * 0.55, clampW, clampH, clampH * 0.35);
   ctx.fill();
-  // 棒
-  roundRect(ctx, poleX, boardBottom + clampH * 0.4, poleW, poleH, poleW * 0.45);
+  // クランプの爪（左右）
+  const armH = clampH * 1.5;
+  const armW = clampW * 0.14;
+  roundRect(ctx, cxPole - clampW / 2, top - armH, armW, armH, armW * 0.4);
   ctx.fill();
-  // 持ち手（先端の少し太いグリップ）
-  const gripW = poleW * 1.9;
+  roundRect(ctx, cxPole + clampW / 2 - armW, top - armH, armW, armH, armW * 0.4);
+  ctx.fill();
+  // 中央のネジ
+  ctx.fillStyle = '#5b6470';
+  ctx.beginPath();
+  ctx.arc(cxPole, top - clampH * 0.05, clampH * 0.22, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 先端のグリップ（発泡ハンドル）
+  const gripW = poleW * 2.1;
   const gripH = poleH * 0.34;
-  roundRect(ctx, poleX + poleW / 2 - gripW / 2, boardBottom + clampH * 0.4 + poleH - gripH, gripW, gripH, gripW * 0.45);
+  const gg = ctx.createLinearGradient(cxPole - gripW / 2, 0, cxPole + gripW / 2, 0);
+  gg.addColorStop(0, '#141414');
+  gg.addColorStop(0.5, '#3a3a3a');
+  gg.addColorStop(1, '#141414');
+  ctx.fillStyle = gg;
+  roundRect(ctx, cxPole - gripW / 2, top + poleH - gripH, gripW, gripH, gripW * 0.45);
   ctx.fill();
   ctx.restore();
 }
@@ -78,26 +111,63 @@ export function drawSignboard(
   const h = rowH * 2 + bodyH; // = w * 0.70
   const labelW = w * 0.3; // 左のラベル列の幅
 
+  const rad = w * 0.022;
+
   ctx.save();
 
-  // 背景（白）と外枠
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(x, y, w, h);
-  ctx.strokeStyle = '#111111';
-  ctx.lineJoin = 'miter';
-  ctx.lineWidth = Math.max(2, w * 0.01);
-  ctx.strokeRect(x, y, w, h);
+  // 影付きの白パネル（わずかにグラデーションでプラスチック板っぽく）
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.38)';
+  ctx.shadowBlur = w * 0.035;
+  ctx.shadowOffsetX = w * 0.012;
+  ctx.shadowOffsetY = w * 0.022;
+  const panel = ctx.createLinearGradient(x, y, x, y + h);
+  panel.addColorStop(0, '#ffffff');
+  panel.addColorStop(1, '#e9ecef');
+  ctx.fillStyle = panel;
+  roundRect(ctx, x, y, w, h, rad);
+  ctx.fill();
+  ctx.restore();
 
-  // 罫線
-  ctx.lineWidth = Math.max(1, w * 0.006);
-  ctx.beginPath();
-  ctx.moveTo(x, y + rowH);
-  ctx.lineTo(x + w, y + rowH); // 工事名/場所の間
-  ctx.moveTo(x, y + rowH * 2);
-  ctx.lineTo(x + w, y + rowH * 2); // ヘッダー/本体の間
-  ctx.moveTo(x + labelW, y);
-  ctx.lineTo(x + labelW, y + h); // ラベル列の縦線
+  // 外枠（黒・太）＋内枠（細いグレー）
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = '#141414';
+  ctx.lineWidth = Math.max(2, w * 0.013);
+  roundRect(ctx, x, y, w, h, rad);
   ctx.stroke();
+  const inset = w * 0.02;
+  ctx.strokeStyle = 'rgba(0,0,0,0.28)';
+  ctx.lineWidth = Math.max(1, w * 0.004);
+  roundRect(ctx, x + inset, y + inset, w - inset * 2, h - inset * 2, Math.max(1, rad - inset));
+  ctx.stroke();
+
+  // 罫線（角の丸みからはみ出ないよう少し内側で描く）
+  const gi = Math.max(2, w * 0.013);
+  ctx.strokeStyle = '#1a1a1a';
+  ctx.lineWidth = Math.max(1, w * 0.007);
+  ctx.beginPath();
+  ctx.moveTo(x + gi, y + rowH);
+  ctx.lineTo(x + w - gi, y + rowH); // 工事名/場所の間
+  ctx.moveTo(x + gi, y + rowH * 2);
+  ctx.lineTo(x + w - gi, y + rowH * 2); // ヘッダー/本体の間
+  ctx.moveTo(x + labelW, y + gi);
+  ctx.lineTo(x + labelW, y + h - gi); // ラベル列の縦線
+  ctx.stroke();
+
+  // 四隅のリベット（ビス）
+  ctx.fillStyle = 'rgba(90,100,112,0.9)';
+  const rv = w * 0.012;
+  const ro = w * 0.045;
+  for (const [rx, ry] of [
+    [x + ro, y + ro],
+    [x + w - ro, y + ro],
+    [x + ro, y + h - ro],
+    [x + w - ro, y + h - ro],
+  ]) {
+    ctx.beginPath();
+    ctx.arc(rx, ry, rv, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
   ctx.fillStyle = '#111111';
   ctx.textBaseline = 'middle';

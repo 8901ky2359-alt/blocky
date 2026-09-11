@@ -13,17 +13,23 @@ const BOARD_W_RATIO = 0.34;
 const BOARD_MARGIN = 0.03;
 const CAPTURE_MAX_W = 1600;
 
-// 写真に看板（＋自撮り棒）を合成して dataURL を返す
+// 出力比率 5:4（横長）
+const OUT_RATIO = 5 / 4;
+
+// 写真を5:4にセンター切り出しし、看板（＋自撮り棒）を合成して dataURL を返す
 function compositeImage(source: CanvasImageSource, sw: number, sh: number, fields: SignFields): string | null {
-  const scale = Math.min(1, CAPTURE_MAX_W / sw);
-  const outW = Math.round(sw * scale);
-  const outH = Math.round(sh * scale);
+  const outW = CAPTURE_MAX_W;
+  const outH = Math.round(outW / OUT_RATIO); // 5:4
   const canvas = document.createElement('canvas');
   canvas.width = outW;
   canvas.height = outH;
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
-  ctx.drawImage(source, 0, 0, outW, outH);
+  // cover（中央切り出し）で歪みなく5:4に収める
+  const scale = Math.max(outW / sw, outH / sh);
+  const dw = sw * scale;
+  const dh = sh * scale;
+  ctx.drawImage(source, (outW - dw) / 2, (outH - dh) / 2, dw, dh);
   const bw = outW * BOARD_W_RATIO;
   const m = outW * BOARD_MARGIN;
   const y = outH - m - assemblyHeight(bw);
@@ -219,7 +225,7 @@ export default function SignPhoto() {
             {url ? (
               <div className="relative min-w-0 flex-1">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={url} alt={`${numberOf(i)}`} className="block aspect-[4/3] w-full rounded-lg object-cover" />
+                <img src={url} alt={`${numberOf(i)}`} className="block aspect-[5/4] w-full rounded-lg object-cover" />
                 <div className="absolute right-1 top-1 flex gap-1">
                   <button
                     onClick={() => setActive(i)}
@@ -372,9 +378,12 @@ function CameraModal({
         <span className="text-sm font-bold">{fields.no}番を撮影</span>
         <span className="w-12" />
       </div>
-      <div className="relative flex-1">
-        <video ref={videoRef} playsInline muted className="h-full w-full object-contain" />
-        <canvas ref={overlayRef} className="pointer-events-none absolute inset-0 h-full w-full" />
+      <div className="flex flex-1 items-center justify-center px-2">
+        {/* 実際に保存される5:4の範囲をそのまま表示（object-coverで中央切り出し） */}
+        <div className="relative aspect-[5/4] max-h-full w-full overflow-hidden">
+          <video ref={videoRef} playsInline muted className="absolute inset-0 h-full w-full object-cover" />
+          <canvas ref={overlayRef} className="pointer-events-none absolute inset-0 h-full w-full" />
+        </div>
       </div>
       {err && <p className="px-4 py-2 text-center text-xs text-red-300">{err}</p>}
       <div className="flex items-center justify-around gap-3 px-4 py-5">
