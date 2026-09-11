@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { drawSignboard, assemblyHeight, SignFields } from '@/lib/signboard';
+import { drawSignboard, signboardHeight, SignFields } from '@/lib/signboard';
 import { dataUrlToFile, shareOrDownload } from '@/lib/ba/share';
 
 type Phase = 'setup' | 'grid';
@@ -10,7 +10,6 @@ const MAX_LIMIT = 100;
 const KIND_PRESETS = ['除草前', '除草後'];
 // 看板：画像に対する幅の割合と余白
 const BOARD_W_RATIO = 0.34;
-const BOARD_MARGIN = 0.03;
 const CAPTURE_MAX_W = 1600;
 
 // 出力比率 5:4（横長）
@@ -30,10 +29,9 @@ function compositeImage(source: CanvasImageSource, sw: number, sh: number, field
   const dw = sw * scale;
   const dh = sh * scale;
   ctx.drawImage(source, (outW - dw) / 2, (outH - dh) / 2, dw, dh);
+  // 左下にぴったり詰める（余白なし・スタンドなし）
   const bw = outW * BOARD_W_RATIO;
-  const m = outW * BOARD_MARGIN;
-  const y = outH - m - assemblyHeight(bw);
-  drawSignboard(ctx, m, y, bw, fields, true);
+  drawSignboard(ctx, 0, outH - signboardHeight(bw), bw, fields, false);
   return canvas.toDataURL('image/jpeg', 0.85);
 }
 
@@ -319,8 +317,7 @@ function CameraModal({
     if (!ctx) return;
     ctx.clearRect(0, 0, cw, ch);
     const bw = cw * BOARD_W_RATIO;
-    const m = cw * BOARD_MARGIN;
-    drawSignboard(ctx, m, ch - m - assemblyHeight(bw), bw, fields, true);
+    drawSignboard(ctx, 0, ch - signboardHeight(bw), bw, fields, false);
   }, [fields.title, fields.place, fields.kind, fields.no]);
 
   useEffect(() => {
@@ -422,12 +419,12 @@ function SignPreview({ fields }: { fields: SignFields }) {
     const W = 320;
     const bw = W * 0.5;
     cv.width = W;
-    cv.height = Math.round(assemblyHeight(bw) + 24);
+    cv.height = Math.round(signboardHeight(bw) + 24);
     const ctx = cv.getContext('2d');
     if (!ctx) return;
     ctx.fillStyle = '#5b6b82';
     ctx.fillRect(0, 0, cv.width, cv.height);
-    drawSignboard(ctx, 12, 12, bw, fields, true);
+    drawSignboard(ctx, 12, 12, bw, fields, false);
   }, [fields.title, fields.place, fields.kind, fields.no]);
   return <canvas ref={ref} className="w-full rounded-lg border border-black/10" />;
 }
