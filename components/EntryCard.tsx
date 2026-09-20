@@ -4,6 +4,12 @@ import { useState } from 'react';
 import { Entry, Photo } from '@/lib/types';
 import { formatJpDate, yen } from '@/lib/format';
 import { dataUrlToFile, shareTextAndFiles } from '@/lib/report';
+import { isBillGroup, billGroupText } from '@/lib/billgroup';
+
+// 締日の表示文言（未設定は「未定」）
+function closingLabel(e: Entry): string {
+  return isBillGroup(e.billGroup) ? `${billGroupText(e.billGroup)}（${e.billGroup}）` : '未定';
+}
 
 function photoLabel(p: Photo): string {
   if (p.photoKind === 'receipt') return 'レシート';
@@ -21,6 +27,7 @@ function buildText(e: Entry): string {
   lines.push(`売上: ${yen(e.amount)}`);
   if (e.hiredName) lines.push(`雇用: ${e.hiredName}`);
   if (e.billTo) lines.push(`請求先: ${e.billTo}`);
+  if (e.kind === 'income') lines.push(`締日: ${closingLabel(e)}`);
   if (e.expense) lines.push(`経費: ${yen(e.expense)}`);
   if (e.memo) lines.push(`メモ: ${e.memo}`);
   return lines.join('\n');
@@ -70,6 +77,11 @@ export default function EntryCard({
           )}
           {entry.billTo && (
             <p className="mt-0.5 truncate text-xs font-semibold text-emerald-700">請求先: {entry.billTo}</p>
+          )}
+          {income && (
+            <p className={`mt-0.5 truncate text-xs font-semibold ${isBillGroup(entry.billGroup) ? 'text-amber-700' : 'text-slate-400'}`}>
+              締日: {closingLabel(entry)}
+            </p>
           )}
           {entry.memo && <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">{entry.memo}</p>}
         </div>
