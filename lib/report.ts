@@ -63,14 +63,14 @@ function reportBodyLines(mKey: string, entries: Entry[]): string[] {
     lines.push('');
   }
 
-  // 雇用（明細: 日付・金額・雇用した人・現場名）
+  // 作業員手配（旧「雇用」。明細: 日付・金額・作業員名・現場名）
   if (d.koyo.length > 0) {
-    lines.push(`■雇用（${d.koyo.length}件）`);
+    lines.push(`■作業員手配（${d.koyo.length}件）`);
     for (const e of d.koyo) {
       lines.push(`${shortDate(e.date)}　${yen(e.amount)}${e.hiredName ? `　${e.hiredName}` : ''}`);
       if (e.site) lines.push(`　${e.site}`);
     }
-    lines.push(`雇用計 ${yen(d.koTotal)}`);
+    lines.push(`作業員手配計 ${yen(d.koTotal)}`);
     lines.push('');
   }
 
@@ -92,11 +92,44 @@ function reportBodyLines(mKey: string, entries: Entry[]): string[] {
     lines.push('');
   }
 
+  // 締日別（5日締め / 25日締め / 月末日締め / 未定）。各締日の中で請求先ごとの内訳も出す。
+  const CLOSING: { key: string; label: string }[] = [
+    { key: 'A', label: '5日締め' },
+    { key: 'B', label: '25日締め' },
+    { key: 'C', label: '月末日締め' },
+    { key: '', label: '締日未定' },
+  ];
+  const all = [...d.ukeoi, ...d.jouchu, ...d.koyo];
+  const isGroup = (g?: string) => g === 'A' || g === 'B' || g === 'C';
+  const anyClosing = all.length > 0;
+  if (anyClosing) {
+    lines.push('■締日別');
+    for (const { key, label } of CLOSING) {
+      const rows = all.filter((e) => (isGroup(e.billGroup) ? e.billGroup : '') === key);
+      if (rows.length === 0) continue;
+      const total = rows.reduce((s, e) => s + e.amount, 0);
+      lines.push(`【${label}】計 ${yen(total)}（${rows.length}件）`);
+      // 締日内の請求先ごと内訳
+      const byBill = new Map<string, { total: number; count: number }>();
+      for (const e of rows) {
+        const bk = e.billTo && e.billTo.trim() ? e.billTo.trim() : '請求先なし';
+        const g = byBill.get(bk) ?? { total: 0, count: 0 };
+        g.total += e.amount;
+        g.count += 1;
+        byBill.set(bk, g);
+      }
+      for (const [name, g] of [...byBill.entries()].sort((a, b) => b[1].total - a[1].total)) {
+        lines.push(`　${name}　${yen(g.total)}（${g.count}件）`);
+      }
+    }
+    lines.push('');
+  }
+
   // 合計
   lines.push('■合計');
   lines.push(`請負　${yen(d.ukTotal)}`);
   lines.push(`常駐　${yen(d.joTotal)}`);
-  if (d.koTotal > 0) lines.push(`雇用　${yen(d.koTotal)}`);
+  if (d.koTotal > 0) lines.push(`作業員手配　${yen(d.koTotal)}`);
   lines.push(`総合計　${yen(d.ukTotal + d.joTotal + d.koTotal)}`);
   return lines;
 }
