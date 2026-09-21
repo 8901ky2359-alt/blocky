@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Entry } from '@/lib/types';
+import { Entry, workTypeOf } from '@/lib/types';
 import { byDateInfo, summarize } from '@/lib/finance';
 import { sendToNotion } from '@/lib/notion';
 import {
@@ -55,6 +55,21 @@ export default function CalendarView({
     [entries, mKey],
   );
 
+  // 項目別（常駐・請負・作業員手配）の月合計
+  const typeTotals = useMemo(() => {
+    let jouchu = 0;
+    let ukeoi = 0;
+    let koyo = 0;
+    for (const e of entries) {
+      if (e.kind !== 'income' || e.date.slice(0, 7) !== mKey) continue;
+      const wt = workTypeOf(e);
+      if (wt === '常駐') jouchu += e.amount || 0;
+      else if (wt === '雇用') koyo += e.amount || 0;
+      else ukeoi += e.amount || 0;
+    }
+    return { jouchu, ukeoi, koyo };
+  }, [entries, mKey]);
+
   const cells = calendarCells(mKey);
   const selectedEntries = selected ? entries.filter((e) => e.date === selected) : [];
   const today = todayStr();
@@ -86,6 +101,22 @@ export default function CalendarView({
           <div className="px-1">
             <p className="text-[11px] text-black/50">差引</p>
             <p className="text-sm font-bold text-brand-primary">{yen(monthTotals.net)}</p>
+          </div>
+        </div>
+
+        {/* 項目別の月合計（常駐・請負・作業員手配） */}
+        <div className="mt-2 grid grid-cols-3 divide-x divide-black/5 border-t border-black/5 pt-2 text-center">
+          <div className="px-1">
+            <p className="text-[11px] text-black/50">常駐</p>
+            <p className="text-sm font-bold text-emerald-600">{yen(typeTotals.jouchu)}</p>
+          </div>
+          <div className="px-1">
+            <p className="text-[11px] text-black/50">請負</p>
+            <p className="text-sm font-bold text-blue-600">{yen(typeTotals.ukeoi)}</p>
+          </div>
+          <div className="px-1">
+            <p className="text-[11px] text-black/50">作業員手配</p>
+            <p className="text-sm font-bold text-indigo-600">{yen(typeTotals.koyo)}</p>
           </div>
         </div>
         {monthTotals.reimburseExpense > 0 && (
