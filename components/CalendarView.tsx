@@ -55,20 +55,31 @@ export default function CalendarView({
     [entries, mKey],
   );
 
-  // 項目別（常駐・請負・作業員手配）の月合計
-  const typeTotals = useMemo(() => {
-    let jouchu = 0;
-    let ukeoi = 0;
-    let koyo = 0;
+  // 項目別（常駐・請負・作業員手配）の月合計＋請求先別内訳
+  const typeData = useMemo(() => {
+    const mk = () => ({ total: 0, bills: new Map<string, { total: number; count: number }>() });
+    const g: Record<string, { total: number; bills: Map<string, { total: number; count: number }> }> = {
+      常駐: mk(),
+      請負: mk(),
+      作業員手配: mk(),
+    };
     for (const e of entries) {
       if (e.kind !== 'income' || e.date.slice(0, 7) !== mKey) continue;
       const wt = workTypeOf(e);
-      if (wt === '常駐') jouchu += e.amount || 0;
-      else if (wt === '雇用') koyo += e.amount || 0;
-      else ukeoi += e.amount || 0;
+      const key = wt === '常駐' ? '常駐' : wt === '雇用' ? '作業員手配' : '請負';
+      const bucket = g[key];
+      bucket.total += e.amount || 0;
+      const bk = e.billTo && e.billTo.trim() ? e.billTo.trim() : '請求先なし';
+      const b = bucket.bills.get(bk) ?? { total: 0, count: 0 };
+      b.total += e.amount || 0;
+      b.count += 1;
+      bucket.bills.set(bk, b);
     }
-    return { jouchu, ukeoi, koyo };
+    return g;
   }, [entries, mKey]);
+
+  // タップで開く項目別の請求先内訳
+  const [openType, setOpenType] = useState<string | null>(null);
 
   const cells = calendarCells(mKey);
   const selectedEntries = selected ? entries.filter((e) => e.date === selected) : [];
@@ -104,21 +115,51 @@ export default function CalendarView({
           </div>
         </div>
 
-        {/* 項目別の月合計（常駐・請負・作業員手配） */}
+        {/* 項目別の月合計（常駐・請負・作業員手配）。タップで請求先別内訳を開く */}
         <div className="mt-2 grid grid-cols-3 divide-x divide-black/5 border-t border-black/5 pt-2 text-center">
-          <div className="px-1">
-            <p className="text-[11px] text-black/50">常駐</p>
-            <p className="text-sm font-bold text-emerald-600">{yen(typeTotals.jouchu)}</p>
-          </div>
-          <div className="px-1">
-            <p className="text-[11px] text-black/50">請負</p>
-            <p className="text-sm font-bold text-blue-600">{yen(typeTotals.ukeoi)}</p>
-          </div>
-          <div className="px-1">
-            <p className="text-[11px] text-black/50">作業員手配</p>
-            <p className="text-sm font-bold text-indigo-600">{yen(typeTotals.koyo)}</p>
-          </div>
+          {([
+            ['常駐', 'text-emerald-600'],
+            ['請負', 'text-blue-600'],
+            ['作業員手配', 'text-indigo-600'],
+          ] as const).map(([label, color]) => {
+            const open = openType === label;
+            return (
+              <button
+                key={label}
+                type="button"
+                onClick={() => setOpenType(open ? null : label)}
+                className={`px-1 ${open ? 'bg-black/[0.03]' : ''}`}
+              >
+                <p className="text-[11px] text-black/50">
+                  {label} <span className="text-black/30">{open ? '▲' : '▾'}</span>
+                </p>
+                <p className={`text-sm font-bold ${color}`}>{yen(typeData[label].total)}</p>
+              </button>
+            );
+          })}
         </div>
+
+        {/* 選択した項目の請求先別内訳 */}
+        {openType && (
+          <div className="mt-2 space-y-1 border-t border-black/5 pt-2">
+            <p className="text-[11px] font-semibold text-black/50">{openType}・請求先別</p>
+            {typeData[openType].bills.size === 0 ? (
+              <p className="text-center text-xs text-black/30">この月の記録はありません</p>
+            ) : (
+              [...typeData[openType].bills.entries()]
+                .sort((a, b) => b[1].total - a[1].total)
+                .map(([name, g]) => (
+                  <div key={name} className="flex items-center justify-between text-xs">
+                    <span className="truncate text-black/60">{name}</span>
+                    <span className="shrink-0 font-semibold text-black/80">
+                      {yen(g.total)}
+                      <span className="ml-1 text-black/40">（{g.count}件）</span>
+                    </span>
+                  </div>
+                ))
+            )}
+          </div>
+        )}
         {monthTotals.reimburseExpense > 0 && (
           <p className="mt-2 rounded-lg bg-amber-50 px-2 py-1 text-center text-[11px] text-amber-700">
             常駐の立替経費 {yen(monthTotals.reimburseExpense)}（中野さんに請求／差引ゼロ）
