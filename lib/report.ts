@@ -138,6 +138,61 @@ export function buildReportText(mKey: string, entries: Entry[]): string {
   return [`【作業報告】${formatJpMonth(mKey)}`, '', ...reportBodyLines(mKey, entries)].join('\n');
 }
 
+// 締日ラベル
+const CLOSING_LABEL: Record<string, string> = {
+  all: 'すべて',
+  A: '5日締め',
+  B: '25日締め',
+  C: '月末日締め',
+  none: '締日未定',
+};
+export function closingLabel(key: string): string {
+  return CLOSING_LABEL[key] ?? 'すべて';
+}
+
+// 内訳の行の「作業内容」欄（作業員手配は氏名、なければ現場名/メモ/種別）
+function contentOf(e: Entry): string {
+  const site = (e.site || '').trim();
+  const memo = (e.memo || '').trim();
+  if (workTypeOf(e) === '雇用') {
+    const base = site || '作業員手配';
+    return e.hiredName ? `${base}（${e.hiredName}）` : base;
+  }
+  return site || memo || (workTypeOf(e) === '常駐' ? '常駐' : '請負');
+}
+
+// 締日×請求先で絞り込んだ「請求内訳」テキスト（LINE報告＋請求書作成の元データ）
+// group: 'all' | 'A' | 'B' | 'C' | 'none'（締日未定）／ billTo: 'all' | 請求先名
+export function buildFilteredReportText(
+  mKey: string,
+  entries: Entry[],
+  group: string,
+  billTo: string,
+): string {
+  const isGroup = (g?: string) => g === 'A' || g === 'B' || g === 'C';
+  let rows = entries.filter((e) => e.kind === 'income' && e.date.slice(0, 7) === mKey);
+  if (group !== 'all') {
+    rows = rows.filter((e) => (group === 'none' ? !isGroup(e.billGroup) : e.billGroup === group));
+  }
+  if (billTo !== 'all') {
+    rows = rows.filter((e) => (e.billTo && e.billTo.trim() ? e.billTo.trim() : '請求先なし') === billTo);
+  }
+  rows.sort(byDate);
+
+  const head = [
+    `【ご請求内訳】${formatJpMonth(mKey)}`,
+    `締日：${closingLabel(group)}`,
+    `宛先：${billTo === 'all' ? 'すべて' : `${billTo}${billTo === '請求先なし' ? '' : ' 様'}`}`,
+    '',
+  ];
+  if (rows.length === 0) {
+    return [...head, '該当する記録がありません'].join('\n');
+  }
+  const lines = rows.map((e) => `${shortDate(e.date)}　${contentOf(e)}　${yen(e.amount)}`);
+  const total = rows.reduce((s, e) => s + e.amount, 0);
+  return [...head, ...lines, '', `合計　${yen(total)}（${rows.length}件）`].join('\n');
+}
+
 // 報告書を画像(PNG Blob)に描画（本文をそのまま描画）
 export async function buildReportImage(mKey: string, entries: Entry[]): Promise<Blob | null> {
   const lines = reportBodyLines(mKey, entries);

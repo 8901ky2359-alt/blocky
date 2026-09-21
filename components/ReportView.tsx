@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { Entry } from '@/lib/types';
 import { currentMonthKey, formatJpMonth, shiftMonth } from '@/lib/format';
 import {
+  buildFilteredReportText,
   buildReportImage,
   buildReportText,
   dataUrlToFile,
@@ -13,13 +14,41 @@ import {
 } from '@/lib/report';
 import InvoiceView from './InvoiceView';
 
+const CLOSING_OPTS = [
+  { key: 'all', label: 'すべての締日' },
+  { key: 'A', label: '5日締め' },
+  { key: 'B', label: '25日締め' },
+  { key: 'C', label: '月末日締め' },
+  { key: 'none', label: '締日未定' },
+];
+
 export default function ReportView({ entries }: { entries: Entry[] }) {
   const [mKey, setMKey] = useState(currentMonthKey());
   const [showInvoice, setShowInvoice] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [view, setView] = useState<'filter' | 'all'>('filter'); // 絞り込み / 全体（総合計）
+  const [group, setGroup] = useState('all'); // 締日
+  const [billTo, setBillTo] = useState('all'); // 請求先
 
-  const text = useMemo(() => buildReportText(mKey, entries), [mKey, entries]);
+  // その月の請求先候補
+  const billCandidates = useMemo(() => {
+    const set = new Set<string>();
+    for (const e of entries) {
+      if (e.kind === 'income' && e.date.slice(0, 7) === mKey) {
+        set.add(e.billTo && e.billTo.trim() ? e.billTo.trim() : '請求先なし');
+      }
+    }
+    return [...set];
+  }, [entries, mKey]);
+
+  const text = useMemo(
+    () =>
+      view === 'all'
+        ? buildReportText(mKey, entries)
+        : buildFilteredReportText(mKey, entries, group, billTo),
+    [view, mKey, entries, group, billTo],
+  );
 
   // 月内の全写真（現場Before/After＋レシート）
   const allPhotos = useMemo(
@@ -106,6 +135,49 @@ export default function ReportView({ entries }: { entries: Entry[] }) {
           ›
         </button>
       </div>
+
+      {/* 表示モード切替：絞り込み / 全体（総合計） */}
+      <div className="flex overflow-hidden rounded-xl border border-black/15 text-sm font-bold">
+        <button
+          onClick={() => setView('filter')}
+          className={`flex-1 py-2.5 ${view === 'filter' ? 'bg-brand-primary text-white' : 'text-black/60'}`}
+        >
+          締日・請求先で絞る
+        </button>
+        <button
+          onClick={() => setView('all')}
+          className={`flex-1 border-l border-black/15 py-2.5 ${view === 'all' ? 'bg-brand-primary text-white' : 'text-black/60'}`}
+        >
+          全体（総合計）
+        </button>
+      </div>
+
+      {/* 絞り込み（締日 × 請求先） */}
+      {view === 'filter' && (
+        <div className="grid grid-cols-2 gap-2">
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-black/50">締日</span>
+            <select className="input" value={group} onChange={(e) => setGroup(e.target.value)}>
+              {CLOSING_OPTS.map((o) => (
+                <option key={o.key} value={o.key}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs font-medium text-black/50">請求先</span>
+            <select className="input" value={billTo} onChange={(e) => setBillTo(e.target.value)}>
+              <option value="all">すべての請求先</option>
+              {billCandidates.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      )}
 
       {/* プレビュー（暗い画面でも読みやすいよう、薄い青の背景＋黒文字で固定） */}
       <div className="rounded-xl border p-3" style={{ backgroundColor: '#eef3fb', borderColor: '#c9d7ec' }}>
