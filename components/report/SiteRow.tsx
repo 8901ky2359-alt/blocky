@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { SiteSeed, SiteProgress, SiteType } from '@/lib/report/types';
 import { OVERALL_META, overallOf, statusLabel, isReportTarget, typeOf, mapsUrl, codeOf } from '@/lib/report/status';
+import { INSTRUCTION_FOLDERS } from '@/lib/report/instructions';
 
 export default function SiteRow({
   site,
@@ -19,6 +20,7 @@ export default function SiteRow({
   const meta = OVERALL_META[ov];
   const label = statusLabel(type, p);
   const reportTarget = isReportTarget(p);
+  const instructionUrl = INSTRUCTION_FOLDERS[site.workNo];
 
   return (
     <div
@@ -44,6 +46,11 @@ export default function SiteRow({
             {site.priority && (
               <span className="shrink-0 rounded bg-red-100 px-1.5 py-0.5 text-[9px] font-bold text-red-600">
                 優先
+              </span>
+            )}
+            {instructionUrl && (
+              <span className="shrink-0 rounded bg-sky-100 px-1.5 py-0.5 text-[9px] font-bold text-sky-700">
+                📄 指示書あり
               </span>
             )}
           </div>
@@ -73,6 +80,18 @@ export default function SiteRow({
 
       {open && (
         <div className="space-y-3 border-t border-slate-100 p-3">
+          {/* 作業指示書（Googleドライブ） */}
+          {instructionUrl && (
+            <a
+              href={instructionUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block rounded-lg border border-sky-300 bg-sky-50 py-2.5 text-center text-sm font-bold text-sky-700"
+            >
+              📄 作業指示書を開く（Googleドライブ）
+            </a>
+          )}
+
           {/* 現場の種類 */}
           <div>
             <p className="mb-1 text-[11px] font-bold text-slate-600">現場の種類</p>
