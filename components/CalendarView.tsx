@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Entry, workTypeOf } from '@/lib/types';
+import { Holiday } from '@/lib/holiday/types';
 import { byDateInfo, summarize } from '@/lib/finance';
 import { sendToNotion } from '@/lib/notion';
 import {
@@ -19,11 +20,15 @@ import EntryCard from './EntryCard';
 
 export default function CalendarView({
   entries,
+  holidays,
+  onToggleHoliday,
   onAddOnDate,
   onEdit,
   onDelete,
 }: {
   entries: Entry[];
+  holidays: Holiday[];
+  onToggleHoliday: (date: string) => void;
   onAddOnDate: (date: string) => void;
   onEdit: (e: Entry) => void;
   onDelete: (id: string) => void;
@@ -83,6 +88,8 @@ export default function CalendarView({
 
   const cells = calendarCells(mKey);
   const selectedEntries = selected ? entries.filter((e) => e.date === selected) : [];
+  const holidaySet = useMemo(() => new Set(holidays.map((h) => h.date)), [holidays]);
+  const isSelectedHoliday = !!selected && holidaySet.has(selected);
   const today = todayStr();
 
   return (
@@ -183,18 +190,28 @@ export default function CalendarView({
             const day = Number(c.slice(8));
             const isToday = c === today;
             const isSel = c === selected;
+            const isHoliday = holidaySet.has(c);
             return (
               <button
                 key={c}
                 onClick={() => setSelected(c)}
                 className={`flex min-h-[74px] flex-col items-center rounded-lg px-0.5 py-1 text-xs ${
-                  isSel ? 'bg-brand-soft' : ''
+                  isSel ? 'bg-brand-soft' : isHoliday ? 'bg-slate-100' : ''
                 } ${isToday ? 'ring-1 ring-brand-primary' : ''}`}
               >
-                <span className={`flex items-center gap-0.5 ${isToday ? 'font-bold text-brand-primary' : ''}`}>
+                <span
+                  className={`flex items-center gap-0.5 ${
+                    isToday ? 'font-bold text-brand-primary' : isHoliday ? 'text-slate-400' : ''
+                  }`}
+                >
                   {day}
                   {info?.photo ? <span className="text-[8px] leading-none">📷</span> : null}
                 </span>
+                {isHoliday && (
+                  <span className="mt-0.5 w-full truncate text-center text-[10px] font-semibold text-slate-400">
+                    休み
+                  </span>
+                )}
                 <span className="mt-0.5 flex w-full flex-col items-center gap-px leading-none">
                   {info?.ukeoi ? (
                     <span className="w-full truncate text-center text-[10px] font-semibold text-blue-600">
@@ -238,20 +255,40 @@ export default function CalendarView({
           <span className="font-bold text-red-400">経</span> = 経費
         </span>
         <span>📷 = 写真あり</span>
+        <span>
+          <span className="font-bold text-slate-400">休み</span> = お休み
+        </span>
       </div>
 
       {/* 選択日の詳細 */}
       {selected && (
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold">{formatJpDate(selected)}</h3>
-            <button
-              onClick={() => onAddOnDate(selected)}
-              className="rounded-lg bg-brand-primary px-3 py-1.5 text-sm font-semibold text-white"
-            >
-              ＋この日に記録
-            </button>
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="min-w-0 truncate font-semibold">{formatJpDate(selected)}</h3>
+            <div className="flex shrink-0 gap-1.5">
+              <button
+                onClick={() => onToggleHoliday(selected)}
+                className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${
+                  isSelectedHoliday
+                    ? 'bg-slate-600 text-white'
+                    : 'border border-slate-300 text-slate-500'
+                }`}
+              >
+                {isSelectedHoliday ? '😴 休み ✓' : '😴 休みにする'}
+              </button>
+              <button
+                onClick={() => onAddOnDate(selected)}
+                className="rounded-lg bg-brand-primary px-3 py-1.5 text-sm font-semibold text-white"
+              >
+                ＋この日に記録
+              </button>
+            </div>
           </div>
+          {isSelectedHoliday && (
+            <p className="rounded-lg bg-slate-100 px-3 py-2 text-center text-xs font-semibold text-slate-500">
+              この日はお休みに設定されています（もう一度押すと取り消せます）
+            </p>
+          )}
           {selectedEntries.length === 0 ? (
             <p className="rounded-xl border border-dashed border-black/15 p-4 text-center text-sm text-black/40">
               この日の記録はまだありません

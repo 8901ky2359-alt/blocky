@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useEntries } from '@/lib/useEntries';
+import { useHolidays } from '@/lib/useHolidays';
 import { exportJson, importJson } from '@/lib/db';
 import { Entry } from '@/lib/types';
 import { todayStr } from '@/lib/format';
@@ -33,6 +34,7 @@ export default function Home() {
 
 function BusinessHome() {
   const { entries, loading, syncing, save, remove, sync } = useEntries();
+  const { holidays, toggle: toggleHoliday } = useHolidays();
   const [view, setView] = useState<View>('calendar');
   const [editing, setEditing] = useState<Entry | null>(null);
   const [addDate, setAddDate] = useState<string>(todayStr());
@@ -136,7 +138,14 @@ function BusinessHome() {
           ) : (
             <>
               {view === 'calendar' && (
-                <CalendarView entries={entries} onAddOnDate={goAdd} onEdit={goEdit} onDelete={remove} />
+                <CalendarView
+                  entries={entries}
+                  holidays={holidays}
+                  onToggleHoliday={toggleHoliday}
+                  onAddOnDate={goAdd}
+                  onEdit={goEdit}
+                  onDelete={remove}
+                />
               )}
               {view === 'summary' && <SummaryView entries={entries} />}
               {view === 'add' && (
