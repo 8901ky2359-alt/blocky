@@ -2,6 +2,7 @@
 
 import { Entry, workTypeOf } from './types';
 import { formatJpMonth, yen } from './format';
+import { billGroupText, billGroupPaymentLine, isBillGroup } from './billgroup';
 
 const WEEK = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -92,15 +93,15 @@ function reportBodyLines(mKey: string, entries: Entry[]): string[] {
     lines.push('');
   }
 
-  // 締日別（5日締め / 25日締め / 月末日締め / 未定）。各締日の中で請求先ごとの内訳も出す。
+  // 締日別（5日払い / 25日払い / 月末払い / 未定）。各締日の中で請求先ごとの内訳も出す。
   const CLOSING: { key: string; label: string }[] = [
-    { key: 'A', label: '5日締め' },
-    { key: 'B', label: '25日締め' },
-    { key: 'C', label: '月末日締め' },
+    { key: 'A', label: `A・${billGroupText('A')}` },
+    { key: 'B', label: `B・${billGroupText('B')}` },
+    { key: 'C', label: `C・${billGroupText('C')}` },
     { key: '', label: '締日未定' },
   ];
   const all = [...d.ukeoi, ...d.jouchu, ...d.koyo];
-  const isGroup = (g?: string) => g === 'A' || g === 'B' || g === 'C';
+  const isGroup = (g?: string) => isBillGroup(g);
   const anyClosing = all.length > 0;
   if (anyClosing) {
     lines.push('■締日別');
@@ -109,6 +110,8 @@ function reportBodyLines(mKey: string, entries: Entry[]): string[] {
       if (rows.length === 0) continue;
       const total = rows.reduce((s, e) => s + e.amount, 0);
       lines.push(`【${label}】計 ${yen(total)}（${rows.length}件）`);
+      const payLine = key && billGroupPaymentLine(mKey, key);
+      if (payLine) lines.push(`　${payLine}`);
       // 締日内の請求先ごと内訳
       const byBill = new Map<string, { total: number; count: number }>();
       for (const e of rows) {
@@ -138,16 +141,13 @@ export function buildReportText(mKey: string, entries: Entry[]): string {
   return [`【作業報告】${formatJpMonth(mKey)}`, '', ...reportBodyLines(mKey, entries)].join('\n');
 }
 
-// 締日ラベル
+// 締日ラベル（A/B/Cは「月末締め・翌月◯日払い」で統一。すべて/未定はそのまま）
 const CLOSING_LABEL: Record<string, string> = {
   all: 'すべて',
-  A: '5日締め',
-  B: '25日締め',
-  C: '月末日締め',
   none: '締日未定',
 };
 export function closingLabel(key: string): string {
-  return CLOSING_LABEL[key] ?? 'すべて';
+  return isBillGroup(key) ? `${key}・${billGroupText(key)}` : CLOSING_LABEL[key] ?? 'すべて';
 }
 
 // 内訳の行の「作業内容」欄（作業員手配は氏名、なければ現場名/メモ/種別）
@@ -169,7 +169,7 @@ export function buildFilteredReportText(
   group: string,
   billTo: string,
 ): string {
-  const isGroup = (g?: string) => g === 'A' || g === 'B' || g === 'C';
+  const isGroup = (g?: string) => isBillGroup(g);
   let rows = entries.filter((e) => e.kind === 'income' && e.date.slice(0, 7) === mKey);
   if (group !== 'all') {
     rows = rows.filter((e) => (group === 'none' ? !isGroup(e.billGroup) : e.billGroup === group));
@@ -179,9 +179,11 @@ export function buildFilteredReportText(
   }
   rows.sort(byDate);
 
+  const payLine = isBillGroup(group) ? billGroupPaymentLine(mKey, group) : null;
   const head = [
     `【ご請求内訳】${formatJpMonth(mKey)}`,
     `締日：${closingLabel(group)}`,
+    ...(payLine ? [payLine] : []),
     `宛先：${billTo === 'all' ? 'すべて' : `${billTo}${billTo === '請求先なし' ? '' : ' 様'}`}`,
     '',
   ];
