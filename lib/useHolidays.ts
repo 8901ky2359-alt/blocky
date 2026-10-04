@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Holiday } from './holiday/types';
+import { DayMarkKind, Holiday } from './holiday/types';
 import { listHolidays, listHolidaysRaw, putHoliday } from './holiday/db';
 import { hasSync, pushPull } from './sync';
 
@@ -43,15 +43,23 @@ export function useHolidays() {
     })();
   }, [refresh, syncNow]);
 
-  // 休みの切り替え（無ければ追加・あれば取り消し）
+  // 日付マークの切り替え（休み／ー）。無ければ追加・同じ種類なら取り消し・
+  // 違う種類が付いていれば種類を入れ替える（1日1件のみ）
   const toggle = useCallback(
-    async (date: string, memo?: string) => {
+    async (date: string, kind: DayMarkKind = 'off', memo?: string) => {
       const existing = holidays.find((h) => h.date === date);
       const now = Date.now();
-      if (existing) {
+      if (existing && existing.kind === kind) {
         await putHoliday({ ...existing, deleted: true, updatedAt: now });
       } else {
-        await putHoliday({ id: date, date, memo, createdAt: now, updatedAt: now });
+        await putHoliday({
+          id: date,
+          date,
+          kind,
+          memo: memo ?? existing?.memo,
+          createdAt: existing?.createdAt ?? now,
+          updatedAt: now,
+        });
       }
       await refresh();
       if (hasSync()) syncNow().catch(() => {});

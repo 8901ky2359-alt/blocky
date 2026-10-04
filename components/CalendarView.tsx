@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Entry, workTypeOf } from '@/lib/types';
-import { Holiday } from '@/lib/holiday/types';
+import { DayMarkKind, Holiday } from '@/lib/holiday/types';
 import { byDateInfo, summarize } from '@/lib/finance';
 import { sendToNotion } from '@/lib/notion';
 import {
@@ -28,7 +28,7 @@ export default function CalendarView({
 }: {
   entries: Entry[];
   holidays: Holiday[];
-  onToggleHoliday: (date: string) => void;
+  onToggleHoliday: (date: string, kind: DayMarkKind) => void;
   onAddOnDate: (date: string) => void;
   onEdit: (e: Entry) => void;
   onDelete: (id: string) => void;
@@ -88,8 +88,16 @@ export default function CalendarView({
 
   const cells = calendarCells(mKey);
   const selectedEntries = selected ? entries.filter((e) => e.date === selected) : [];
-  const holidaySet = useMemo(() => new Set(holidays.map((h) => h.date)), [holidays]);
-  const isSelectedHoliday = !!selected && holidaySet.has(selected);
+  const offSet = useMemo(
+    () => new Set(holidays.filter((h) => h.kind !== 'skip').map((h) => h.date)),
+    [holidays],
+  );
+  const skipSet = useMemo(
+    () => new Set(holidays.filter((h) => h.kind === 'skip').map((h) => h.date)),
+    [holidays],
+  );
+  const isSelectedOff = !!selected && offSet.has(selected);
+  const isSelectedSkip = !!selected && skipSet.has(selected);
   const today = todayStr();
 
   return (
@@ -190,18 +198,19 @@ export default function CalendarView({
             const day = Number(c.slice(8));
             const isToday = c === today;
             const isSel = c === selected;
-            const isHoliday = holidaySet.has(c);
+            const isHoliday = offSet.has(c);
+            const isSkip = skipSet.has(c);
             return (
               <button
                 key={c}
                 onClick={() => setSelected(c)}
                 className={`flex min-h-[74px] flex-col items-center rounded-lg px-0.5 py-1 text-xs ${
-                  isSel ? 'bg-brand-soft' : isHoliday ? 'bg-slate-100' : ''
+                  isSel ? 'bg-brand-soft' : isHoliday ? 'bg-slate-100' : isSkip ? 'bg-slate-50' : ''
                 } ${isToday ? 'ring-1 ring-brand-primary' : ''}`}
               >
                 <span
                   className={`flex items-center gap-0.5 ${
-                    isToday ? 'font-bold text-brand-primary' : isHoliday ? 'text-slate-400' : ''
+                    isToday ? 'font-bold text-brand-primary' : isHoliday || isSkip ? 'text-slate-400' : ''
                   }`}
                 >
                   {day}
@@ -210,6 +219,11 @@ export default function CalendarView({
                 {isHoliday && (
                   <span className="mt-0.5 w-full truncate text-center text-[10px] font-semibold text-slate-400">
                     休み
+                  </span>
+                )}
+                {isSkip && (
+                  <span className="mt-0.5 w-full truncate text-center text-[10px] font-semibold text-slate-300">
+                    ー
                   </span>
                 )}
                 <span className="mt-0.5 flex w-full flex-col items-center gap-px leading-none">
@@ -258,6 +272,9 @@ export default function CalendarView({
         <span>
           <span className="font-bold text-slate-400">休み</span> = お休み
         </span>
+        <span>
+          <span className="font-bold text-slate-400">ー</span> = 他の日とまとめて記録済み（この日は別記録なし）
+        </span>
       </div>
 
       {/* 選択日の詳細 */}
@@ -265,16 +282,26 @@ export default function CalendarView({
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
             <h3 className="min-w-0 truncate font-semibold">{formatJpDate(selected)}</h3>
-            <div className="flex shrink-0 gap-1.5">
+            <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
               <button
-                onClick={() => onToggleHoliday(selected)}
+                onClick={() => onToggleHoliday(selected, 'off')}
                 className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${
-                  isSelectedHoliday
+                  isSelectedOff
                     ? 'bg-slate-600 text-white'
                     : 'border border-slate-300 text-slate-500'
                 }`}
               >
-                {isSelectedHoliday ? '😴 休み ✓' : '😴 休みにする'}
+                {isSelectedOff ? '😴 休み ✓' : '😴 休みにする'}
+              </button>
+              <button
+                onClick={() => onToggleHoliday(selected, 'skip')}
+                className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${
+                  isSelectedSkip
+                    ? 'bg-slate-600 text-white'
+                    : 'border border-slate-300 text-slate-500'
+                }`}
+              >
+                {isSelectedSkip ? 'ー 記録なし ✓' : 'ー 記録なしにする'}
               </button>
               <button
                 onClick={() => onAddOnDate(selected)}
@@ -284,9 +311,14 @@ export default function CalendarView({
               </button>
             </div>
           </div>
-          {isSelectedHoliday && (
+          {isSelectedOff && (
             <p className="rounded-lg bg-slate-100 px-3 py-2 text-center text-xs font-semibold text-slate-500">
               この日はお休みに設定されています（もう一度押すと取り消せます）
+            </p>
+          )}
+          {isSelectedSkip && (
+            <p className="rounded-lg bg-slate-100 px-3 py-2 text-center text-xs font-semibold text-slate-500">
+              この日は「ー」（他の日とまとめて記録済み・別記録なし）に設定されています（もう一度押すと取り消せます）
             </p>
           )}
           {selectedEntries.length === 0 ? (
