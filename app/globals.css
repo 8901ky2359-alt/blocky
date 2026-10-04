@@ -2,13 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 横スクロール防止はbodyだけに留める。html側にも付けると（二重のスクロール
-   コンテナになり）iOS Safariでposition:fixedの要素がスクロールに巻き込まれる
-   不具合が起きるため、htmlには付けない */
+/* 横スクロール防止はhtml/bodyには付けない。html・bodyにoverflowを指定すると、
+   そこがネイティブのページスクロールとは別の「スクロールコンテナ」になってしまい、
+   iOS Safariでposition:fixedの要素がスクロールに巻き込まれる不具合が起きる。
+   横スクロール防止は各ページのルートdiv（.hud-bg等）側で行う */
 body {
-  /* スマホ幅にぴったり合わせ、横スクロールを完全に抑止する */
   max-width: 100%;
-  overflow-x: hidden;
   overscroll-behavior-x: none;
   @apply bg-brand-bg text-black;
   -webkit-tap-highlight-color: transparent;
@@ -30,8 +29,11 @@ canvas {
   max-width: 100%;
 }
 
-/* SF風の暗いグリッド背景（各ページの外枠に使用） */
+/* SF風の暗いグリッド背景（各ページの外枠に使用）。横スクロール防止もここで行う
+   （body/htmlに付けるとiOS Safariでposition:fixedが壊れるため、各ページの
+   ルートdivであるここに付ける。fixedなフッター等はこのdivの外に置くこと） */
 .hud-bg {
+  overflow-x: hidden;
   background-color: #060b14;
   background-image:
     linear-gradient(rgba(6, 182, 212, 0.07) 1px, transparent 1px),

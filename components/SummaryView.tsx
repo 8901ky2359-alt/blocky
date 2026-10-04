@@ -86,13 +86,15 @@ function IncomingCalendar({
     const rows = entries.filter(
       (e) => e.kind === 'income' && e.date.slice(0, 7) === workMKey && isBillGroup(e.billGroup),
     );
-    const byDate = new Map<string, { total: number; items: Entry[] }>();
+    const byDate = new Map<string, { total: number; items: Entry[]; clients: string[] }>();
     for (const e of rows) {
       const due = billGroupDueDate(workMKey, e.billGroup);
       if (!due) continue;
-      const g = byDate.get(due) ?? { total: 0, items: [] };
+      const g = byDate.get(due) ?? { total: 0, items: [], clients: [] };
       g.total += e.amount;
       g.items.push(e);
+      const bk = clientNameOf(e);
+      if (!g.clients.includes(bk)) g.clients.push(bk);
       byDate.set(due, g);
     }
     const undated = entries.filter(
@@ -106,6 +108,7 @@ function IncomingCalendar({
   const cells = calendarCells(payMKey);
   const today = todayStr();
   const selInfo = selected ? data.byDate.get(selected) : null;
+  const selGroups = useMemo(() => (selInfo ? groupByClient(selInfo.items) : []), [selInfo]);
 
   return (
     <>
@@ -113,8 +116,8 @@ function IncomingCalendar({
 
       <div className="overflow-hidden rounded-2xl bg-emerald-600 text-white shadow">
         <div className="p-4">
-          <p className="text-sm opacity-80">{formatJpMonth(payMKey)} に入ってくる金額の合計</p>
-          <p className="mt-0.5 text-3xl font-bold">{yen(data.monthTotal)}</p>
+          <p className="text-sm opacity-80">{formatJpMonth(payMKey)} に入ってくる金額の合計（税込）</p>
+          <p className="mt-0.5 text-3xl font-bold">{yen(withTax(data.monthTotal))}</p>
           <p className="mt-1 text-xs opacity-70">{formatJpMonth(workMKey)}分の売上（締日グループ設定済み）</p>
         </div>
       </div>
@@ -144,7 +147,20 @@ function IncomingCalendar({
               >
                 <span className={isToday ? 'font-bold text-brand-primary' : ''}>{day}</span>
                 {info && (
-                  <span className="mt-0.5 text-[10px] font-bold text-emerald-600">{manYen(info.total)}</span>
+                  <>
+                    <span className="mt-0.5 text-[10px] font-bold text-emerald-600">
+                      {manYen(withTax(info.total))}
+                    </span>
+                    <span className="mt-0.5 flex gap-0.5">
+                      {info.clients.slice(0, 4).map((c2) => (
+                        <span
+                          key={c2}
+                          className="h-1.5 w-1.5 rounded-full"
+                          style={{ backgroundColor: clientColor(c2) }}
+                        />
+                      ))}
+                    </span>
+                  </>
                 )}
               </button>
             );
@@ -154,26 +170,42 @@ function IncomingCalendar({
 
       {data.undatedCount > 0 && (
         <p className="rounded-lg bg-amber-50 px-3 py-2 text-center text-xs text-amber-700">
-          {formatJpMonth(workMKey)}分に締日未設定の記録が{data.undatedCount}件（{yen(data.undatedTotal)}）あります。入金日を表示するには、各記録で締日（A/B/C）を設定してください。
+          {formatJpMonth(workMKey)}分に締日未設定の記録が{data.undatedCount}件（{yen(withTax(data.undatedTotal))}
+          ・税込）あります。入金日を表示するには、各記録で締日（A/B/C）を設定してください。
         </p>
       )}
 
       {selected && selInfo && (
         <section className="rounded-xl bg-white p-4 shadow-sm">
-          <h3 className="mb-2 font-semibold">
+          <h3 className="mb-3 font-semibold">
             {formatJpDate(selected)} の入金予定
-            <span className="text-emerald-600">{yen(selInfo.total)}</span>
+            <span className="text-emerald-600">{yen(withTax(selInfo.total))}</span>
+            <span className="ml-1 text-[11px] font-normal text-black/40">税込</span>
           </h3>
-          <div className="divide-y divide-black/5">
-            {selInfo.items.map((e) => (
-              <div key={e.id} className="flex items-center justify-between py-1.5 text-sm">
-                <span className="min-w-0 truncate pr-2">
-                  {e.billTo || e.site || '（請求先なし）'}
-                  <span className="ml-1.5 text-[11px] text-black/40">
-                    {billGroupText(e.billGroup)}・{e.site}
+          <div className="space-y-3">
+            {selGroups.map(([client, g]) => (
+              <div key={client}>
+                <div className="mb-1 flex items-center gap-1.5">
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: clientColor(client) }}
+                  />
+                  <span className="min-w-0 truncate text-sm font-semibold">{client}</span>
+                  <span className="ml-auto shrink-0 text-sm font-bold" style={{ color: clientColor(client) }}>
+                    {yen(withTax(g.total))}
+                    <span className="ml-1 text-[11px] font-normal text-black/40">（{g.items.length}件）</span>
                   </span>
-                </span>
-                <span className="shrink-0 font-semibold text-emerald-600">{yen(e.amount)}</span>
+                </div>
+                <div className="divide-y divide-black/5 pl-4">
+                  {g.items.map((e) => (
+                    <div key={e.id} className="flex items-center justify-between py-1 text-xs text-black/60">
+                      <span className="min-w-0 truncate pr-2">
+                        {billGroupText(e.billGroup)}・{e.site}
+                      </span>
+                      <span className="shrink-0 font-medium">{yen(withTax(e.amount))}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
@@ -181,6 +213,47 @@ function IncomingCalendar({
       )}
     </>
   );
+}
+
+// 消費税（10%・切り捨て）を含めた金額
+function withTax(n: number): number {
+  return n + Math.floor(n * 0.1);
+}
+
+function clientNameOf(e: Entry): string {
+  return e.billTo && e.billTo.trim() ? e.billTo.trim() : e.site || '請求先なし';
+}
+
+// 請求先ごとにグルーピング（金額の大きい順）
+function groupByClient(items: Entry[]): [string, { total: number; items: Entry[] }][] {
+  const m = new Map<string, { total: number; items: Entry[] }>();
+  for (const e of items) {
+    const key = clientNameOf(e);
+    const g = m.get(key) ?? { total: 0, items: [] };
+    g.total += e.amount;
+    g.items.push(e);
+    m.set(key, g);
+  }
+  return [...m.entries()].sort((a, b) => b[1].total - a[1].total);
+}
+
+// 請求先名から一意な色を割り当てる（カレンダーの点・内訳の見出しに使用）
+const CLIENT_COLORS = [
+  '#34d399',
+  '#38bdf8',
+  '#fbbf24',
+  '#e879f9',
+  '#fb923c',
+  '#a3e635',
+  '#fb7185',
+  '#a78bfa',
+  '#22d3ee',
+  '#2dd4bf',
+];
+function clientColor(name: string): string {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return CLIENT_COLORS[h % CLIENT_COLORS.length];
 }
 
 // 収支カード（売上 − 自己負担経費 ＝ 差引利益。常駐立替は別枠）
