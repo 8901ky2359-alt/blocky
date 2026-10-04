@@ -101,6 +101,7 @@ function BusinessHome() {
   }
 
   return (
+    <>
     <div className="min-h-screen overflow-x-hidden hud-bg">
       <div className="mx-auto flex min-h-screen w-full max-w-[1600px]">
         {/* PC用サイドナビ（スマホでは非表示） */}
@@ -175,33 +176,35 @@ function BusinessHome() {
         )}
         </div>
       </div>
-
-      {/* 記録追加のフローティングボタン（＋）＝スマホのみ */}
-      {view !== 'add' && (
-        <div className="pointer-events-none fixed inset-0 z-20 md:hidden">
-          <div className="relative mx-auto h-full max-w-[520px]">
-            <button
-              onClick={() => goAdd()}
-              aria-label="記録する"
-              className="pointer-events-auto absolute bottom-[76px] right-4 grid h-14 w-14 place-items-center rounded-full bg-brand-accent text-3xl leading-none text-white shadow-lg shadow-brand-accent/30"
-            >
-              ＋
-            </button>
-          </div>
-        </div>
-      )}
-
-      <BottomNav tab={view} onChange={(t) => setView(t)} />
-
-      {showBackup && (
-        <BackupPanel
-          onClose={() => setShowBackup(false)}
-          onImported={() => location.reload()}
-          onSync={sync}
-          syncing={syncing}
-        />
-      )}
     </div>
+
+    {/* 記録追加のフローティングボタン（＋）＝スマホのみ。overflow-x-hiddenの外に出して
+        iOS Safariでfixed要素がスクロールに巻き込まれる不具合を避ける */}
+    {view !== 'add' && (
+      <div className="pointer-events-none fixed inset-0 z-20 md:hidden">
+        <div className="relative mx-auto h-full max-w-[520px]">
+          <button
+            onClick={() => goAdd()}
+            aria-label="記録する"
+            className="pointer-events-auto absolute bottom-[76px] right-4 grid h-14 w-14 place-items-center rounded-full bg-brand-accent text-3xl leading-none text-white shadow-lg shadow-brand-accent/30"
+          >
+            ＋
+          </button>
+        </div>
+      </div>
+    )}
+
+    <BottomNav tab={view} onChange={(t) => setView(t)} />
+
+    {showBackup && (
+      <BackupPanel
+        onClose={() => setShowBackup(false)}
+        onImported={() => location.reload()}
+        onSync={sync}
+        syncing={syncing}
+      />
+    )}
+    </>
   );
 }
 
