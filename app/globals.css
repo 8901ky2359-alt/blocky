@@ -2,15 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-html,
+/* 横スクロール防止はbodyだけに留める。html側にも付けると（二重のスクロール
+   コンテナになり）iOS Safariでposition:fixedの要素がスクロールに巻き込まれる
+   不具合が起きるため、htmlには付けない */
 body {
   /* スマホ幅にぴったり合わせ、横スクロールを完全に抑止する */
   max-width: 100%;
   overflow-x: hidden;
   overscroll-behavior-x: none;
-}
-
-body {
   @apply bg-brand-bg text-black;
   -webkit-tap-highlight-color: transparent;
   /* テック系（等幅）フォント。日本語はシステムフォントにフォールバック */
