@@ -3,22 +3,34 @@
 import { useMemo, useState } from 'react';
 import { Entry } from '@/lib/types';
 import { summarize, Totals } from '@/lib/finance';
-import { currentMonthKey, formatJpMonth, shiftMonth, yen } from '@/lib/format';
+import { isBillGroup, billGroupDueDate, billGroupText } from '@/lib/billgroup';
+import {
+  WEEK_LABELS,
+  calendarCells,
+  currentMonthKey,
+  formatJpDate,
+  formatJpMonth,
+  manYen,
+  shiftMonth,
+  todayStr,
+  yen,
+} from '@/lib/format';
 import { downloadCsv, entriesToCsv } from '@/lib/csv';
 
-type Mode = 'month' | 'year';
+type Mode = 'month' | 'year' | 'incoming';
 
 export default function SummaryView({ entries }: { entries: Entry[] }) {
   const [mode, setMode] = useState<Mode>('month');
   const [mKey, setMKey] = useState(currentMonthKey());
   const [year, setYear] = useState(Number(currentMonthKey().slice(0, 4)));
+  const [payMKey, setPayMKey] = useState(currentMonthKey());
 
   return (
     <div className="space-y-4 pb-4">
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         <button
           onClick={() => setMode('month')}
-          className={`rounded-xl border py-2 text-sm font-semibold ${
+          className={`rounded-xl border py-2 text-xs font-semibold sm:text-sm ${
             mode === 'month' ? 'border-brand-primary bg-brand-soft' : 'border-black/10 text-black/50'
           }`}
         >
@@ -26,20 +38,148 @@ export default function SummaryView({ entries }: { entries: Entry[] }) {
         </button>
         <button
           onClick={() => setMode('year')}
-          className={`rounded-xl border py-2 text-sm font-semibold ${
+          className={`rounded-xl border py-2 text-xs font-semibold sm:text-sm ${
             mode === 'year' ? 'border-brand-primary bg-brand-soft' : 'border-black/10 text-black/50'
           }`}
         >
           年間（確定申告）
         </button>
+        <button
+          onClick={() => setMode('incoming')}
+          className={`rounded-xl border py-2 text-xs font-semibold sm:text-sm ${
+            mode === 'incoming' ? 'border-brand-primary bg-brand-soft' : 'border-black/10 text-black/50'
+          }`}
+        >
+          入金カレンダー
+        </button>
       </div>
 
       {mode === 'month' ? (
         <MonthSummary entries={entries} mKey={mKey} onShift={(d) => setMKey(shiftMonth(mKey, d))} />
-      ) : (
+      ) : mode === 'year' ? (
         <YearSummary entries={entries} year={year} onShift={(d) => setYear(year + d)} />
+      ) : (
+        <IncomingCalendar
+          entries={entries}
+          payMKey={payMKey}
+          onShift={(d) => setPayMKey(shiftMonth(payMKey, d))}
+        />
       )}
     </div>
+  );
+}
+
+// 入金カレンダー：締日グループ（A/B/C）から導いた「お金が実際に入ってくる日」を家計簿のように表示
+function IncomingCalendar({
+  entries,
+  payMKey,
+  onShift,
+}: {
+  entries: Entry[];
+  payMKey: string;
+  onShift: (d: number) => void;
+}) {
+  const [selected, setSelected] = useState<string | null>(null);
+  const workMKey = shiftMonth(payMKey, -1);
+
+  const data = useMemo(() => {
+    const rows = entries.filter(
+      (e) => e.kind === 'income' && e.date.slice(0, 7) === workMKey && isBillGroup(e.billGroup),
+    );
+    const byDate = new Map<string, { total: number; items: Entry[] }>();
+    for (const e of rows) {
+      const due = billGroupDueDate(workMKey, e.billGroup);
+      if (!due) continue;
+      const g = byDate.get(due) ?? { total: 0, items: [] };
+      g.total += e.amount;
+      g.items.push(e);
+      byDate.set(due, g);
+    }
+    const undated = entries.filter(
+      (e) => e.kind === 'income' && e.date.slice(0, 7) === workMKey && !isBillGroup(e.billGroup),
+    );
+    const undatedTotal = undated.reduce((s, e) => s + e.amount, 0);
+    const monthTotal = rows.reduce((s, e) => s + e.amount, 0);
+    return { byDate, undatedTotal, undatedCount: undated.length, monthTotal };
+  }, [entries, workMKey]);
+
+  const cells = calendarCells(payMKey);
+  const today = todayStr();
+  const selInfo = selected ? data.byDate.get(selected) : null;
+
+  return (
+    <>
+      <Nav title={`${formatJpMonth(payMKey)} の入金予定`} onShift={onShift} />
+
+      <div className="overflow-hidden rounded-2xl bg-emerald-600 text-white shadow">
+        <div className="p-4">
+          <p className="text-sm opacity-80">{formatJpMonth(payMKey)} に入ってくる金額の合計</p>
+          <p className="mt-0.5 text-3xl font-bold">{yen(data.monthTotal)}</p>
+          <p className="mt-1 text-xs opacity-70">{formatJpMonth(workMKey)}分の売上（締日グループ設定済み）</p>
+        </div>
+      </div>
+
+      <div className="rounded-xl bg-white p-2 shadow-sm">
+        <div className="grid grid-cols-7 text-center text-xs text-black/40">
+          {WEEK_LABELS.map((w, i) => (
+            <div key={w} className={`py-1 ${i === 6 ? 'text-red-400' : i === 5 ? 'text-blue-400' : ''}`}>
+              {w}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-0.5">
+          {cells.map((c, i) => {
+            if (!c) return <div key={i} />;
+            const day = Number(c.slice(8));
+            const info = data.byDate.get(c);
+            const isToday = c === today;
+            const isSel = c === selected;
+            return (
+              <button
+                key={c}
+                onClick={() => setSelected(isSel ? null : c)}
+                className={`flex min-h-[58px] flex-col items-center justify-start rounded-lg px-0.5 py-1 text-xs ${
+                  isSel ? 'bg-brand-soft' : info ? 'bg-emerald-50' : ''
+                } ${isToday ? 'ring-1 ring-brand-primary' : ''}`}
+              >
+                <span className={isToday ? 'font-bold text-brand-primary' : ''}>{day}</span>
+                {info && (
+                  <span className="mt-0.5 text-[10px] font-bold text-emerald-600">{manYen(info.total)}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {data.undatedCount > 0 && (
+        <p className="rounded-lg bg-amber-50 px-3 py-2 text-center text-xs text-amber-700">
+          {formatJpMonth(workMKey)}分に締日未設定の記録が{data.undatedCount}件（{yen(data.undatedTotal)}）あります。入金日を表示するには、各記録で締日（A/B/C）を設定してください。
+        </p>
+      )}
+
+      {selected && selInfo && (
+        <section className="rounded-xl bg-white p-4 shadow-sm">
+          <h3 className="mb-2 font-semibold">
+            {formatJpDate(selected)} の入金予定
+            <span className="text-emerald-600">{yen(selInfo.total)}</span>
+          </h3>
+          <div className="divide-y divide-black/5">
+            {selInfo.items.map((e) => (
+              <div key={e.id} className="flex items-center justify-between py-1.5 text-sm">
+                <span className="min-w-0 truncate pr-2">
+                  {e.billTo || e.site || '（請求先なし）'}
+                  <span className="ml-1.5 text-[11px] text-black/40">
+                    {billGroupText(e.billGroup)}・{e.site}
+                  </span>
+                </span>
+                <span className="shrink-0 font-semibold text-emerald-600">{yen(e.amount)}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+    </>
   );
 }
 
