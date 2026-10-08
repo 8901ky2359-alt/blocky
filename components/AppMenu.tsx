@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { clearSession } from '@/lib/timesheet/auth';
+import { changeMyPassword } from '@/lib/timesheet/api';
 
 const LINKS = [
   { href: '/', label: 'ホーム', icon: '🏠' },
@@ -17,6 +18,22 @@ const LINKS = [
 export default function AppMenu() {
   const [open, setOpen] = useState(false);
   const path = usePathname() || '/';
+
+  async function changePassword() {
+    const pw = window.prompt('新しいログインパスワード（6文字以上）を入力してください');
+    if (!pw) return;
+    if (pw.length < 6) {
+      alert('パスワードは6文字以上にしてください');
+      return;
+    }
+    try {
+      await changeMyPassword(pw);
+      alert('パスワードを変更しました。次回から新しいパスワードでログインしてください。');
+      setOpen(false);
+    } catch {
+      alert('変更に失敗しました。通信状況を確認してもう一度お試しください。');
+    }
+  }
 
   return (
     <div className="relative">
@@ -49,6 +66,13 @@ export default function AppMenu() {
                 </a>
               );
             })}
+            <button
+              onClick={changePassword}
+              className="flex w-full items-center gap-2.5 border-t border-slate-100 px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50"
+            >
+              <span className="text-base">🔑</span>
+              パスワードを変更
+            </button>
             <button
               onClick={() => {
                 clearSession();
