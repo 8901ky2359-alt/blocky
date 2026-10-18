@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Entry, workTypeOf } from '@/lib/types';
 import { DayMarkKind, Holiday } from '@/lib/holiday/types';
+import { withTax } from '@/lib/tax';
 import { byDateInfo, summarize } from '@/lib/finance';
 import { sendToNotion } from '@/lib/notion';
 import {
@@ -119,6 +120,7 @@ export default function CalendarView({
           <div className="px-1">
             <p className="text-[11px] text-black/50">売上</p>
             <p className="text-sm font-bold text-blue-600">{yen(monthTotals.income)}</p>
+            <p className="text-[10px] text-black/40">税込 {yen(withTax(monthTotals.income))}</p>
           </div>
           <div className="px-1">
             <p className="text-[11px] text-black/50">経費(自己負担)</p>

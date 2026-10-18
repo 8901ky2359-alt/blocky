@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { Entry } from '@/lib/types';
 import { summarize, Totals } from '@/lib/finance';
 import { isBillGroup, billGroupDueDate, billGroupText } from '@/lib/billgroup';
+import { withTax } from '@/lib/tax';
 import {
   WEEK_LABELS,
   calendarCells,
@@ -213,11 +214,6 @@ function IncomingCalendar({
       )}
     </>
   );
-}
-
-// 消費税（10%・切り捨て）を含めた金額
-function withTax(n: number): number {
-  return n + Math.floor(n * 0.1);
 }
 
 function clientNameOf(e: Entry): string {
