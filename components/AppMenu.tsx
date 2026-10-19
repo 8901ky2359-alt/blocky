@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { clearSession } from '@/lib/timesheet/auth';
+import { clearSession, getToken } from '@/lib/timesheet/auth';
 import { changeMyEmail, changeMyPassword } from '@/lib/timesheet/api';
 
 const LINKS = [
@@ -18,6 +18,10 @@ const LINKS = [
 export default function AppMenu() {
   const [open, setOpen] = useState(false);
   const path = usePathname() || '/';
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  // ホームはログインなしで開けるため、ログイン中のときだけアカウント操作を出す
+  useEffect(() => setLoggedIn(!!getToken()), []);
 
   async function changePassword() {
     const pw = window.prompt('新しいログインパスワード（6文字以上）を入力してください');
@@ -78,6 +82,8 @@ export default function AppMenu() {
                 </a>
               );
             })}
+            {loggedIn && (
+            <>
             <button
               onClick={changeEmail}
               className="flex w-full items-center gap-2.5 border-t border-slate-100 px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50"
@@ -102,6 +108,8 @@ export default function AppMenu() {
               <span className="text-base">🚪</span>
               ログアウト
             </button>
+            </>
+            )}
           </div>
         </>
       )}
