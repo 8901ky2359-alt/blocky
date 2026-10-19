@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { SiteSeed, SiteProgress, SiteType } from '@/lib/report/types';
 import { OVERALL_META, overallOf, statusLabel, isReportTarget, typeOf, mapsUrl, codeOf } from '@/lib/report/status';
-import { INSTRUCTION_FOLDERS } from '@/lib/report/instructions';
+import { INSTRUCTION_PDFS } from '@/lib/report/instructionPdfs';
 
 export default function SiteRow({
   site,
@@ -20,7 +20,7 @@ export default function SiteRow({
   const meta = OVERALL_META[ov];
   const label = statusLabel(type, p);
   const reportTarget = isReportTarget(p);
-  const instructionUrl = INSTRUCTION_FOLDERS[site.workNo];
+  const instructionUrl = INSTRUCTION_PDFS[site.workNo];
 
   return (
     <div
@@ -50,7 +50,7 @@ export default function SiteRow({
             )}
             {instructionUrl && (
               <span className="shrink-0 rounded bg-sky-100 px-1.5 py-0.5 text-[9px] font-bold text-sky-700">
-                📄 指示書あり
+                📄 資料あり
               </span>
             )}
           </div>
@@ -80,7 +80,9 @@ export default function SiteRow({
 
       {open && (
         <div className="space-y-3 border-t border-slate-100 p-3">
-          {/* 作業指示書（Googleドライブ） */}
+          {/* 現場資料（PDF。指示書そのものの場合と、現場地図・範囲図など指示書の代わりになる
+              資料の場合がある。Googleドライブに指示書という名前のファイルが無い現場が多いため、
+              「指示書」と断定せず「資料」としている */}
           {instructionUrl && (
             <a
               href={instructionUrl}
@@ -88,7 +90,7 @@ export default function SiteRow({
               rel="noopener noreferrer"
               className="block rounded-lg border border-sky-300 bg-sky-50 py-2.5 text-center text-sm font-bold text-sky-700"
             >
-              📄 作業指示書を開く（Googleドライブ）
+              📄 現場資料を開く（PDF）
             </a>
           )}
 
