@@ -276,14 +276,11 @@ export async function handleTimesheet(request, env, url) {
     const { results } = await env.DB.prepare(`SELECT COUNT(*) AS c FROM ts_users`).all();
     if ((results?.[0]?.c ?? 0) > 0) return json({ error: 'already-setup' }, 400);
     const body = await request.json().catch(() => ({}));
-    const email = String(body.email || '').trim().toLowerCase();
-    const password = String(body.password || '');
     const name = String(body.name || '').trim();
-    if (!isValidEmail(email)) return json({ error: 'invalid-email' }, 400);
-    if (password.length < 6) return json({ error: 'weak-password' }, 400);
     if (!name) return json({ error: 'name-required' }, 400);
-    const { hash, salt } = await hashPassword(password);
     const id = newId();
+    const email = `${id}@no-login.local`;
+    const { hash, salt } = await hashPassword(newId());
     const now = Date.now();
     await env.DB.prepare(
       `INSERT INTO ts_users (id, email, password_hash, password_salt, name, role, created_at) VALUES (?1,?2,?3,?4,?5,'admin',?6)`,
@@ -307,7 +304,21 @@ export async function handleTimesheet(request, env, url) {
     return json({ token, user: userRow(row) });
   }
 
-  // ここから先は認証必須
+  // ---- ログイン不要で使うための入口（名前を選ぶだけで開く） ----
+  if (sub === '/open-users' && method === 'GET') {
+    const { results } = await env.DB.prepare(`SELECT id, name, role FROM ts_users ORDER BY created_at ASC`).all();
+    return json({ users: (results || []).map((u) => ({ id: u.id, name: u.name, role: u.role })) });
+  }
+
+  if (sub === '/open' && method === 'POST') {
+    const body = await request.json().catch(() => ({}));
+    const row = await env.DB.prepare(`SELECT * FROM ts_users WHERE id = ?1`).bind(String(body.userId || '')).first();
+    if (!row) return json({ error: 'not-found' }, 404);
+    const token = await makeUserToken(row, env);
+    return json({ token, user: userRow(row) });
+  }
+
+  // ここから先は認証必須（トークンは /open か /login で発行）
   const auth = await getAuth(request, env);
   if (!auth) return json({ error: 'unauthorized' }, 401);
 
@@ -358,17 +369,13 @@ export async function handleTimesheet(request, env, url) {
   if (sub === '/users' && method === 'POST') {
     if (auth.role !== 'admin') return json({ error: 'forbidden' }, 403);
     const body = await request.json().catch(() => ({}));
-    const email = String(body.email || '').trim().toLowerCase();
-    const password = String(body.password || '');
     const name = String(body.name || '').trim();
     const role = body.role === 'admin' ? 'admin' : 'worker';
-    if (!isValidEmail(email)) return json({ error: 'invalid-email' }, 400);
-    if (password.length < 6) return json({ error: 'weak-password' }, 400);
     if (!name) return json({ error: 'name-required' }, 400);
-    const exists = await env.DB.prepare(`SELECT id FROM ts_users WHERE email = ?1`).bind(email).first();
-    if (exists) return json({ error: 'email-taken' }, 409);
-    const { hash, salt } = await hashPassword(password);
+    // ログイン不要になったので、メール・パスワードは名前だけで追加できるよう内部で自動生成
     const id = newId();
+    const email = `${id}@no-login.local`;
+    const { hash, salt } = await hashPassword(newId());
     const now = Date.now();
     await env.DB.prepare(
       `INSERT INTO ts_users (id, email, password_hash, password_salt, name, role, created_at) VALUES (?1,?2,?3,?4,?5,?6,?7)`,

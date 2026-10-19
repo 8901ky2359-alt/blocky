@@ -1,6 +1,6 @@
 'use client';
 
-// 作業日報API（サーバー側D1が正データ。ログイン後はトークンをAuthorizationヘッダで送る）
+// 作業日報API（サーバー側D1が正データ。名前を選んだ後はトークンをAuthorizationヘッダで送る）
 
 import { TimesheetEntry, TimesheetUser } from './types';
 import { getToken } from './auth';
@@ -36,17 +36,21 @@ export function setupStatus(): Promise<{ needsSetup: boolean }> {
   return call('/setup-status');
 }
 
-export function setupAdmin(email: string, password: string, name: string) {
+export function setupAdmin(name: string) {
   return call<{ token: string; user: TimesheetUser }>('/setup', {
     method: 'POST',
-    body: JSON.stringify({ email, password, name }),
+    body: JSON.stringify({ name }),
   });
 }
 
-export function login(email: string, password: string) {
-  return call<{ token: string; user: TimesheetUser }>('/login', {
+export function openUsers() {
+  return call<{ users: Pick<TimesheetUser, 'id' | 'name' | 'role'>[] }>('/open-users');
+}
+
+export function openAs(userId: string) {
+  return call<{ token: string; user: TimesheetUser }>('/open', {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ userId }),
   });
 }
 
@@ -54,27 +58,15 @@ export function me() {
   return call<{ user: TimesheetUser }>('/me');
 }
 
-export function changeMyPassword(password: string) {
-  return call<{ ok: true }>('/me', { method: 'PATCH', body: JSON.stringify({ password }) });
-}
-
-export function changeMyEmail(email: string) {
-  return call<{ ok: true }>('/me', { method: 'PATCH', body: JSON.stringify({ email }) });
-}
-
 export function listUsers() {
   return call<{ users: TimesheetUser[] }>('/users');
 }
 
-export function createWorker(email: string, password: string, name: string) {
+export function createWorker(name: string) {
   return call<{ user: TimesheetUser }>('/users', {
     method: 'POST',
-    body: JSON.stringify({ email, password, name }),
+    body: JSON.stringify({ name }),
   });
-}
-
-export function resetWorkerPassword(id: string, password: string) {
-  return call<{ ok: true }>(`/users/${id}`, { method: 'PATCH', body: JSON.stringify({ password }) });
 }
 
 export function deleteWorker(id: string) {

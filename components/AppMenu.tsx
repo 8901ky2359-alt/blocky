@@ -1,9 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { clearSession, getToken } from '@/lib/timesheet/auth';
-import { changeMyEmail, changeMyPassword } from '@/lib/timesheet/api';
 
 const LINKS = [
   { href: '/', label: 'ホーム', icon: '🏠' },
@@ -18,39 +16,6 @@ const LINKS = [
 export default function AppMenu() {
   const [open, setOpen] = useState(false);
   const path = usePathname() || '/';
-  const [loggedIn, setLoggedIn] = useState(false);
-
-  // ホームはログインなしで開けるため、ログイン中のときだけアカウント操作を出す
-  useEffect(() => setLoggedIn(!!getToken()), []);
-
-  async function changePassword() {
-    const pw = window.prompt('新しいログインパスワード（6文字以上）を入力してください');
-    if (!pw) return;
-    if (pw.length < 6) {
-      alert('パスワードは6文字以上にしてください');
-      return;
-    }
-    try {
-      await changeMyPassword(pw);
-      alert('パスワードを変更しました。次回から新しいパスワードでログインしてください。');
-      setOpen(false);
-    } catch {
-      alert('変更に失敗しました。通信状況を確認してもう一度お試しください。');
-    }
-  }
-
-  async function changeEmail() {
-    const email = window.prompt('新しいログイン用メールアドレスを入力してください');
-    if (!email) return;
-    try {
-      await changeMyEmail(email.trim());
-      alert('メールアドレスを変更しました。次回から新しいメールアドレスでログインしてください。');
-      setOpen(false);
-    } catch {
-      alert('変更に失敗しました（形式が正しいか、他のアカウントで使われていないか確認してください）。');
-    }
-  }
-
   return (
     <div className="relative">
       <button
@@ -82,34 +47,6 @@ export default function AppMenu() {
                 </a>
               );
             })}
-            {loggedIn && (
-            <>
-            <button
-              onClick={changeEmail}
-              className="flex w-full items-center gap-2.5 border-t border-slate-100 px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50"
-            >
-              <span className="text-base">✉️</span>
-              メールアドレスを変更
-            </button>
-            <button
-              onClick={changePassword}
-              className="flex w-full items-center gap-2.5 border-t border-slate-100 px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50"
-            >
-              <span className="text-base">🔑</span>
-              パスワードを変更
-            </button>
-            <button
-              onClick={() => {
-                clearSession();
-                location.href = '/';
-              }}
-              className="flex w-full items-center gap-2.5 border-t border-slate-100 px-4 py-3 text-left text-sm text-slate-500 hover:bg-slate-50"
-            >
-              <span className="text-base">🚪</span>
-              ログアウト
-            </button>
-            </>
-            )}
           </div>
         </>
       )}

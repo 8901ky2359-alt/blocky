@@ -2,19 +2,9 @@
 
 import { useEffect } from 'react';
 import ReportListView from '@/components/report/ReportListView';
-import RequirePin from '@/components/RequirePin';
 
-// 管理者ログインとは切り離した独立ページ。他の人にも共有できるよう、
-// 簡易パスワード（PIN）だけで開けるようにしている。
+// 他の人にも共有できる独立ページ（パスワードなしで開ける）
 export default function ReportPage() {
-  return (
-    <RequirePin pin="1193" storageKey="report" title="防草シート案件">
-      <ReportPageInner />
-    </RequirePin>
-  );
-}
-
-function ReportPageInner() {
   useEffect(() => {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => {});

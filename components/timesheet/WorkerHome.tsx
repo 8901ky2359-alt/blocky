@@ -88,7 +88,7 @@ export default function WorkerHome({ user }: { user: TimesheetUser }) {
               }}
               className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-600"
             >
-              ログアウト
+              切り替え
             </button>
           </div>
         </header>
