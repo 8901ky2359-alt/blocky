@@ -2,18 +2,9 @@
 
 import { useEffect } from 'react';
 import AppMenu from '@/components/AppMenu';
-import RequireRole from '@/components/RequireRole';
 import SignPhoto from '@/components/signphoto/SignPhoto';
 
 export default function PhotoSignPage() {
-  return (
-    <RequireRole role="admin">
-      {() => <PhotoSignInner />}
-    </RequireRole>
-  );
-}
-
-function PhotoSignInner() {
   useEffect(() => {
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
   }, []);
