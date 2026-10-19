@@ -319,11 +319,31 @@ export async function handleTimesheet(request, env, url) {
 
   if (sub === '/me' && method === 'PATCH') {
     const body = await request.json().catch(() => ({}));
-    const password = String(body.password || '');
-    if (password.length < 6) return json({ error: 'weak-password' }, 400);
-    const { hash, salt } = await hashPassword(password);
-    await env.DB.prepare(`UPDATE ts_users SET password_hash=?1, password_salt=?2 WHERE id=?3`)
-      .bind(hash, salt, auth.uid)
+    const sets = [];
+    const binds = [];
+    if (body.password !== undefined) {
+      const password = String(body.password || '');
+      if (password.length < 6) return json({ error: 'weak-password' }, 400);
+      const { hash, salt } = await hashPassword(password);
+      sets.push(`password_hash=?${sets.length + 1}`);
+      binds.push(hash);
+      sets.push(`password_salt=?${sets.length + 1}`);
+      binds.push(salt);
+    }
+    if (body.email !== undefined) {
+      const email = String(body.email || '').trim().toLowerCase();
+      if (!isValidEmail(email)) return json({ error: 'invalid-email' }, 400);
+      const exists = await env.DB.prepare(`SELECT id FROM ts_users WHERE email = ?1 AND id != ?2`)
+        .bind(email, auth.uid)
+        .first();
+      if (exists) return json({ error: 'email-taken' }, 409);
+      sets.push(`email=?${sets.length + 1}`);
+      binds.push(email);
+    }
+    if (sets.length === 0) return json({ error: 'nothing-to-update' }, 400);
+    binds.push(auth.uid);
+    await env.DB.prepare(`UPDATE ts_users SET ${sets.join(', ')} WHERE id=?${sets.length + 1}`)
+      .bind(...binds)
       .run();
     return json({ ok: true });
   }

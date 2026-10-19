@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { clearSession } from '@/lib/timesheet/auth';
-import { changeMyPassword } from '@/lib/timesheet/api';
+import { changeMyEmail, changeMyPassword } from '@/lib/timesheet/api';
 
 const LINKS = [
   { href: '/', label: 'ホーム', icon: '🏠' },
@@ -32,6 +32,18 @@ export default function AppMenu() {
       setOpen(false);
     } catch {
       alert('変更に失敗しました。通信状況を確認してもう一度お試しください。');
+    }
+  }
+
+  async function changeEmail() {
+    const email = window.prompt('新しいログイン用メールアドレスを入力してください');
+    if (!email) return;
+    try {
+      await changeMyEmail(email.trim());
+      alert('メールアドレスを変更しました。次回から新しいメールアドレスでログインしてください。');
+      setOpen(false);
+    } catch {
+      alert('変更に失敗しました（形式が正しいか、他のアカウントで使われていないか確認してください）。');
     }
   }
 
@@ -66,6 +78,13 @@ export default function AppMenu() {
                 </a>
               );
             })}
+            <button
+              onClick={changeEmail}
+              className="flex w-full items-center gap-2.5 border-t border-slate-100 px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50"
+            >
+              <span className="text-base">✉️</span>
+              メールアドレスを変更
+            </button>
             <button
               onClick={changePassword}
               className="flex w-full items-center gap-2.5 border-t border-slate-100 px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50"

@@ -58,6 +58,10 @@ export function changeMyPassword(password: string) {
   return call<{ ok: true }>('/me', { method: 'PATCH', body: JSON.stringify({ password }) });
 }
 
+export function changeMyEmail(email: string) {
+  return call<{ ok: true }>('/me', { method: 'PATCH', body: JSON.stringify({ email }) });
+}
+
 export function listUsers() {
   return call<{ users: TimesheetUser[] }>('/users');
 }
