@@ -359,9 +359,10 @@ async function readLegacySales(env) {
       id: `legacy-${r.id}`,
       date: e.date,
       site: String(e.site || '').trim() || '現場名なし',
-      work: String(e.category || '').trim(),
+      // 旧アプリでは「作業内容」をメモ欄に入れていた
+      work: String(e.memo || '').trim() || String(e.category || '').trim(),
       amount,
-      memo: String(e.memo || '').trim(),
+      memo: String(e.memo || '').trim() && String(e.category || '').trim() ? String(e.category).trim() : '',
       workType,
       hiredName: workType === '作業員手配' ? String(e.hiredName || '').trim() : '',
       clientName: String(e.billTo || '').trim() || LEGACY_NO_CLIENT,
@@ -521,13 +522,17 @@ export async function handleFieldWatch(request, env, url) {
     const { results } = await env.DB.prepare(`SELECT id FROM fw_sales WHERE id LIKE 'legacy-%'`).all();
     const done = new Set((results || []).map((r) => r.id));
     const todo = sales.filter((x) => !done.has(x.id));
+    // 前の取り込みでメモ欄に入れてしまった作業内容を、作業内容欄へ移す
+    await env.DB.prepare(
+      `UPDATE fw_sales SET work = memo, memo = '' WHERE id LIKE 'legacy-%' AND work = '' AND memo != ''`,
+    ).run();
     // 区分が入る前に取り込んだ分に、区分と作業員名を付け直す（対象があるときだけ）
     const blank = await env.DB.prepare(`SELECT COUNT(*) AS c FROM fw_sales WHERE id LIKE 'legacy-%' AND work_type = ''`).first();
     for (const x of blank?.c ? sales : []) {
       if (!done.has(x.id)) continue;
-      // 前の取り込みでメモに入れていた「雇用 ／ 雇用: 氏名」も元のメモに戻す
-      await env.DB.prepare(`UPDATE fw_sales SET work_type=?1, hired_name=?2, memo=?3 WHERE id=?4 AND work_type=''`)
-        .bind(x.workType, x.hiredName, x.memo, x.id)
+      // 前の取り込みで「雇用 ／ 雇用: 氏名 ／ 作業内容」とメモに入れていた分は、作業内容だけに戻す
+      await env.DB.prepare(`UPDATE fw_sales SET work_type=?1, hired_name=?2, work=?3, memo=?4 WHERE id=?5 AND work_type=''`)
+        .bind(x.workType, x.hiredName, x.work, x.memo, x.id)
         .run();
     }
     const summary = {

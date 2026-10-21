@@ -8,7 +8,8 @@ import { ApiError, createSale, deleteSale, listClients, updateSale } from '@/lib
 import { CUTOFF_DAYS, closingDate, dayLabel, paymentDate, shortDate } from '@/lib/fw/billing';
 import { useSales } from '@/lib/fw/useSales';
 import { Client, Sale, SaleInput, Terms, User, WORK_TYPES } from '@/lib/fw/types';
-import { todayStr } from '@/lib/format';
+import { todayStr, yen } from '@/lib/format';
+import { withTax } from '@/lib/tax';
 
 export default function SalesPage() {
   return <AuthGate>{(user) => <SalesInner user={user} />}</AuthGate>;
@@ -60,6 +61,7 @@ function SalesInner({ user }: { user: User }) {
   }, []);
 
   const mine = useMemo(() => sales.filter((s) => s.userId === user.id), [sales, user.id]);
+  const workOptions = useMemo(() => workSuggestions(sales), [sales]);
   const set = <K extends keyof SaleInput>(k: K, v: SaleInput[K]) => setForm((f) => ({ ...f, [k]: v }));
 
   function pickClient(c: Client) {
@@ -181,6 +183,19 @@ function SalesInner({ user }: { user: User }) {
           </Field>
           <Field label="作業内容">
             <input id="work" value={form.work} onChange={(e) => set('work', e.target.value)} placeholder="例: 草刈り" className="input" />
+            {workOptions.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {workOptions
+                  // 入力中は文字を含む候補だけに絞る（候補をそのまま選んだ後は全部出す）
+                  .filter((w) => !form.work.trim() || workOptions.includes(form.work.trim()) || w.includes(form.work.trim()))
+                  .slice(0, 12)
+                  .map((w) => (
+                    <Chip key={w} on={w === form.work.trim()} onClick={() => set('work', w)}>
+                      {w}
+                    </Chip>
+                  ))}
+              </div>
+            )}
           </Field>
           <Field label="金額（税抜）">
             <input
@@ -192,6 +207,7 @@ function SalesInner({ user }: { user: User }) {
               placeholder="例: 10000"
               className="input text-lg font-bold tabular-nums"
             />
+            {form.amount > 0 && <span className="text-sm text-fw-muted tabular-nums">税込 {yen(withTax(form.amount))}</span>}
           </Field>
         </Card>
       </Section>
@@ -259,6 +275,27 @@ function SalesInner({ user }: { user: User }) {
       </Section>
     </Screen>
   );
+}
+
+// 作業内容の候補：これまでの売上の作業内容（よく使う順）＋以前のアプリがこの端末に覚えていた候補
+const OLD_MEMOS_KEY = 'income-memos';
+
+function workSuggestions(sales: Sale[]): string[] {
+  const count = new Map<string, { n: number; last: number }>();
+  for (const s of sales) {
+    const w = s.work.trim();
+    if (!w) continue;
+    const c = count.get(w) ?? { n: 0, last: 0 };
+    count.set(w, { n: c.n + 1, last: Math.max(c.last, s.createdAt) });
+  }
+  const list = [...count.entries()].sort((a, b) => b[1].n - a[1].n || b[1].last - a[1].last).map(([w]) => w);
+  try {
+    const old = JSON.parse(localStorage.getItem(OLD_MEMOS_KEY) || '[]');
+    if (Array.isArray(old)) for (const w of old) if (typeof w === 'string' && w.trim() && !list.includes(w.trim())) list.push(w.trim());
+  } catch {
+    /* 以前の候補が読めなくても続ける */
+  }
+  return list;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import AuthGate from '@/components/fw/AuthGate';
 import Screen from '@/components/fw/Screen';
-import { Card, SaleRow, Section, Segmented } from '@/components/fw/ui';
+import { Card, SaleRow, Section, Segmented, TaxedYen } from '@/components/fw/ui';
 import { deleteSale, setApproved } from '@/lib/fw/api';
 import { useSales } from '@/lib/fw/useSales';
 import { Sale, User } from '@/lib/fw/types';
@@ -72,13 +72,16 @@ function ReviewInner({ user }: { user: User }) {
               <Section key={name} title={name}>
                 <Card className="grid grid-cols-3 gap-2 p-4 text-xs text-fw-muted">
                   <span>
-                    合計（税込）<b className="block text-lg text-fw-ink tabular-nums">{yen(withTax(sum(list)))}</b>
+                    合計
+                    <TaxedYen ex={sum(list)} className="text-lg font-bold text-fw-ink" />
                   </span>
                   <span>
-                    承認済み {ap.length}件<b className="block text-sm text-fw-ink tabular-nums">{yen(withTax(sum(ap)))}</b>
+                    承認済み {ap.length}件
+                    <TaxedYen ex={sum(ap)} className="text-sm font-bold text-fw-ink" />
                   </span>
                   <span>
-                    承認待ち {pe.length}件<b className="block text-sm text-fw-ink tabular-nums">{yen(withTax(sum(pe)))}</b>
+                    承認待ち {pe.length}件
+                    <TaxedYen ex={sum(pe)} className="text-sm font-bold text-fw-ink" />
                   </span>
                 </Card>
               </Section>
@@ -117,7 +120,10 @@ function ReviewInner({ user }: { user: User }) {
                 {open.userName} ・ {formatJpDate(open.date)}
               </span>
               <span className="text-lg font-bold">{[open.site, open.work].filter(Boolean).join(' ')}</span>
-              <span className="text-2xl font-extrabold tabular-nums">{yen(open.amount)}（税抜）</span>
+              <span className="text-2xl font-extrabold tabular-nums">
+                {yen(open.amount)}
+                <span className="ml-1 text-sm font-normal text-fw-muted">税抜 ・ 税込 {yen(withTax(open.amount))}</span>
+              </span>
               <span>
                 {open.clientName} ・ {termsLabel(open)}
               </span>

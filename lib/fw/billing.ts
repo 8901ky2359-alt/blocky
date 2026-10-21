@@ -76,15 +76,29 @@ export interface PaymentGroup {
   closing: string;
   cutoff: number;
   sales: Sale[];
+  subtotal: number; // 税抜
+  total: number; // 税込
+}
+
+export interface Amounts {
+  count: number;
+  subtotal: number; // 税抜
   total: number; // 税込
 }
 
 export interface NextPayment {
+  subtotal: number; // 税抜
   total: number; // 税込
   groups: PaymentGroup[];
-  approved: { count: number; total: number };
-  pending: { count: number; total: number };
+  approved: Amounts;
+  pending: Amounts;
   sales: Sale[];
+}
+
+// 件数・税抜・税込をまとめて出す
+export function amounts(sales: Sale[]): Amounts {
+  const subtotal = sum(sales);
+  return { count: sales.length, subtotal, total: withTax(subtotal) };
 }
 
 // 次回入金予定：未入金の売上を締め日のルールごとに分け、それぞれ一番早い入金日の分を合計する
@@ -107,18 +121,18 @@ export function nextPayment(sales: Sale[]): NextPayment {
       closing: saleClosing(list[0]),
       cutoff: list[0].cutoff,
       sales: list,
+      subtotal: sum(list),
       total: withTax(sum(list)),
     });
   }
   groups.sort((a, b) => (a.payDate < b.payDate ? -1 : a.payDate > b.payDate ? 1 : a.cutoff - b.cutoff));
   const all = groups.flatMap((g) => g.sales);
-  const approved = all.filter((s) => s.status === 'approved');
-  const pending = all.filter((s) => s.status === 'pending');
   return {
+    subtotal: sum(all),
     total: groups.reduce((n, g) => n + g.total, 0),
     groups,
-    approved: { count: approved.length, total: withTax(sum(approved)) },
-    pending: { count: pending.length, total: withTax(sum(pending)) },
+    approved: amounts(all.filter((s) => s.status === 'approved')),
+    pending: amounts(all.filter((s) => s.status === 'pending')),
     sales: all,
   };
 }

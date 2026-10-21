@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import AuthGate from '@/components/fw/AuthGate';
 import Screen from '@/components/fw/Screen';
-import { Card, Chip, Section, Segmented } from '@/components/fw/ui';
+import { Card, Chip, Section, Segmented, TaxedYen } from '@/components/fw/ui';
 import OutputSheet from '@/components/fw/OutputSheet';
 import ProfileSheet from '@/components/fw/ProfileSheet';
 import { getProfile, setPaid } from '@/lib/fw/api';
@@ -21,7 +21,9 @@ type Tab = 'cutoff' | 'client' | 'all';
 
 const EMPTY_PROFILE: Profile = { issuerName: '', tradeName: '', address: '', phone: '', bank: '', invoiceNo: '' };
 
-const total = (gs: InvoiceGroup[]) => gs.reduce((n, g) => n + g.total, 0);
+const total = (gs: InvoiceGroup[]) => gs.reduce((n, g) => n + g.total, 0); // 税込
+const subtotal = (gs: InvoiceGroup[]) => gs.reduce((n, g) => n + g.subtotal, 0); // 税抜
+const count = (gs: InvoiceGroup[]) => gs.reduce((n, g) => n + g.sales.length, 0);
 
 function InvoiceInner({ user }: { user: User }) {
   const { sales, loading, reload } = useSales();
@@ -159,9 +161,12 @@ function InvoiceInner({ user }: { user: User }) {
             </div>
           </Section>
           <TotalCard
-            label={`${selectedCutoffs.map(cutoffLabel).join('＋') || '締め日を選んでください'} の合計（税込）`}
-            amount={total(scope)}
-            split={selectedCutoffs.map((c) => [cutoffLabel(c), total(scope.filter((g) => g.cutoff === c))] as [string, number])}
+            label={`${selectedCutoffs.map(cutoffLabel).join('＋') || '締め日を選んでください'} の合計`}
+            groups={scope}
+            split={selectedCutoffs.map((c) => {
+              const gs = scope.filter((g) => g.cutoff === c);
+              return { label: cutoffLabel(c), ex: subtotal(gs), inc: total(gs) };
+            })}
           />
           <Section title="請求書（押すと明細）">
             <GroupList groups={scope} showUser={isAdmin && person === 'all'} onTogglePaid={togglePaid} />
@@ -180,15 +185,17 @@ function InvoiceInner({ user }: { user: User }) {
                   <span>
                     <span className="block font-semibold">{name}</span>
                     <span className="text-xs text-fw-muted">
-                      {[...new Set(gs.map((g) => cutoffLabel(g.cutoff)))].join('・')} ・ {gs.reduce((n, g) => n + g.sales.length, 0)}件
+                      {[...new Set(gs.map((g) => cutoffLabel(g.cutoff)))].join('・')} ・ {count(gs)}件
                     </span>
                   </span>
-                  <span className="font-bold tabular-nums">{yen(total(gs))}</span>
+                  <span className="text-right">
+                    <TaxedYen ex={subtotal(gs)} inc={total(gs)} />
+                  </span>
                 </button>
               ))}
             </Card>
           </Section>
-          <TotalCard label={`${client ?? 'すべての請求先'} の合計（税込）`} amount={total(scope)} />
+          <TotalCard label={`${client ?? 'すべての請求先'} の合計`} groups={scope} />
           <Section title="請求書（押すと明細）">
             <GroupList groups={scope} showUser={isAdmin && person === 'all'} onTogglePaid={togglePaid} />
           </Section>
@@ -196,21 +203,26 @@ function InvoiceInner({ user }: { user: User }) {
       ) : (
         <>
           <TotalCard
-            label={`${title} 全体（税込）`}
-            amount={total(groups)}
-            split={[
-              ['請求先', clients.length],
-              ['件数', groups.reduce((n, g) => n + g.sales.length, 0)],
-              ['未入金', total(groups.filter((g) => !g.paid))],
+            label={`${title} 全体`}
+            groups={groups}
+            facts={[
+              ['請求先', `${clients.length}社`],
+              ['件数', `${count(groups)}件`],
             ]}
-            rawIndexes={[0, 1]}
+            split={[
+              {
+                label: '未入金',
+                ex: subtotal(groups.filter((g) => !g.paid)),
+                inc: total(groups.filter((g) => !g.paid)),
+              },
+            ]}
           />
           <Section title="締め日ごと">
             <Card>
               {cutoffs.map((c) => {
                 const gs = groups.filter((g) => g.cutoff === c);
                 return (
-                  <Row key={c} title={cutoffLabel(c)} sub={[...new Set(gs.map((g) => g.clientName))].join('・')} amount={total(gs)} />
+                  <Row key={c} title={cutoffLabel(c)} sub={[...new Set(gs.map((g) => g.clientName))].join('・')} groups={gs} />
                 );
               })}
             </Card>
@@ -218,7 +230,7 @@ function InvoiceInner({ user }: { user: User }) {
           <Section title="請求先ごと">
             <Card>
               {clients.map(([name, gs]) => (
-                <Row key={name} title={name} sub={`${gs.reduce((n, g) => n + g.sales.length, 0)}件`} amount={total(gs)} />
+                <Row key={name} title={name} sub={`${count(gs)}件`} groups={gs} />
               ))}
             </Card>
           </Section>
@@ -258,25 +270,35 @@ function InvoiceInner({ user }: { user: User }) {
 
 function TotalCard({
   label,
-  amount,
-  split,
-  rawIndexes = [],
+  groups,
+  split = [],
+  facts = [],
 }: {
   label: string;
-  amount: number;
-  split?: [string, number][];
-  rawIndexes?: number[]; // 金額ではなく数として出す項目
+  groups: InvoiceGroup[];
+  split?: { label: string; ex: number; inc: number }[];
+  facts?: [string, string][]; // 金額以外（件数など）
 }) {
   return (
     <Card className="mb-5 grid gap-1 p-4">
       <span className="text-[13px] text-fw-muted">{label}</span>
-      <span className="text-3xl font-extrabold tabular-nums">{yen(amount)}</span>
-      {split && split.length > 0 && (
+      <span className="tabular-nums">
+        <span className="text-3xl font-extrabold">{yen(total(groups))}</span>
+        <span className="ml-1.5 text-sm text-fw-muted">税込</span>
+      </span>
+      <span className="text-sm text-fw-muted tabular-nums">税抜 {yen(subtotal(groups))}</span>
+      {(split.length > 0 || facts.length > 0) && (
         <div className="mt-1 grid grid-cols-3 gap-2 border-t border-fw-line pt-2 text-xs text-fw-muted">
-          {split.map(([k, v], i) => (
+          {facts.map(([k, v]) => (
             <span key={k}>
               {k}
-              <b className="block text-[14px] text-fw-ink tabular-nums">{rawIndexes.includes(i) ? v.toLocaleString('ja-JP') : yen(v)}</b>
+              <b className="block text-[14px] text-fw-ink tabular-nums">{v}</b>
+            </span>
+          ))}
+          {split.map((x) => (
+            <span key={x.label}>
+              {x.label}
+              <TaxedYen ex={x.ex} inc={x.inc} className="text-[14px] font-bold text-fw-ink" />
             </span>
           ))}
         </div>
@@ -285,14 +307,16 @@ function TotalCard({
   );
 }
 
-function Row({ title, sub, amount }: { title: string; sub: string; amount: number }) {
+function Row({ title, sub, groups }: { title: string; sub: string; groups: InvoiceGroup[] }) {
   return (
     <div className="flex items-center justify-between gap-3 border-b border-fw-line px-4 py-3 last:border-b-0">
       <span className="min-w-0">
         <span className="block font-semibold">{title}</span>
         <span className="block truncate text-xs text-fw-muted">{sub}</span>
       </span>
-      <span className="shrink-0 font-bold tabular-nums">{yen(amount)}</span>
+      <span className="shrink-0 text-right">
+        <TaxedYen ex={subtotal(groups)} inc={total(groups)} />
+      </span>
     </div>
   );
 }
@@ -312,8 +336,8 @@ function GroupList({ groups, showUser, onTogglePaid }: { groups: InvoiceGroup[];
               </span>
             </span>
             <span className="shrink-0 text-right">
-              <span className="block font-bold tabular-nums">{yen(g.total)}</span>
-              {g.paid && <span className="text-[11px] font-bold text-fw-muted">入金済み</span>}
+              <TaxedYen ex={g.subtotal} inc={g.total} />
+              {g.paid && <span className="block text-[11px] font-bold text-fw-muted">入金済み</span>}
             </span>
           </button>
           {open === g.key && (
@@ -324,7 +348,7 @@ function GroupList({ groups, showUser, onTogglePaid }: { groups: InvoiceGroup[];
                     {shortDate(s.date)} {s.site} {s.work}
                     {s.status === 'pending' && <span className="ml-1 text-[11px] font-bold text-fw-orange">承認待ち</span>}
                   </span>
-                  <span className="shrink-0 tabular-nums">{yen(s.amount)}</span>
+                  <span className="shrink-0 tabular-nums">{yen(s.amount)}（税抜）</span>
                 </div>
               ))}
               <div className="mt-1 flex justify-between border-t border-fw-line pt-1 text-xs text-fw-muted">

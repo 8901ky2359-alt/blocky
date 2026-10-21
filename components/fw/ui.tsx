@@ -4,6 +4,31 @@ import Link from 'next/link';
 import { Sale } from '@/lib/fw/types';
 import { yen } from '@/lib/format';
 import { shortDate } from '@/lib/fw/billing';
+import { withTax } from '@/lib/tax';
+
+// 金額を税込・税抜の両方で出す（main 側を大きく、もう一方を下に小さく）
+export function TaxedYen({
+  ex,
+  inc = withTax(ex),
+  main = 'inc',
+  className = 'font-bold',
+  subClassName = 'text-fw-muted',
+}: {
+  ex: number;
+  inc?: number;
+  main?: 'inc' | 'ex';
+  className?: string;
+  subClassName?: string;
+}) {
+  return (
+    <span className="inline-block tabular-nums">
+      <span className={`block ${className}`}>{yen(main === 'inc' ? inc : ex)}</span>
+      <span className={`block text-[11px] font-normal ${subClassName}`}>
+        {main === 'inc' ? `税抜 ${yen(ex)}` : `税込 ${yen(inc)}`}
+      </span>
+    </span>
+  );
+}
 
 export function Section({ title, children, right }: { title?: string; children: React.ReactNode; right?: React.ReactNode }) {
   return (
@@ -59,8 +84,8 @@ export function SaleRow({ sale, showUser, onClick }: { sale: Sale; showUser?: bo
           {[showUser ? sale.userName : '', shortDate(sale.date), workTypeText(sale), sale.clientName].filter(Boolean).join(' ・ ')}
         </span>
       </span>
-      <span className="shrink-0 text-right">
-        <span className="block text-[15px] font-bold tabular-nums">{yen(sale.amount)}</span>
+      <span className="flex shrink-0 flex-col items-end gap-0.5 text-right">
+        <TaxedYen ex={sale.amount} main="ex" className="text-[15px] font-bold" />
         <StatusPill sale={sale} />
       </span>
     </>

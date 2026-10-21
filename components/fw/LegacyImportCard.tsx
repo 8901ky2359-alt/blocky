@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react';
 import { LegacySummary, importLegacy, legacySummary } from '@/lib/fw/api';
 import { yen } from '@/lib/format';
+import { withTax } from '@/lib/tax';
 
 export default function LegacyImportCard({ onImported }: { onImported: () => void }) {
   const [summary, setSummary] = useState<LegacySummary | null>(null);
@@ -37,7 +38,7 @@ export default function LegacyImportCard({ onImported }: { onImported: () => voi
     <div className="mx-4 mb-5 grid gap-2 rounded-2xl bg-fw-card p-4">
       <p className="font-bold">以前の売上管理のデータがあります</p>
       <p className="text-sm text-fw-muted">
-        売上 {summary.importable}件（税抜 {yen(summary.importableTotal)}）を取り込めます。入金日を過ぎた分は「入金済み」、
+        売上 {summary.importable}件（税込 {yen(withTax(summary.importableTotal))}・税抜 {yen(summary.importableTotal)}）を取り込めます。入金日を過ぎた分は「入金済み」、
         まだ先の{summary.unpaid}件は次回入金予定に入ります。
         {summary.skippedExpense > 0 && ` 経費など${summary.skippedExpense}件は取り込みません。`}
       </p>

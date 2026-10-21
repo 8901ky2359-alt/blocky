@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import AuthGate from '@/components/fw/AuthGate';
 import Screen from '@/components/fw/Screen';
-import { Card, Chip, SaleRow, Section } from '@/components/fw/ui';
+import { Card, Chip, SaleRow, Section, TaxedYen } from '@/components/fw/ui';
 import { salePayment, sum } from '@/lib/fw/billing';
 import { useSales } from '@/lib/fw/useSales';
 import { Sale, WORK_TYPES, WorkType } from '@/lib/fw/types';
@@ -91,7 +91,7 @@ function CalendarInner() {
           <span className="text-center">
             <span className="block text-lg font-bold">{formatJpMonth(month)}</span>
             <span className="block text-xs text-fw-muted tabular-nums">
-              売上 {yen(sum(monthSales))}（税抜）・ {monthSales.length}件
+              売上 {yen(withTax(sum(monthSales)))}（税込）・ 税抜 {yen(sum(monthSales))} ・ {monthSales.length}件
             </span>
           </span>
           <button onClick={() => setMonth(shiftMonth(month, 1))} className="px-3 py-1 text-2xl text-fw-green" aria-label="次の月">
@@ -108,7 +108,7 @@ function CalendarInner() {
               <span className="block text-[11px] text-fw-muted">
                 {t.type} {openType === t.type ? '▲' : '▾'}
               </span>
-              <span className="block text-[14px] font-bold tabular-nums">{yen(t.total)}</span>
+              <TaxedYen ex={t.total} main="ex" className="text-[14px] font-bold" />
             </button>
           ))}
         </div>
@@ -121,9 +121,11 @@ function CalendarInner() {
               opened.bills.map(([name, list]) => (
                 <span key={name} className="flex justify-between gap-2">
                   <span className="truncate">{name}</span>
-                  <span className="shrink-0 font-semibold tabular-nums">
+                  <span className="shrink-0 text-right font-semibold tabular-nums">
                     {yen(sum(list))}
-                    <span className="ml-1 font-normal text-fw-muted">（{list.length}件）</span>
+                    <span className="ml-1 font-normal text-fw-muted">
+                      税込 {yen(withTax(sum(list)))}（{list.length}件）
+                    </span>
                   </span>
                 </span>
               ))
@@ -171,7 +173,9 @@ function CalendarInner() {
             <span className="text-sm">
               入金予定 <span className="text-fw-muted">{[...new Set(dayPay.map((s) => s.clientName))].join('・')}</span>
             </span>
-            <span className="font-bold text-fw-blue tabular-nums">{yen(withTax(sum(dayPay)))}</span>
+            <span className="text-right">
+              <TaxedYen ex={sum(dayPay)} className="font-bold text-fw-blue" />
+            </span>
           </Card>
         )}
         <Card>
