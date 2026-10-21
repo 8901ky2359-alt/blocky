@@ -9,8 +9,10 @@ function jpDate(date: string): string {
   return `${y}年${m}月${d}日`;
 }
 
+// 作業員手配は「作業員手配（氏名）」を作業内容として載せる（旧アプリの請求書と同じ）
 function saleLine(s: InvoiceGroup['sales'][number]): string {
-  return [shortDate(s.date), s.site, s.work].filter(Boolean).join(' ');
+  const hired = s.workType === '作業員手配' ? `作業員手配${s.hiredName ? `（${s.hiredName}）` : ''}` : '';
+  return [shortDate(s.date), s.site, hired, s.work].filter(Boolean).join(' ');
 }
 
 // 複数の人の分が混ざっているとき（総合管理画面の「全員」）は、各請求書に発行する人を書く

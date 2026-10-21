@@ -7,7 +7,7 @@ import { Card, Chip, SaleRow, Section } from '@/components/fw/ui';
 import { ApiError, createSale, deleteSale, listClients, updateSale } from '@/lib/fw/api';
 import { CUTOFF_DAYS, closingDate, dayLabel, paymentDate, shortDate } from '@/lib/fw/billing';
 import { useSales } from '@/lib/fw/useSales';
-import { Client, Sale, SaleInput, Terms, User } from '@/lib/fw/types';
+import { Client, Sale, SaleInput, Terms, User, WORK_TYPES } from '@/lib/fw/types';
 import { todayStr } from '@/lib/format';
 
 export default function SalesPage() {
@@ -26,7 +26,7 @@ const ERRORS: Record<string, string> = {
 const DEFAULT_TERMS: Terms = { cutoff: 31, payOffset: 1, payDay: 31 };
 
 function emptyForm(): SaleInput {
-  return { date: todayStr(), site: '', work: '', amount: 0, memo: '', clientName: '', ...DEFAULT_TERMS };
+  return { date: todayStr(), site: '', work: '', amount: 0, memo: '', clientName: '', workType: '請負', hiredName: '', ...DEFAULT_TERMS };
 }
 
 function SalesInner({ user }: { user: User }) {
@@ -55,21 +55,21 @@ function SalesInner({ user }: { user: User }) {
       return;
     }
     setEditing(s);
-    const { date, site, work, amount, memo, clientName, cutoff, payOffset, payDay } = s;
-    setForm({ date, site, work, amount, memo, clientName, cutoff, payOffset, payDay });
+    const { date, site, work, amount, memo, clientName, cutoff, payOffset, payDay, workType, hiredName } = s;
+    setForm({ date, site, work, amount, memo, clientName, cutoff, payOffset, payDay, workType, hiredName });
     setMsg(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function reset() {
     setEditing(null);
-    setForm((f) => ({ ...emptyForm(), date: f.date }));
+    setForm((f) => ({ ...emptyForm(), date: f.date, workType: f.workType }));
   }
 
   async function save() {
     setBusy(true);
     setMsg(null);
-    const input = { ...form, site: form.site.trim(), work: form.work.trim(), clientName: form.clientName.trim() };
+    const input = { ...form, site: form.site.trim(), work: form.work.trim(), clientName: form.clientName.trim(), hiredName: form.hiredName.trim() };
     try {
       if (editing) await updateSale(editing.id, input);
       else await createSale(input);
@@ -124,6 +124,25 @@ function SalesInner({ user }: { user: User }) {
     >
       <Section>
         <Card className="grid gap-3 p-4">
+          <Field label="区分">
+            <div className="grid grid-cols-3 rounded-[10px] bg-fw-fill p-0.5 text-[14px] font-semibold">
+              {WORK_TYPES.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => set('workType', t)}
+                  className={`rounded-lg py-2 ${form.workType === t ? 'bg-fw-card shadow-sm' : 'text-fw-ink/70'}`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </Field>
+          {form.workType === '作業員手配' && (
+            <Field label="手配した作業員">
+              <input id="hired" value={form.hiredName} onChange={(e) => set('hiredName', e.target.value)} placeholder="例: 鈴木" className="input" />
+            </Field>
+          )}
           <Field label="日付">
             <input id="date" type="date" value={form.date} onChange={(e) => set('date', e.target.value)} className="input" />
           </Field>

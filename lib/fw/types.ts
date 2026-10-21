@@ -24,6 +24,10 @@ export interface Client extends Terms {
 
 export type SaleStatus = 'pending' | 'approved';
 
+// 売上の区分（作業員手配＝人を手配して請求する分。旧アプリの「雇用」）
+export const WORK_TYPES = ['常駐', '請負', '作業員手配'] as const;
+export type WorkType = (typeof WORK_TYPES)[number];
+
 export interface SaleInput extends Terms {
   date: string; // YYYY-MM-DD
   site: string;
@@ -31,6 +35,8 @@ export interface SaleInput extends Terms {
   amount: number; // 税抜
   memo: string;
   clientName: string;
+  workType: WorkType;
+  hiredName: string; // 作業員手配のときの作業員名
 }
 
 export interface Sale extends SaleInput {

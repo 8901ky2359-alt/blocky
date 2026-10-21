@@ -32,6 +32,11 @@ export function StatusPill({ sale }: { sale: Sale }) {
   );
 }
 
+// 区分の表示（作業員手配は作業員名も）
+export function workTypeText(s: Pick<Sale, 'workType' | 'hiredName'>): string {
+  return s.workType === '作業員手配' && s.hiredName ? `作業員手配（${s.hiredName}）` : s.workType;
+}
+
 const AVATAR_COLORS = ['bg-fw-blue', 'bg-fw-teal', 'bg-fw-violet', 'bg-fw-orange', 'bg-fw-green'];
 
 export function Avatar({ name, id }: { name: string; id: string }) {
@@ -51,7 +56,7 @@ export function SaleRow({ sale, showUser, onClick }: { sale: Sale; showUser?: bo
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[15px] font-semibold">{[sale.site, sale.work].filter(Boolean).join(' ')}</span>
         <span className="block truncate text-xs text-fw-muted">
-          {[showUser ? sale.userName : '', shortDate(sale.date), sale.clientName].filter(Boolean).join(' ・ ')}
+          {[showUser ? sale.userName : '', shortDate(sale.date), workTypeText(sale), sale.clientName].filter(Boolean).join(' ・ ')}
         </span>
       </span>
       <span className="shrink-0 text-right">

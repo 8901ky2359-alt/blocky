@@ -65,6 +65,10 @@ async function ensureSchema(env) {
     )`,
   ];
   for (const sql of stmts) await env.DB.prepare(sql).run();
+  // 後から足した列（区分・作業員名）。既にあればエラーになるので無視する
+  for (const col of [`work_type TEXT NOT NULL DEFAULT ''`, `hired_name TEXT NOT NULL DEFAULT ''`]) {
+    await env.DB.prepare(`ALTER TABLE fw_sales ADD COLUMN ${col}`).run().catch(() => {});
+  }
   schemaReady = true;
 }
 
@@ -211,6 +215,7 @@ function userRow(u) {
 }
 
 const CUTOFFS = [5, 10, 15, 20, 25, 31]; // 31 = 月末
+const WORK_TYPES = ['常駐', '請負', '作業員手配'];
 const PAY_DAYS = [5, 10, 15, 20, 25, 31];
 
 function saleRow(s, usersById) {
@@ -224,6 +229,8 @@ function saleRow(s, usersById) {
     amount: s.amount,
     memo: s.memo,
     clientName: s.client_name,
+    workType: s.work_type || '請負',
+    hiredName: s.hired_name || '',
     cutoff: s.cutoff,
     payOffset: s.pay_offset,
     payDay: s.pay_day,
@@ -253,6 +260,8 @@ function readSaleInput(body) {
   const amount = Math.round(Number(body.amount) || 0);
   const memo = String(body.memo || '').trim();
   const clientName = String(body.clientName || '').trim();
+  const workType = WORK_TYPES.includes(body.workType) ? body.workType : '請負';
+  const hiredName = workType === '作業員手配' ? String(body.hiredName || '').trim() : '';
   const cutoff = Number(body.cutoff);
   const payOffset = Number(body.payOffset);
   const payDay = Number(body.payDay);
@@ -263,7 +272,7 @@ function readSaleInput(body) {
   if (!CUTOFFS.includes(cutoff) || !PAY_DAYS.includes(payDay) || ![0, 1, 2].includes(payOffset)) {
     return { error: 'invalid-terms' };
   }
-  return { value: { date, site, work, amount, memo, clientName, cutoff, payOffset, payDay } };
+  return { value: { date, site, work, amount, memo, clientName, cutoff, payOffset, payDay, workType, hiredName } };
 }
 
 // 請求先を保存（同じ名前なら締め日・入金日を更新し、使用回数を増やす）
@@ -344,14 +353,17 @@ async function readLegacySales(env) {
     }
     const payDay = LEGACY_GROUP_PAY_DAY[e.billGroup] ?? 31;
     const payDate = legacyPaymentDate(e.date, payDay);
-    const memo = [e.workType, e.hiredName ? `雇用: ${e.hiredName}` : '', e.memo].filter(Boolean).join(' ／ ');
+    // 旧アプリの「雇用」＝作業員手配。区分が未設定の古いデータはメモから推定（既定は請負）
+    const workType = e.workType === '雇用' ? '作業員手配' : e.workType === '常駐' || (!e.workType && String(e.memo || '').includes('常駐')) ? '常駐' : '請負';
     sales.push({
       id: `legacy-${r.id}`,
       date: e.date,
       site: String(e.site || '').trim() || '現場名なし',
       work: String(e.category || '').trim(),
       amount,
-      memo,
+      memo: String(e.memo || '').trim(),
+      workType,
+      hiredName: workType === '作業員手配' ? String(e.hiredName || '').trim() : '',
       clientName: String(e.billTo || '').trim() || LEGACY_NO_CLIENT,
       cutoff: 31,
       payOffset: 1,
@@ -509,6 +521,15 @@ export async function handleFieldWatch(request, env, url) {
     const { results } = await env.DB.prepare(`SELECT id FROM fw_sales WHERE id LIKE 'legacy-%'`).all();
     const done = new Set((results || []).map((r) => r.id));
     const todo = sales.filter((x) => !done.has(x.id));
+    // 区分が入る前に取り込んだ分に、区分と作業員名を付け直す（対象があるときだけ）
+    const blank = await env.DB.prepare(`SELECT COUNT(*) AS c FROM fw_sales WHERE id LIKE 'legacy-%' AND work_type = ''`).first();
+    for (const x of blank?.c ? sales : []) {
+      if (!done.has(x.id)) continue;
+      // 前の取り込みでメモに入れていた「雇用 ／ 雇用: 氏名」も元のメモに戻す
+      await env.DB.prepare(`UPDATE fw_sales SET work_type=?1, hired_name=?2, memo=?3 WHERE id=?4 AND work_type=''`)
+        .bind(x.workType, x.hiredName, x.memo, x.id)
+        .run();
+    }
     const summary = {
       importable: todo.length,
       importableTotal: todo.reduce((n, x) => n + x.amount, 0),
@@ -521,11 +542,11 @@ export async function handleFieldWatch(request, env, url) {
     for (const x of todo) {
       await env.DB.prepare(
         `INSERT OR IGNORE INTO fw_sales (id, user_id, date, site, work, amount, memo, client_name, cutoff, pay_offset, pay_day,
-           status, approved_by, approved_at, paid, paid_at, created_at, updated_at)
-         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,'approved',?2,?12,?13,?14,?15,?12)`,
+           status, approved_by, approved_at, paid, paid_at, created_at, updated_at, work_type, hired_name)
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,'approved',?2,?12,?13,?14,?15,?12,?16,?17)`,
       )
         .bind(x.id, auth.uid, x.date, x.site, x.work, x.amount, x.memo, x.clientName, x.cutoff, x.payOffset, x.payDay,
-          now, x.paid ? 1 : 0, x.paid ? now : null, x.createdAt)
+          now, x.paid ? 1 : 0, x.paid ? now : null, x.createdAt, x.workType, x.hiredName)
         .run();
     }
     // 請求先も登録しておく（次から売上入力のボタンに出る）
@@ -582,11 +603,11 @@ export async function handleFieldWatch(request, env, url) {
     const status = isAdmin ? 'approved' : 'pending';
     await env.DB.prepare(
       `INSERT INTO fw_sales (id, user_id, date, site, work, amount, memo, client_name, cutoff, pay_offset, pay_day,
-         status, approved_by, approved_at, paid, created_at, updated_at)
-       VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,0,?15,?15)`,
+         status, approved_by, approved_at, paid, created_at, updated_at, work_type, hired_name)
+       VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,0,?15,?15,?16,?17)`,
     )
       .bind(id, auth.uid, v.date, v.site, v.work, v.amount, v.memo, v.clientName, v.cutoff, v.payOffset, v.payDay,
-        status, isAdmin ? auth.uid : null, isAdmin ? now : null, now)
+        status, isAdmin ? auth.uid : null, isAdmin ? now : null, now, v.workType, v.hiredName)
       .run();
     await upsertClient(env, auth.uid, v);
     const row = await env.DB.prepare(`SELECT * FROM fw_sales WHERE id = ?1`).bind(id).first();
@@ -644,9 +665,9 @@ export async function handleFieldWatch(request, env, url) {
     if (error) return json({ error }, 400);
     await env.DB.prepare(
       `UPDATE fw_sales SET date=?1, site=?2, work=?3, amount=?4, memo=?5, client_name=?6, cutoff=?7, pay_offset=?8,
-         pay_day=?9, updated_at=?10 WHERE id=?11`,
+         pay_day=?9, updated_at=?10, work_type=?12, hired_name=?13 WHERE id=?11`,
     )
-      .bind(v.date, v.site, v.work, v.amount, v.memo, v.clientName, v.cutoff, v.payOffset, v.payDay, now, id)
+      .bind(v.date, v.site, v.work, v.amount, v.memo, v.clientName, v.cutoff, v.payOffset, v.payDay, now, id, v.workType, v.hiredName)
       .run();
     await upsertClient(env, row.user_id, v);
     const updated = await env.DB.prepare(`SELECT * FROM fw_sales WHERE id = ?1`).bind(id).first();
