@@ -39,6 +39,8 @@ export const setupAdmin = (email: string, password: string, name: string) =>
   call<{ token: string; user: User }>('/setup', post({ email, password, name }));
 export const login = (email: string, password: string) =>
   call<{ token: string; user: User }>('/login', post({ email, password }));
+export const recoverAdmin = (key: string, email: string, password: string) =>
+  call<{ token: string; user: User }>('/recover', post({ key, email, password }));
 export const me = () => call<{ user: User; token: string }>('/me');
 
 export const listUsers = () => call<{ users: User[] }>('/users');

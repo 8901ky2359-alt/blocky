@@ -89,7 +89,13 @@ export default function LoginView({
         </button>
         {err && <p className="text-center text-sm text-fw-red">{err}</p>}
         {!needsSetup && (
-          <p className="pt-2 text-center text-xs text-fw-muted">パスワードを忘れた場合は、総合管理画面の担当者に再設定を頼んでください</p>
+          <p className="pt-2 text-center text-xs text-fw-muted">
+            パスワードを忘れた場合は、総合管理画面の担当者に再設定を頼んでください。
+            <br />
+            <a href="/recover" className="text-fw-green">
+              総合管理画面の担当者がログインできないとき
+            </a>
+          </p>
         )}
       </form>
     </main>

@@ -186,6 +186,16 @@ async function getAuth(request, env) {
   return payload && payload.v === TOKEN_VERSION ? payload : null;
 }
 
+async function sameText(a, b) {
+  const enc = new TextEncoder();
+  const [ha, hb] = await Promise.all([crypto.subtle.digest('SHA-256', enc.encode(a)), crypto.subtle.digest('SHA-256', enc.encode(b))]);
+  const x = new Uint8Array(ha);
+  const y = new Uint8Array(hb);
+  let diff = 0;
+  for (let i = 0; i < x.length; i++) diff |= x[i] ^ y[i];
+  return diff === 0;
+}
+
 // ---- 汎用ヘルパー -------------------------------------------------------
 
 function newId() {
@@ -326,6 +336,29 @@ export async function handleFieldWatch(request, env, url) {
     const ok = await verifyPassword(password, row.password_hash, row.password_salt);
     if (!ok) return json({ error: 'invalid-credentials' }, 401);
     return json({ token: await makeUserToken(row, env), user: userRow(row) });
+  }
+
+  // 管理者がログインできなくなったときの復旧。Cloudflare の Secret（FW_RECOVERY_KEY）を
+  // 知っている人だけが、総合管理画面のアカウントのメールアドレスとパスワードを付け直せる
+  if (sub === '/recover' && method === 'POST') {
+    const recoveryKey = env.FW_RECOVERY_KEY;
+    if (!recoveryKey) return json({ error: 'not-configured' }, 400);
+    const body = await request.json().catch(() => ({}));
+    if (!(await sameText(String(body.key || ''), recoveryKey))) return json({ error: 'invalid-key' }, 401);
+    const email = String(body.email || '').trim().toLowerCase();
+    const password = String(body.password || '');
+    if (!isValidEmail(email)) return json({ error: 'invalid-email' }, 400);
+    if (password.length < 6) return json({ error: 'weak-password' }, 400);
+    const admin = await env.DB.prepare(`SELECT * FROM ts_users WHERE role = 'admin' ORDER BY created_at ASC LIMIT 1`).first();
+    if (!admin) return json({ error: 'not-found' }, 404);
+    const taken = await env.DB.prepare(`SELECT id FROM ts_users WHERE email = ?1 AND id != ?2`).bind(email, admin.id).first();
+    if (taken) return json({ error: 'email-taken' }, 409);
+    const { hash, salt } = await hashPassword(password);
+    await env.DB.prepare(`UPDATE ts_users SET email=?1, password_hash=?2, password_salt=?3 WHERE id=?4`)
+      .bind(email, hash, salt, admin.id)
+      .run();
+    const user = { ...admin, email };
+    return json({ token: await makeUserToken(user, env), user: userRow(user) });
   }
 
   // ここから先は認証必須
