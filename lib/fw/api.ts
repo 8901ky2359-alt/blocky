@@ -62,6 +62,16 @@ export const setApproved = (ids: string[], approved: boolean) =>
   call<{ ok: true }>('/sales/approve', post({ ids, approved }));
 export const setPaid = (ids: string[], paid: boolean) => call<{ ok: true }>('/sales/paid', post({ ids, paid }));
 
+export interface LegacySummary {
+  importable: number;
+  importableTotal: number;
+  unpaid: number;
+  alreadyImported: number;
+  skippedExpense: number;
+}
+export const legacySummary = () => call<LegacySummary>('/legacy');
+export const importLegacy = () => call<LegacySummary & { imported: number }>('/legacy', post({}));
+
 export const getProfile = () => call<{ profile: Partial<Profile> }>('/profile');
 export const saveProfile = (p: Profile) =>
   call<{ profile: Profile }>('/profile', { method: 'PUT', body: JSON.stringify(p) });

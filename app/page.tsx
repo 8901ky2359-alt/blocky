@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import AuthGate from '@/components/fw/AuthGate';
 import Screen from '@/components/fw/Screen';
 import NextPaymentCard from '@/components/fw/NextPaymentCard';
+import LegacyImportCard from '@/components/fw/LegacyImportCard';
 import { AppIcon, Avatar, Card, SaleRow, Section } from '@/components/fw/ui';
 import { useSales } from '@/lib/fw/useSales';
 import { User } from '@/lib/fw/types';
@@ -26,11 +27,12 @@ function Who({ user }: { user: User }) {
 }
 
 function AdminHome({ user }: { user: User }) {
-  const { sales, loading, error } = useSales();
+  const { sales, loading, error, reload } = useSales();
   const pending = sales.filter((s) => s.status === 'pending').length;
   return (
     <Screen title="総合管理画面" top={<Who user={user} />}>
       <NextPaymentCard sales={sales} label="次回入金予定 ・ 全員分" tone="green" />
+      <LegacyImportCard onImported={reload} />
       <div className="mb-6 grid grid-cols-4 gap-y-4 px-4">
         <AppIcon href="/sales" label="売上入力" letter="売" color="bg-fw-green" />
         <AppIcon href="/invoice" label="請求書作成" letter="請" color="bg-fw-violet" />

@@ -292,6 +292,78 @@ function idList(body) {
   return Array.isArray(body.ids) ? body.ids.map(String).filter(Boolean).slice(0, 500) : [];
 }
 
+// ---- 以前の「売上管理」（端末同期の entries テーブル）からの取り込み ----
+
+// 旧アプリの締日グループ（すべて月末締め）→ 入金日
+const LEGACY_GROUP_PAY_DAY = { A: 5, B: 25, C: 31 };
+const LEGACY_NO_CLIENT = '請求先未設定';
+
+function legacyLastDay(y, m) {
+  return new Date(y, m, 0).getDate();
+}
+
+// 月末締めの売上の入金日（YYYY-MM-DD）
+function legacyPaymentDate(date, payDay) {
+  const [y, m] = date.split('-').map(Number);
+  const ny = m === 12 ? y + 1 : y;
+  const nm = m === 12 ? 1 : m + 1;
+  const d = Math.min(payDay, legacyLastDay(ny, nm));
+  return `${ny}-${String(nm).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
+// 取り込める売上（収入）を読み出して、新しい形に直す
+async function readLegacySales(env) {
+  let rows;
+  try {
+    // 合言葉ごとの本体データだけ（"::hire" などの派生データは対象外）
+    rows = (await env.DB.prepare(`SELECT id, data, updatedAt, deleted FROM entries WHERE space NOT LIKE '%::%'`).all()).results || [];
+  } catch {
+    return { sales: [], skippedExpense: 0 }; // 旧テーブルが無い
+  }
+  const latest = new Map();
+  for (const r of rows) {
+    const cur = latest.get(r.id);
+    if (!cur || r.updatedAt > cur.updatedAt) latest.set(r.id, r);
+  }
+  const today = new Date().toISOString().slice(0, 10);
+  const sales = [];
+  let skippedExpense = 0;
+  for (const r of latest.values()) {
+    if (r.deleted) continue;
+    let e;
+    try {
+      e = JSON.parse(r.data);
+    } catch {
+      continue;
+    }
+    if (!e || e.deleted || !/^\d{4}-\d{2}-\d{2}$/.test(String(e.date || ''))) continue;
+    const amount = Math.round(Number(e.amount) || 0);
+    if (e.kind === 'expense' || amount <= 0) {
+      skippedExpense++;
+      continue;
+    }
+    const payDay = LEGACY_GROUP_PAY_DAY[e.billGroup] ?? 31;
+    const payDate = legacyPaymentDate(e.date, payDay);
+    const memo = [e.workType, e.hiredName ? `雇用: ${e.hiredName}` : '', e.memo].filter(Boolean).join(' ／ ');
+    sales.push({
+      id: `legacy-${r.id}`,
+      date: e.date,
+      site: String(e.site || '').trim() || '現場名なし',
+      work: String(e.category || '').trim(),
+      amount,
+      memo,
+      clientName: String(e.billTo || '').trim() || LEGACY_NO_CLIENT,
+      cutoff: 31,
+      payOffset: 1,
+      payDay,
+      // 入金日を過ぎているものは入金済みとして取り込む
+      paid: payDate < today,
+      createdAt: Number(e.createdAt) || Date.now(),
+    });
+  }
+  return { sales, skippedExpense };
+}
+
 // ---- ルーティング --------------------------------------------------------
 
 export async function handleFieldWatch(request, env, url) {
@@ -428,6 +500,49 @@ export async function handleFieldWatch(request, env, url) {
       await env.DB.prepare(`UPDATE ts_users SET name=?1 WHERE id=?2`).bind(String(body.name).trim(), id).run();
     }
     return json({ ok: true });
+  }
+
+  // ---- 以前の売上管理のデータ取り込み（管理者のみ・何度押しても二重にならない） ----
+  if (sub === '/legacy' && (method === 'GET' || method === 'POST')) {
+    if (!isAdmin) return json({ error: 'forbidden' }, 403);
+    const { sales, skippedExpense } = await readLegacySales(env);
+    const { results } = await env.DB.prepare(`SELECT id FROM fw_sales WHERE id LIKE 'legacy-%'`).all();
+    const done = new Set((results || []).map((r) => r.id));
+    const todo = sales.filter((x) => !done.has(x.id));
+    const summary = {
+      importable: todo.length,
+      importableTotal: todo.reduce((n, x) => n + x.amount, 0),
+      unpaid: todo.filter((x) => !x.paid).length,
+      alreadyImported: sales.length - todo.length,
+      skippedExpense,
+    };
+    if (method === 'GET') return json(summary);
+    const now = Date.now();
+    for (const x of todo) {
+      await env.DB.prepare(
+        `INSERT OR IGNORE INTO fw_sales (id, user_id, date, site, work, amount, memo, client_name, cutoff, pay_offset, pay_day,
+           status, approved_by, approved_at, paid, paid_at, created_at, updated_at)
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,'approved',?2,?12,?13,?14,?15,?12)`,
+      )
+        .bind(x.id, auth.uid, x.date, x.site, x.work, x.amount, x.memo, x.clientName, x.cutoff, x.payOffset, x.payDay,
+          now, x.paid ? 1 : 0, x.paid ? now : null, x.createdAt)
+        .run();
+    }
+    // 請求先も登録しておく（次から売上入力のボタンに出る）
+    const clients = new Map();
+    for (const x of todo) if (x.clientName !== LEGACY_NO_CLIENT) clients.set(x.clientName, x);
+    for (const x of clients.values()) {
+      const exists = await env.DB.prepare(`SELECT id FROM fw_clients WHERE user_id = ?1 AND name = ?2`).bind(auth.uid, x.clientName).first();
+      if (!exists) {
+        await env.DB.prepare(
+          `INSERT INTO fw_clients (id, user_id, name, cutoff, pay_offset, pay_day, use_count, last_used, created_at)
+           VALUES (?1,?2,?3,?4,?5,?6,1,?7,?7)`,
+        )
+          .bind(newId(), auth.uid, x.clientName, x.cutoff, x.payOffset, x.payDay, now)
+          .run();
+      }
+    }
+    return json({ ...summary, imported: todo.length });
   }
 
   // ---- 請求先（自分が入れたもの） ----
