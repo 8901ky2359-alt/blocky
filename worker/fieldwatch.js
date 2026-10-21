@@ -6,6 +6,9 @@
 const ITERATIONS = 100000;
 // ログアウトボタンが無いので長めに保持し、開くたびに延長する
 const TOKEN_TTL_SEC = 60 * 60 * 24 * 365;
+// トークンの世代。名前を選ぶだけで入れた頃（パスワード無し）のトークンを無効にするため、
+// Field Watch のログインで発行したものだけを受け付ける
+const TOKEN_VERSION = 2;
 
 let schemaReady = false;
 
@@ -169,6 +172,7 @@ async function makeUserToken(user, env) {
     email: user.email,
     name: user.name,
     role: user.role,
+    v: TOKEN_VERSION,
     exp: Math.floor(Date.now() / 1000) + TOKEN_TTL_SEC,
   };
   return signToken(payload, env);
@@ -178,7 +182,8 @@ async function getAuth(request, env) {
   const h = request.headers.get('authorization') || '';
   const m = h.match(/^Bearer\s+(.+)$/i);
   if (!m) return null;
-  return verifyToken(m[1], env);
+  const payload = await verifyToken(m[1], env);
+  return payload && payload.v === TOKEN_VERSION ? payload : null;
 }
 
 // ---- 汎用ヘルパー -------------------------------------------------------

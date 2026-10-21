@@ -4,8 +4,8 @@
 
 import { User } from './types';
 
-const TOKEN_KEY = 'ts-token';
-const USER_KEY = 'ts-user';
+const TOKEN_KEY = 'fw-token';
+const USER_KEY = 'fw-user';
 
 export function getToken(): string | null {
   if (typeof window === 'undefined') return null;
