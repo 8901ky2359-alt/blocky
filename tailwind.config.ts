@@ -1,40 +1,27 @@
 import type { Config } from 'tailwindcss';
 
+// 色は app/globals.css の CSS 変数で定義（明るい画面／暗い画面は端末の設定で自動切替）
 const config: Config = {
   content: ['./app/**/*.{js,ts,jsx,tsx,mdx}', './components/**/*.{js,ts,jsx,tsx,mdx}'],
   theme: {
     extend: {
       colors: {
-        brand: {
-          bg: '#e8eef3', // 冷たい薄グレー
-          primary: '#0f1b2d', // ほぼ黒に近い濃紺（HUDパネル）
-          soft: '#dbe6ee',
-          accent: '#0891b2', // cyan-600（ネオンアクセント）
-          accentSoft: '#a5f3fc',
+        fw: {
+          bg: 'var(--fw-bg)',
+          card: 'var(--fw-card)',
+          ink: 'var(--fw-ink)',
+          muted: 'var(--fw-muted)',
+          line: 'var(--fw-line)',
+          fill: 'var(--fw-fill)',
+          green: 'var(--fw-green)',
+          blue: 'var(--fw-blue)',
+          violet: 'var(--fw-violet)',
+          teal: 'var(--fw-teal)',
+          orange: 'var(--fw-orange)',
+          red: 'var(--fw-red)',
+          line_app: 'var(--fw-line-app)',
+          claude: 'var(--fw-claude)',
         },
-        neon: {
-          DEFAULT: '#06b6d4', // cyan
-          line: '#22d3ee',
-        },
-      },
-      // 角丸を全廃（カクカク系）
-      borderRadius: {
-        none: '0',
-        sm: '0',
-        DEFAULT: '0',
-        md: '0',
-        lg: '0',
-        xl: '0',
-        '2xl': '0',
-        '3xl': '0',
-        full: '0',
-      },
-      fontFamily: {
-        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
-      },
-      boxShadow: {
-        card: '0 0 0 1px rgba(15,27,45,.06), 0 2px 8px rgba(6,182,212,.06)',
-        glow: '0 0 0 1px rgba(6,182,212,.5), 0 0 14px rgba(6,182,212,.35)',
       },
     },
   },

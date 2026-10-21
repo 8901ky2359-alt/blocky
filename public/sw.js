@@ -3,12 +3,12 @@
 // - 静的アセット(/_next/static 等): キャッシュ優先（ハッシュ付きで不変）
 // - /api/ やPOST: 介入しない（同期を壊さない）
 
-const CACHE = 'genba-cache-v5';
+const CACHE = 'fieldwatch-cache-v1';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(['/', '/ba', '/timesheet']).catch(() => undefined)),
+    caches.open(CACHE).then((c) => c.addAll(['/']).catch(() => undefined)),
   );
 });
 
@@ -41,7 +41,7 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => undefined);
           return res;
         })
-        .catch(() => caches.match(req).then((m) => m || caches.match('/ba') || caches.match('/'))),
+        .catch(() => caches.match(req).then((m) => m || caches.match('/'))),
     );
     return;
   }

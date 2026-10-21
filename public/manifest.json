@@ -1,11 +1,11 @@
 {
-  "name": "現場家計簿",
-  "short_name": "現場家計簿",
-  "description": "草刈り・軽トラ作業の収支・経費・現場写真を記録し、LINEで報告できる家計簿アプリ",
+  "name": "Field Watch",
+  "short_name": "Field Watch",
+  "description": "現場の売上と請求をひとつに",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f5f9f5",
-  "theme_color": "#1f7a4f",
+  "background_color": "#f2f2f7",
+  "theme_color": "#1f7d43",
   "lang": "ja",
   "icons": [
     {

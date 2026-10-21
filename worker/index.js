@@ -1,9 +1,9 @@
 // Cloudflare Worker: 静的サイト配信＋端末間同期API（D1）
 // - /api/sync : 端末のデータを受け取りマージし、その合言葉(space)の全データを返す
-// - /api/timesheet/* : 作業日報（作業員ログイン・入力・承認・集計）API
+// - /api/fw/* : Field Watch（ログイン・売上・請求先・承認・入金）API
 // - それ以外 : 静的アセット(out/)を配信
 
-import { handleTimesheet } from './timesheet.js';
+import { handleFieldWatch } from './fieldwatch.js';
 
 export default {
   async fetch(request, env) {
@@ -29,9 +29,9 @@ export default {
       }
     }
 
-    if (url.pathname.startsWith('/api/timesheet')) {
+    if (url.pathname.startsWith('/api/fw/')) {
       try {
-        return await handleTimesheet(request, env, url);
+        return await handleFieldWatch(request, env, url);
       } catch (e) {
         return json({ error: String((e && e.message) || e) }, 500);
       }
