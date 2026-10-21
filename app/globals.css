@@ -2,46 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
-/* iPhone の標準アプリに合わせた配色。夜は端末の設定に合わせて自動で暗くなる */
+/* iPhone の標準アプリに合わせた配色。夜は端末の設定に合わせて自動で暗くなる。
+   色は「R G B」の数値で持ち、tailwind 側で rgb() にする（bg-fw-green/15 のような透明度を使うため） */
 :root {
-  --fw-bg: #f2f2f7;
-  --fw-card: #ffffff;
-  --fw-ink: #111111;
-  --fw-muted: #8a8a8e;
+  --fw-bg: 242 242 247;
+  --fw-card: 255 255 255;
+  --fw-ink: 17 17 17;
+  --fw-muted: 138 138 142;
   --fw-line: rgba(60, 60, 67, 0.16);
   --fw-fill: rgba(120, 120, 128, 0.12);
-  --fw-green: #1f7d43;
-  --fw-blue: #1f66d6;
-  --fw-violet: #6a3fd0;
-  --fw-teal: #14868a;
-  --fw-orange: #d9690a;
-  --fw-red: #d9412f;
-  --fw-line-app: #06a94d;
-  --fw-claude: #c8643b;
+  --fw-green: 31 125 67;
+  --fw-blue: 31 102 214;
+  --fw-violet: 106 63 208;
+  --fw-teal: 20 134 138;
+  --fw-orange: 217 105 10;
+  --fw-red: 217 65 47;
+  --fw-line-app: 6 169 77;
+  --fw-claude: 200 100 59;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --fw-bg: #000000;
-    --fw-card: #1c1c1e;
-    --fw-ink: #f2f2f7;
-    --fw-muted: #8e8e93;
+    --fw-bg: 0 0 0;
+    --fw-card: 28 28 30;
+    --fw-ink: 242 242 247;
+    --fw-muted: 142 142 147;
     --fw-line: rgba(84, 84, 88, 0.6);
     --fw-fill: rgba(120, 120, 128, 0.24);
-    --fw-green: #4cc777;
-    --fw-blue: #5a9bff;
-    --fw-violet: #a586f5;
-    --fw-teal: #3cc7c7;
-    --fw-orange: #ff9f40;
-    --fw-red: #ff6b5b;
-    --fw-claude: #e08a63;
+    --fw-green: 76 199 119;
+    --fw-blue: 90 155 255;
+    --fw-violet: 165 134 245;
+    --fw-teal: 60 199 199;
+    --fw-orange: 255 159 64;
+    --fw-red: 255 107 91;
+    --fw-claude: 224 138 99;
     color-scheme: dark;
   }
 }
 
 body {
-  background: var(--fw-bg);
-  color: var(--fw-ink);
+  background: rgb(var(--fw-bg));
+  color: rgb(var(--fw-ink));
   font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic', system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-x: none;
@@ -61,13 +62,13 @@ canvas {
   background: var(--fw-fill);
   padding: 12px 14px;
   font-size: 16px; /* 16px未満だとiPhoneで入力時に画面が拡大される */
-  color: var(--fw-ink);
+  color: rgb(var(--fw-ink));
   outline: none;
   -webkit-appearance: none;
   appearance: none;
 }
 .input:focus {
-  box-shadow: 0 0 0 2px var(--fw-green);
+  box-shadow: 0 0 0 2px rgb(var(--fw-green));
 }
 input[type='date'].input::-webkit-date-and-time-value {
   text-align: left;

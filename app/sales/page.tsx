@@ -37,6 +37,23 @@ function SalesInner({ user }: { user: User }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
+  // 「最近の入力」やカレンダーから来たとき：?edit=売上ID&back=戻り先 で、その売上を開いて直す
+  const [returnTo, setReturnTo] = useState<string | null>(null);
+  const [openedFromLink, setOpenedFromLink] = useState(false);
+  useEffect(() => {
+    if (openedFromLink || sales.length === 0) return;
+    const q = new URLSearchParams(window.location.search);
+    const id = q.get('edit');
+    const back = q.get('back');
+    if (!id) return;
+    setOpenedFromLink(true);
+    if (back && back.startsWith('/') && !back.startsWith('//')) setReturnTo(back);
+    const target = sales.find((x) => x.id === id);
+    if (target) startEdit(target);
+    else setMsg({ ok: false, text: 'その記録は見つかりませんでした（削除された可能性があります）' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sales, openedFromLink]);
+
   const loadClients = () => listClients().then((r) => setClients(r.clients)).catch(() => {});
   useEffect(() => {
     loadClients();
@@ -62,6 +79,10 @@ function SalesInner({ user }: { user: User }) {
   }
 
   function reset() {
+    if (returnTo) {
+      location.href = returnTo;
+      return;
+    }
     setEditing(null);
     setForm((f) => ({ ...emptyForm(), date: f.date, workType: f.workType }));
   }
@@ -102,7 +123,11 @@ function SalesInner({ user }: { user: User }) {
   return (
     <Screen
       title={editing ? '売上を直す' : '売上入力'}
-      back={{ href: '/', label: 'ホーム' }}
+      back={
+        returnTo
+          ? { href: returnTo, label: returnTo.startsWith('/calendar') ? 'カレンダー' : 'ホーム' }
+          : { href: '/', label: 'ホーム' }
+      }
       footer={
         <>
           {msg && <p className={`text-center text-sm ${msg.ok ? 'text-fw-green' : 'text-fw-red'}`}>{msg.text}</p>}
@@ -122,6 +147,11 @@ function SalesInner({ user }: { user: User }) {
         </>
       }
     >
+      {editing && editing.userId !== user.id && (
+        <p className="mx-4 mb-3 rounded-xl bg-fw-orange/15 px-3 py-2 text-sm font-semibold text-fw-orange">
+          {editing.userName}さんの売上を直しています
+        </p>
+      )}
       <Section>
         <Card className="grid gap-3 p-4">
           <Field label="区分">

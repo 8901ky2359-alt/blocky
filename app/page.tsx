@@ -62,7 +62,7 @@ function MemberHome({ user }: { user: User }) {
 function Recent({ sales, loading, error, showUser, title }: { sales: ReturnType<typeof useSales>['sales']; loading: boolean; error: string; showUser?: boolean; title: string }) {
   const recent = [...sales].sort((a, b) => b.createdAt - a.createdAt).slice(0, 6);
   return (
-    <Section title={title}>
+    <Section title={`${title}（押すと直せます）`}>
       <Card>
         {loading ? (
           <p className="p-6 text-center text-sm text-fw-muted">読み込み中…</p>
@@ -71,7 +71,9 @@ function Recent({ sales, loading, error, showUser, title }: { sales: ReturnType<
         ) : recent.length === 0 ? (
           <p className="p-6 text-center text-sm text-fw-muted">まだ入力がありません</p>
         ) : (
-          recent.map((s) => <SaleRow key={s.id} sale={s} showUser={showUser} />)
+          recent.map((s) => (
+            <SaleRow key={s.id} sale={s} showUser={showUser} onClick={() => (location.href = `/sales?edit=${s.id}&back=/`)} />
+          ))
         )}
       </Card>
     </Section>

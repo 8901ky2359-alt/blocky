@@ -317,7 +317,7 @@ function GroupList({ groups, showUser, onTogglePaid }: { groups: InvoiceGroup[];
             </span>
           </button>
           {open === g.key && (
-            <div className="grid gap-1 bg-fw-fill/50 px-4 pb-3 pt-1 text-sm">
+            <div className="grid gap-1 bg-fw-fill px-4 pb-3 pt-1 text-sm">
               {g.sales.map((s) => (
                 <div key={s.id} className="flex justify-between gap-2">
                   <span className="min-w-0 truncate">

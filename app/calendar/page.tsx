@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import AuthGate from '@/components/fw/AuthGate';
 import Screen from '@/components/fw/Screen';
 import { Card, Chip, SaleRow, Section } from '@/components/fw/ui';
@@ -20,6 +20,15 @@ function CalendarInner() {
   const [person, setPerson] = useState('all');
   const [day, setDay] = useState<string>(todayStr());
   const [openType, setOpenType] = useState<WorkType | null>(null);
+
+  // 売上を直して戻ってきたとき（?day=YYYY-MM-DD）は、その日を開いたままにする
+  useEffect(() => {
+    const d = new URLSearchParams(window.location.search).get('day');
+    if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+      setDay(d);
+      setMonth(d.slice(0, 7));
+    }
+  }, []);
 
   const people = useMemo(() => {
     const m = new Map<string, string>();
@@ -89,7 +98,7 @@ function CalendarInner() {
             ›
           </button>
         </div>
-        <div className="mb-3 grid grid-cols-3 gap-1 rounded-xl bg-fw-fill/60 p-0.5 text-center">
+        <div className="mb-3 grid grid-cols-3 gap-1 rounded-xl bg-fw-fill p-0.5 text-center">
           {byType.map((t) => (
             <button
               key={t.type}
@@ -104,7 +113,7 @@ function CalendarInner() {
           ))}
         </div>
         {opened && (
-          <div className="mb-3 grid gap-1 rounded-xl bg-fw-fill/60 px-3 py-2 text-[13px]">
+          <div className="mb-3 grid gap-1 rounded-xl bg-fw-fill px-3 py-2 text-[13px]">
             <span className="text-[11px] font-semibold text-fw-muted">{opened.type}・請求先別</span>
             {opened.bills.length === 0 ? (
               <span className="text-center text-xs text-fw-muted">この月の記録はありません</span>
@@ -156,7 +165,7 @@ function CalendarInner() {
         </p>
       </Card>
 
-      <Section title={formatJpDate(day)}>
+      <Section title={`${formatJpDate(day)}（押すと直せます）`}>
         {dayPay.length > 0 && (
           <Card className="mb-3 flex items-center justify-between p-4">
             <span className="text-sm">
@@ -171,7 +180,14 @@ function CalendarInner() {
           ) : daySales.length === 0 ? (
             <p className="p-6 text-center text-sm text-fw-muted">この日の売上はありません</p>
           ) : (
-            daySales.map((s) => <SaleRow key={s.id} sale={s} showUser />)
+            daySales.map((s) => (
+              <SaleRow
+                key={s.id}
+                sale={s}
+                showUser
+                onClick={() => (location.href = `/sales?edit=${s.id}&back=${encodeURIComponent(`/calendar?day=${day}`)}`)}
+              />
+            ))
           )}
         </Card>
       </Section>
