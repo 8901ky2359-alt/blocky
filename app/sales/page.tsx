@@ -41,6 +41,15 @@ function SalesInner({ user }: { user: User }) {
   // 「最近の入力」やカレンダーから来たとき：?edit=売上ID&back=戻り先 で、その売上を開いて直す
   const [returnTo, setReturnTo] = useState<string | null>(null);
   const [openedFromLink, setOpenedFromLink] = useState(false);
+  // カレンダーの「この日に入力」から来たとき：?date=YYYY-MM-DD&back=戻り先
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const date = q.get('date');
+    const back = q.get('back');
+    if (!date || q.get('edit') || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+    setForm((f) => ({ ...f, date }));
+    if (back && back.startsWith('/') && !back.startsWith('//')) setReturnTo(back);
+  }, []);
   useEffect(() => {
     if (openedFromLink || sales.length === 0) return;
     const q = new URLSearchParams(window.location.search);

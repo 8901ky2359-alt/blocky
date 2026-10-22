@@ -1,7 +1,7 @@
 // 小さな共通部品
 
 import Link from 'next/link';
-import { Sale } from '@/lib/fw/types';
+import { Sale, WorkType } from '@/lib/fw/types';
 import { yen } from '@/lib/format';
 import { shortDate } from '@/lib/fw/billing';
 import { withTax } from '@/lib/tax';
@@ -34,7 +34,7 @@ export function Section({ title, children, right }: { title?: string; children: 
   return (
     <section className="mb-5">
       {(title || right) && (
-        <div className="flex items-end justify-between px-8 pb-1.5">
+        <div className="flex items-end justify-between gap-2 px-8 pb-1.5">
           <h2 className="text-[13px] text-fw-muted">{title}</h2>
           {right}
         </div>
@@ -56,6 +56,18 @@ export function StatusPill({ sale }: { sale: Sale }) {
     <span className="shrink-0 rounded-full bg-fw-orange/15 px-2 py-0.5 text-[11px] font-bold text-fw-orange">承認待ち</span>
   );
 }
+
+// 区分ごとの文字色（常駐＝緑・請負＝青・作業員手配＝紫）
+export const WORK_TYPE_TEXT: Record<WorkType, string> = {
+  常駐: 'text-fw-green',
+  請負: 'text-fw-blue',
+  作業員手配: 'text-fw-violet',
+};
+export const WORK_TYPE_DOT: Record<WorkType, string> = {
+  常駐: 'bg-fw-green',
+  請負: 'bg-fw-blue',
+  作業員手配: 'bg-fw-violet',
+};
 
 // 区分の表示（作業員手配は作業員名も）
 export function workTypeText(s: Pick<Sale, 'workType' | 'hiredName'>): string {
@@ -85,7 +97,7 @@ export function SaleRow({ sale, showUser, onClick }: { sale: Sale; showUser?: bo
         </span>
       </span>
       <span className="flex shrink-0 flex-col items-end gap-0.5 text-right">
-        <TaxedYen ex={sale.amount} main="ex" className="text-[15px] font-bold" />
+        <TaxedYen ex={sale.amount} main="ex" className={`text-[15px] font-bold ${WORK_TYPE_TEXT[sale.workType]}`} />
         <StatusPill sale={sale} />
       </span>
     </>

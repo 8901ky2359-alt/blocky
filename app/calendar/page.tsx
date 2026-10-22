@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import AuthGate from '@/components/fw/AuthGate';
 import Screen from '@/components/fw/Screen';
-import { Card, Chip, SaleRow, Section, TaxedYen } from '@/components/fw/ui';
+import Link from 'next/link';
+import { Card, Chip, SaleRow, Section, TaxedYen, WORK_TYPE_DOT, WORK_TYPE_TEXT } from '@/components/fw/ui';
 import { salePayment, sum } from '@/lib/fw/billing';
 import { useSales } from '@/lib/fw/useSales';
 import { Sale, WORK_TYPES, WorkType } from '@/lib/fw/types';
@@ -90,8 +91,8 @@ function CalendarInner() {
           </button>
           <span className="text-center">
             <span className="block text-lg font-bold">{formatJpMonth(month)}</span>
-            <span className="block text-xs text-fw-muted tabular-nums">
-              売上 {yen(withTax(sum(monthSales)))}（税込）・ 税抜 {yen(sum(monthSales))} ・ {monthSales.length}件
+            <span className="block text-[11px] text-fw-muted tabular-nums">
+              税込 {yen(withTax(sum(monthSales)))} ・ 税抜 {yen(sum(monthSales))} ・ {monthSales.length}件
             </span>
           </span>
           <button onClick={() => setMonth(shiftMonth(month, 1))} className="px-3 py-1 text-2xl text-fw-green" aria-label="次の月">
@@ -106,15 +107,16 @@ function CalendarInner() {
               className={`rounded-xl px-1 py-2 ${openType === t.type ? 'bg-fw-card shadow-sm' : ''}`}
             >
               <span className="block text-[11px] text-fw-muted">
+                <span className={`mr-1 inline-block h-2 w-2 rounded-full ${WORK_TYPE_DOT[t.type]}`} />
                 {t.type} {openType === t.type ? '▲' : '▾'}
               </span>
-              <TaxedYen ex={t.total} main="ex" className="text-[14px] font-bold" />
+              <TaxedYen ex={t.total} main="ex" className={`text-[14px] font-bold ${WORK_TYPE_TEXT[t.type]}`} />
             </button>
           ))}
         </div>
         {opened && (
           <div className="mb-3 grid gap-1 rounded-xl bg-fw-fill px-3 py-2 text-[13px]">
-            <span className="text-[11px] font-semibold text-fw-muted">{opened.type}・請求先別</span>
+            <span className={`text-[11px] font-semibold ${WORK_TYPE_TEXT[opened.type]}`}>{opened.type}・請求先別</span>
             {opened.bills.length === 0 ? (
               <span className="text-center text-xs text-fw-muted">この月の記録はありません</span>
             ) : (
@@ -145,36 +147,61 @@ function CalendarInner() {
               <button
                 key={d}
                 onClick={() => setDay(d)}
-                className={`flex h-[58px] flex-col items-center rounded-lg pt-1 text-[13px] ${d === day ? 'bg-fw-green/15 ring-1 ring-fw-green' : ''}`}
+                className={`flex min-h-[64px] flex-col items-center rounded-lg pb-1 pt-1 text-[13px] ${d === day ? 'bg-fw-green/15 ring-1 ring-fw-green' : ''}`}
               >
                 <span
                   className={`grid h-6 w-6 place-items-center rounded-full tabular-nums ${d === today ? 'bg-fw-green font-bold text-white' : i % 7 === 5 ? 'text-fw-blue' : i % 7 === 6 ? 'text-fw-red' : ''}`}
                 >
                   {Number(d.slice(8))}
                 </span>
-                {byDay.has(d) && <span className="text-[10px] font-bold tabular-nums">{manYen(sum(byDay.get(d)!))}</span>}
-                {payByDay.has(d) && <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-fw-blue" aria-label="入金予定" />}
+                {/* その日の売上を区分ごとの色で（常駐・請負・作業員手配） */}
+                {WORK_TYPES.map((t) => {
+                  const list = (byDay.get(d) ?? []).filter((s) => s.workType === t);
+                  return list.length ? (
+                    <span key={t} className={`text-[10px] font-bold leading-tight tabular-nums ${WORK_TYPE_TEXT[t]}`}>
+                      {manYen(sum(list))}
+                    </span>
+                  ) : null;
+                })}
+                {payByDay.has(d) && <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-fw-orange" aria-label="入金予定" />}
               </button>
             ) : (
               <span key={`e${i}`} />
             ),
           )}
         </div>
-        <p className="mt-2 flex items-center gap-1.5 px-1 text-[11px] text-fw-muted">
-          数字＝その日の売上（税抜）
-          <span className="ml-2 inline-block h-1.5 w-1.5 rounded-full bg-fw-blue" />
-          ＝入金予定日
+        <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 px-1 text-[11px] text-fw-muted">
+          <span>数字＝その日の売上（税抜）</span>
+          {WORK_TYPES.map((t) => (
+            <span key={t} className={`font-semibold ${WORK_TYPE_TEXT[t]}`}>
+              ■{t === '作業員手配' ? '作業員手配（雇用）' : t}
+            </span>
+          ))}
+          <span className="flex items-center gap-1">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-fw-orange" />
+            入金予定日
+          </span>
         </p>
       </Card>
 
-      <Section title={`${formatJpDate(day)}（押すと直せます）`}>
+      <Section
+        title={`${formatJpDate(day)}（押すと直せます）`}
+        right={
+          <Link
+            href={`/sales?date=${day}&back=${encodeURIComponent(`/calendar?day=${day}`)}`}
+            className="shrink-0 whitespace-nowrap rounded-full bg-fw-green px-3 py-1 text-[13px] font-bold text-white"
+          >
+            ＋ この日に入力
+          </Link>
+        }
+      >
         {dayPay.length > 0 && (
           <Card className="mb-3 flex items-center justify-between p-4">
             <span className="text-sm">
               入金予定 <span className="text-fw-muted">{[...new Set(dayPay.map((s) => s.clientName))].join('・')}</span>
             </span>
             <span className="text-right">
-              <TaxedYen ex={sum(dayPay)} className="font-bold text-fw-blue" />
+              <TaxedYen ex={sum(dayPay)} className="font-bold text-fw-orange" />
             </span>
           </Card>
         )}
