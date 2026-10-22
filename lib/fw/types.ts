@@ -25,7 +25,8 @@ export interface Client extends Terms {
 export type SaleStatus = 'pending' | 'approved';
 
 // 売上の区分（作業員手配＝人を手配して請求する分。旧アプリの「雇用」）
-export const WORK_TYPES = ['常駐', '請負', '作業員手配'] as const;
+// 表示の順番も兼ねる（請負 → 常駐 → 作業員手配）
+export const WORK_TYPES = ['請負', '常駐', '作業員手配'] as const;
 export type WorkType = (typeof WORK_TYPES)[number];
 
 export interface SaleInput extends Terms {

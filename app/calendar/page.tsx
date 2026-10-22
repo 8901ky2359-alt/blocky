@@ -66,7 +66,10 @@ function CalendarInner() {
   const cells = calendarCells(month);
   const today = todayStr();
 
-  const daySales = byDay.get(day) ?? [];
+  // その日の一覧は 請負 → 常駐 → 作業員手配 の順（同じ区分の中は入力順）
+  const daySales = [...(byDay.get(day) ?? [])].sort(
+    (a, b) => WORK_TYPES.indexOf(a.workType) - WORK_TYPES.indexOf(b.workType) || a.createdAt - b.createdAt,
+  );
   const dayPay = payByDay.get(day) ?? [];
 
   return (
