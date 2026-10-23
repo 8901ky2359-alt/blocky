@@ -1,0 +1,31 @@
+{
+  "name": "防草シート管理",
+  "short_name": "防草シート",
+  "description": "防草シート・除草の進捗管理／座標マップ／LINE報告",
+  "start_url": "/report",
+  "scope": "/report",
+  "display": "standalone",
+  "background_color": "#f2f2f7",
+  "theme_color": "#f2f2f7",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "/report-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/report-icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/report-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

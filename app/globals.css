@@ -40,6 +40,25 @@
   }
 }
 
+/* ビフォーアフター・防草シート管理は明るい配色に固定（写真・地図が見やすいように） */
+.fw-light {
+  --fw-bg: 242 242 247;
+  --fw-card: 255 255 255;
+  --fw-ink: 17 17 17;
+  --fw-muted: 138 138 142;
+  --fw-line: rgba(60, 60, 67, 0.16);
+  --fw-fill: rgba(120, 120, 128, 0.12);
+  --fw-green: 31 125 67;
+  --fw-blue: 31 102 214;
+  --fw-violet: 106 63 208;
+  --fw-teal: 20 134 138;
+  --fw-orange: 217 105 10;
+  --fw-red: 217 65 47;
+  color-scheme: light;
+  background: rgb(var(--fw-bg));
+  color: rgb(var(--fw-ink));
+}
+
 body {
   background: rgb(var(--fw-bg));
   color: rgb(var(--fw-ink));
