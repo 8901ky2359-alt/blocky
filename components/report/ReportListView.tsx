@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { SITES } from '@/lib/report/data';
 import { useReport } from '@/lib/report/useReport';
 import { isReportTarget } from '@/lib/report/status';
+import { stageOf } from '@/lib/report/types';
 import SiteRow from './SiteRow';
 import ReportMap from './ReportMap';
 import ReportSheet from './ReportSheet';
@@ -27,7 +28,7 @@ export default function ReportListView() {
     return SITES.filter((s) => {
       if (area !== 'all' && s.area !== area) return false;
       const p = get(s.workNo);
-      if (filter === 'none' && (p.weedDone || p.done)) return false;
+      if (filter === 'none' && stageOf(p) !== 'none') return false;
       if (filter === 'target' && !isReportTarget(p)) return false;
       if (filter === 'done' && !p.done) return false;
       if (filter === 'next' && !p.nextWeek) return false;
@@ -45,7 +46,7 @@ export default function ReportListView() {
       shown
         .map((s) => {
           const p = get(s.workNo);
-          return s.workNo + (p.weedDone ? 'w' : '') + (p.done ? '1' : '') + (p.siteType ?? '');
+          return s.workNo + stageOf(p) + (p.siteType ?? '');
         })
         .join(','),
     [shown, get],
@@ -165,7 +166,7 @@ export default function ReportListView() {
             onClick={() => setShowSheet(true)}
             className="pointer-events-auto w-full rounded-xl bg-fw-green py-3.5 text-sm font-black text-white shadow-lg shadow-fw-green/30"
           >
-            📋 今週の報告を作成（LINE共有）
+            📋 進捗報告を作成（LINE共有）
           </button>
         </div>
       </div>

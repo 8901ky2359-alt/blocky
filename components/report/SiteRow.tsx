@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { SiteSeed, SiteProgress, SiteType } from '@/lib/report/types';
+import { SiteSeed, SiteProgress, SiteType, Stage, stageOf, stagePatch } from '@/lib/report/types';
 import { OVERALL_META, overallOf, statusLabel, isReportTarget, typeOf, mapsUrl, codeOf } from '@/lib/report/status';
 import { INSTRUCTION_PDFS } from '@/lib/report/instructionPdfs';
 
@@ -21,11 +21,15 @@ export default function SiteRow({
   const label = statusLabel(type, p);
   const reportTarget = isReportTarget(p);
   const instructionUrl = INSTRUCTION_PDFS[site.workNo];
+  const stage = stageOf(p);
+  // 除草のみの現場は「除草完了」がそのまま完工
+  const shownStage: Stage = type === '除草のみ' && stage === 'weeded' ? 'done' : stage;
+  const hasCoords = !!(site.lat || site.lng);
 
   return (
     <div
       className={`rounded-xl border bg-white shadow-sm ${
-        p.done ? 'border-emerald-300' : reportTarget ? 'border-amber-300 ring-1 ring-amber-200' : 'border-slate-200'
+        stage === 'done' ? 'border-emerald-300' : reportTarget ? 'border-amber-300 ring-1 ring-amber-200' : 'border-slate-200'
       }`}
     >
       <div className="flex items-start gap-2 p-3">
@@ -33,7 +37,7 @@ export default function SiteRow({
         <button onClick={() => setOpen((o) => !o)} className="min-w-0 flex-1 text-left">
           <div className="flex items-center gap-1.5">
             <span className="truncate text-sm font-bold text-slate-800">{site.name}</span>
-            {p.done && (
+            {stage === 'done' && (
               <span className="shrink-0 rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700">
                 完工
               </span>
@@ -68,14 +72,16 @@ export default function SiteRow({
             {p.nextWeek && <span className="rounded bg-blue-100 px-1.5 py-0.5 font-bold text-blue-700">次週</span>}
           </div>
         </button>
-        <a
-          href={mapsUrl(site.lat, site.lng)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="shrink-0 rounded-lg border border-slate-200 bg-slate-50 px-2 py-2 text-center text-[10px] font-bold text-slate-600"
-        >
-          🗺<br />地図
-        </a>
+        {hasCoords && (
+          <a
+            href={mapsUrl(site.lat, site.lng)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 rounded-lg border border-slate-200 bg-slate-50 px-2 py-2 text-center text-[10px] font-bold text-slate-600"
+          >
+            🗺<br />地図
+          </a>
+        )}
       </div>
 
       {open && (
@@ -112,37 +118,33 @@ export default function SiteRow({
             </div>
           </div>
 
-          {/* 除草作業の完了 */}
-          {!p.done && (
-            <button
-              onClick={() => onChange({ weedDone: !p.weedDone })}
-              className={`w-full rounded-lg py-2.5 text-sm font-bold ${
-                p.weedDone ? 'border border-amber-400 bg-amber-50 text-amber-700' : 'bg-amber-500 text-white'
-              }`}
-            >
-              {p.weedDone ? '除草作業：完了 ✓（タップで取り消し）' : '🌿 除草作業を完了にする'}
-            </button>
-          )}
-
-          {/* 完工の確定 */}
-          {p.done ? (
-            <div className="flex items-center justify-between rounded-lg border border-emerald-300 bg-emerald-50 p-2.5">
-              <span className="text-sm font-bold text-emerald-700">✔ 完工済み（この現場は完了）</span>
-              <button
-                onClick={() => onChange({ done: false })}
-                className="rounded-lg border border-emerald-300 bg-white px-2.5 py-1 text-xs font-bold text-emerald-700"
-              >
-                取り消す
-              </button>
+          {/* 作業の段階（報告の区分になる） */}
+          <div>
+            <p className="mb-1 text-[11px] font-bold text-slate-600">作業の状況</p>
+            <div className="grid grid-cols-2 gap-1.5">
+              {stageOptions(type).map((o) => (
+                <button
+                  key={o.stage}
+                  onClick={() => onChange(stagePatch(o.stage))}
+                  className={`rounded-lg py-2.5 text-[13px] font-bold ${
+                    shownStage === o.stage ? 'bg-fw-green text-white' : 'border border-slate-200 bg-white text-slate-600'
+                  } ${o.stage === 'done' ? 'col-span-2' : ''}`}
+                >
+                  {o.label}
+                </button>
+              ))}
             </div>
-          ) : (
-            <button
-              onClick={() => onChange({ done: true, weedDone: true })}
-              className="w-full rounded-lg bg-emerald-600 py-3 text-sm font-black text-white active:scale-[.99]"
-            >
-              ✅ 完工にする（{type === '除草のみ' ? '除草完了で完了' : '防草シートまで完了'}）
-            </button>
-          )}
+          </div>
+
+          <label className="flex items-center gap-2 rounded-lg border border-slate-200 p-2.5">
+            <input
+              type="checkbox"
+              checked={!!p.bee}
+              onChange={(e) => onChange({ bee: e.target.checked })}
+              className="h-5 w-5 accent-amber-600"
+            />
+            <span className="text-sm font-bold text-slate-700">スズメバチの巣駆除も完了</span>
+          </label>
 
           <p className="text-center text-[11px] text-slate-400">
             現在の状態：<span className="font-bold text-slate-600">{label}</span>
@@ -159,16 +161,35 @@ export default function SiteRow({
             <span className="text-sm font-bold text-slate-700">次週予定に入れる</span>
           </label>
 
-          <a
-            href={mapsUrl(site.lat, site.lng)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block rounded-lg border border-slate-200 py-2 text-center text-xs font-semibold text-slate-600"
-          >
-            🗺 Googleマップで開く（{site.lat.toFixed(5)}, {site.lng.toFixed(5)}）
-          </a>
+          {hasCoords && (
+            <a
+              href={mapsUrl(site.lat, site.lng)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block rounded-lg border border-slate-200 py-2 text-center text-xs font-semibold text-slate-600"
+            >
+              🗺 Googleマップで開く（{site.lat.toFixed(5)}, {site.lng.toFixed(5)}）
+            </a>
+          )}
         </div>
       )}
     </div>
   );
+}
+
+// 現場の種類ごとに選べる段階（除草のみの現場はシート施工が無い）
+function stageOptions(type: SiteType): { stage: Stage; label: string }[] {
+  return type === '除草のみ'
+    ? [
+        { stage: 'none', label: '未着手' },
+        { stage: 'weeding', label: '除草途中' },
+        { stage: 'done', label: '除草完了（完工）' },
+      ]
+    : [
+        { stage: 'none', label: '未着手' },
+        { stage: 'weeding', label: '除草途中' },
+        { stage: 'weeded', label: '除草のみ完了' },
+        { stage: 'sheeting', label: 'シート施工途中' },
+        { stage: 'done', label: '除草＋シート完了（完工）' },
+      ];
 }

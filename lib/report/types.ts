@@ -17,11 +17,16 @@ export type SiteSeed = {
 export type SiteType = '除草のみ' | 'シートあり';
 
 // 端末に保存する作業状態
+// 作業の段階（未着手 → 除草途中 → 除草完了 → シート施工途中 → 完工）
+export type Stage = 'none' | 'weeding' | 'weeded' | 'sheeting' | 'done';
+
 export type SiteProgress = {
   workNo: string;
   siteType?: SiteType; // 未設定なら既定（工番あり=シートあり / リスト外=除草のみ）
-  weedDone: boolean; // 除草作業が完了
-  done: boolean; // 完工（すべて完了。押すと報告対象から外れる）
+  stage?: Stage; // 未設定の古いデータは weedDone / done から決める
+  bee?: boolean; // スズメバチの巣駆除まで完了
+  weedDone: boolean; // 除草作業が完了（stage から自動で合わせる。古い端末との互換用）
+  done: boolean; // 完工（stage から自動で合わせる）
   nextWeek: boolean; // 次週予定
   updatedAt: number;
 };
@@ -33,6 +38,17 @@ export const EMPTY_PROGRESS: Omit<SiteProgress, 'workNo'> = {
   updatedAt: 0,
 };
 
+const STAGES: Stage[] = ['none', 'weeding', 'weeded', 'sheeting', 'done'];
+
+// 段階を変えるときの更新内容（古い項目 weedDone / done も合わせる）
+export function stagePatch(stage: Stage): Pick<SiteProgress, 'stage' | 'weedDone' | 'done'> {
+  return { stage, weedDone: stage === 'weeded' || stage === 'sheeting' || stage === 'done', done: stage === 'done' };
+}
+
+export function stageOf(p: SiteProgress): Stage {
+  return p.stage ?? (p.done ? 'done' : p.weedDone ? 'weeded' : 'none');
+}
+
 // 旧モデル(weeding/sheet/thisWeek)からの移行も吸収して正規化する
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function normalizeProgress(raw: any): SiteProgress {
@@ -41,6 +57,8 @@ export function normalizeProgress(raw: any): SiteProgress {
     return {
       workNo: String(raw.workNo),
       siteType: raw.siteType,
+      stage: STAGES.includes(raw.stage) ? raw.stage : undefined,
+      bee: !!raw.bee,
       weedDone: !!raw.weedDone,
       done: !!raw.done,
       nextWeek: !!raw.nextWeek,

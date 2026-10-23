@@ -85,6 +85,7 @@ export default function ReportMap({
       const ov = overallOf(p);
       const meta = OVERALL_META[ov];
       const ring = s.priority ? '#dc2626' : '#ffffff';
+      if (!s.lat && !s.lng) continue; // 座標未登録（施工リスト外）
       bounds.push([s.lat, s.lng]);
       const m = L.marker([s.lat, s.lng], { icon: pin(meta.color, ring) });
       const type = typeOf(s, p);
@@ -112,7 +113,7 @@ export default function ReportMap({
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
-        {(['done', 'weeded', 'none'] as const).map((k) => (
+        {(['done', 'weeded', 'working', 'none'] as const).map((k) => (
           <span key={k} className="flex items-center gap-1">
             <i className="inline-block h-3 w-3 rounded-full" style={{ background: OVERALL_META[k].color }} />
             {OVERALL_META[k].label}

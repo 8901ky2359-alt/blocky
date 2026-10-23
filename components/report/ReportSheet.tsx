@@ -1,8 +1,10 @@
 'use client';
 
+// 進捗報告（LINE用）を作る。区分：除草のみ完了／除草＋シート完了／シート施工途中／除草途中
+
 import { useMemo, useState } from 'react';
 import { SiteSeed, SiteProgress } from '@/lib/report/types';
-import { buildReport, isReportTarget } from '@/lib/report/status';
+import { buildProgressReport } from '@/lib/report/status';
 
 export default function ReportSheet({
   sites,
@@ -13,19 +15,11 @@ export default function ReportSheet({
   get: (workNo: string) => SiteProgress;
   onClose: () => void;
 }) {
-  const [dateLabel, setDateLabel] = useState('');
-  const [extra, setExtra] = useState('');
   const [edited, setEdited] = useState<string | null>(null);
   const [msg, setMsg] = useState('');
 
-  const auto = useMemo(
-    () => buildReport(sites, get, { dateLabel: dateLabel.trim() || undefined, extra }),
-    [sites, get, dateLabel, extra],
-  );
+  const auto = useMemo(() => buildProgressReport(sites, get), [sites, get]);
   const text = edited ?? auto;
-
-  const implCount = sites.filter((s) => isReportTarget(get(s.workNo))).length;
-  const nextCount = sites.filter((s) => get(s.workNo).nextWeek).length;
 
   async function share() {
     try {
@@ -56,56 +50,38 @@ export default function ReportSheet({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-black/20" />
-        <h3 className="mb-1 text-lg font-bold">📋 今週の報告を作成</h3>
+        <div className="mb-1 flex items-center justify-between">
+          <h3 className="text-lg font-bold">📋 進捗報告を作成</h3>
+          <button onClick={onClose} className="text-sm text-fw-green">
+            閉じる
+          </button>
+        </div>
         <p className="mb-3 text-xs text-slate-500">
-          実施 {implCount}件／次週 {nextCount}件。<b>完工していない「除草完了」の現場</b>が自動で実施に載ります
-          （完工にすると外れます）。そのままLINEへ共有・コピーできます。
+          各現場の「作業の状況」から自動で作ります。送る前に直したいところがあれば、下の文章をそのまま書き換えられます。
         </p>
 
-        <div className="mb-2 grid grid-cols-1 gap-2">
-          <input
-            value={dateLabel}
-            onChange={(e) => {
-              setDateLabel(e.target.value);
-              setEdited(null);
-            }}
-            placeholder="見出し（任意・例: 23日ルート）"
-            className="input"
-          />
-          <textarea
-            value={extra}
-            onChange={(e) => {
-              setExtra(e.target.value);
-              setEdited(null);
-            }}
-            placeholder="リスト外の実施（任意・例: 気仙沼 WEST-L-1471 除草（完了）… ）"
-            className="input h-16"
-          />
-        </div>
-
         <textarea
+          id="report-text"
           value={text}
           onChange={(e) => setEdited(e.target.value)}
-          className="input h-64 font-mono text-[13px] leading-relaxed"
+          rows={16}
+          className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 font-sans text-[13px] leading-relaxed text-slate-800 outline-none"
         />
         {edited !== null && (
           <button onClick={() => setEdited(null)} className="mt-1 text-xs text-fw-green underline">
-            自動生成に戻す
+            書き換えを元に戻す
           </button>
         )}
 
         <div className="mt-3 grid grid-cols-2 gap-2">
-          <button onClick={copy} className="rounded-xl border border-black/15 py-3 text-sm font-bold text-slate-700">
-            📄 コピー
+          <button onClick={copy} className="rounded-xl border border-slate-300 py-3 text-sm font-bold text-slate-700">
+            コピー
           </button>
           <button onClick={share} className="rounded-xl bg-fw-green py-3 text-sm font-bold text-white">
-            📤 共有（LINE等）
+            LINEなどで共有
           </button>
         </div>
         {msg && <p className="mt-2 text-center text-xs text-fw-green">{msg}</p>}
-        <button onClick={onClose} className="mt-3 w-full py-2 text-sm text-black/50">
-          閉じる
-        </button>
       </div>
     </div>
   );

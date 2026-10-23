@@ -248,4 +248,7 @@ export const SITES: SiteSeed[] = [
   { workNo: '801569', name: 'WEST-L-903', address: '茨城県牛久市小坂町町歩3173', area: '牛久市', hasKey: true, lat: 35.962833, lng: 140.217755, land: 1296, priority: false },
   { workNo: '802035', name: 'WEST-L-1249', address: '茨城県龍ｹ崎市若柴町長山前2238-18', area: '龍ｹ崎市', hasKey: false, lat: 35.936904, lng: 140.166151, land: 818, priority: false },
   { workNo: '802036', name: 'WEST-L-1250', address: '茨城県龍ｹ崎市若柴町長山前2238-50', area: '龍ｹ崎市', hasKey: false, lat: 35.936858, lng: 140.165771, land: 932, priority: false },
+  // 施工リスト外（LINEで草刈り完了の報告あり。住所・座標は未登録）
+  { workNo: 'WEST-L-1029', name: 'WEST-L-1029', address: '住所未登録（施工リスト外）', area: 'リスト外', hasKey: false, lat: 0, lng: 0, land: 0, priority: false },
+  { workNo: 'WEST-L-1541', name: 'WEST-L-1541', address: '住所未登録（施工リスト外）', area: 'リスト外', hasKey: false, lat: 0, lng: 0, land: 0, priority: false },
 ];
