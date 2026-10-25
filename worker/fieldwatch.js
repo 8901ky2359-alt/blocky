@@ -612,6 +612,8 @@ export async function handleFieldWatch(request, env, url) {
     const body = await request.json().catch(() => ({}));
     const { value: v, error } = readSaleInput(body);
     if (error) return json({ error }, 400);
+    // 仲間の入力は請負・常駐のみ（作業員手配は管理者だけ）
+    if (!isAdmin && v.workType === '作業員手配') return json({ error: 'invalid-work-type' }, 400);
     const id = newId();
     const now = Date.now();
     // 管理者が自分で入れた売上は承認済み、仲間の入力は承認待ち
@@ -678,6 +680,8 @@ export async function handleFieldWatch(request, env, url) {
     const body = await request.json().catch(() => ({}));
     const { value: v, error } = readSaleInput(body);
     if (error) return json({ error }, 400);
+    // 仲間の入力は請負・常駐のみ（作業員手配は管理者だけ）
+    if (!isAdmin && v.workType === '作業員手配') return json({ error: 'invalid-work-type' }, 400);
     await env.DB.prepare(
       `UPDATE fw_sales SET date=?1, site=?2, work=?3, amount=?4, memo=?5, client_name=?6, cutoff=?7, pay_offset=?8,
          pay_day=?9, updated_at=?10, work_type=?12, hired_name=?13 WHERE id=?11`,

@@ -20,6 +20,7 @@ const ERRORS: Record<string, string> = {
   'amount-required': '金額を入力してください',
   'client-required': '請求先を入力してください',
   'invalid-date': '日付を選んでください',
+  'invalid-work-type': '作業員手配は選べません',
   forbidden: '承認済みの記録は変更できません',
   offline: 'インターネットに接続できませんでした',
 };
@@ -70,7 +71,11 @@ function SalesInner({ user }: { user: User }) {
   }, []);
 
   const mine = useMemo(() => sales.filter((s) => s.userId === user.id), [sales, user.id]);
-  const workOptions = useMemo(() => workSuggestions(sales), [sales]);
+  const isAdmin = user.role === 'admin';
+  // 仲間は請負・常駐のみ（作業員手配は総合管理画面だけ）
+  const workTypes = isAdmin ? WORK_TYPES : WORK_TYPES.filter((t) => t !== '作業員手配');
+  // 候補は見えている売上から作る：仲間はサーバーから自分の分しか届かないので、自分が入れたものだけが出る
+  const workOptions = useMemo(() => workSuggestions(sales, isAdmin), [sales, isAdmin]);
   // 一度入れた現場・作業員・金額は、次からボタンを押すだけで入る（最近使った順）
   const siteOptions = useMemo(() => recentValues(sales, (s) => s.site), [sales]);
   const hiredOptions = useMemo(() => recentValues(sales, (s) => s.hiredName), [sales]);
@@ -180,8 +185,8 @@ function SalesInner({ user }: { user: User }) {
       <Section>
         <Card className="grid gap-3 p-4">
           <Field label="区分">
-            <div className="grid grid-cols-3 rounded-[10px] bg-fw-fill p-0.5 text-[14px] font-semibold">
-              {WORK_TYPES.map((t) => (
+            <div className={`grid ${workTypes.length === 3 ? 'grid-cols-3' : 'grid-cols-2'} rounded-[10px] bg-fw-fill p-0.5 text-[14px] font-semibold`}>
+              {workTypes.map((t) => (
                 <button
                   key={t}
                   type="button"
@@ -308,7 +313,7 @@ function SalesInner({ user }: { user: User }) {
 // 作業内容の候補：これまでの売上の作業内容（よく使う順）＋以前のアプリがこの端末に覚えていた候補
 const OLD_MEMOS_KEY = 'income-memos';
 
-function workSuggestions(sales: Sale[]): string[] {
+function workSuggestions(sales: Sale[], withOldMemos: boolean): string[] {
   const count = new Map<string, { n: number; last: number }>();
   for (const s of sales) {
     const w = s.work.trim();
@@ -317,6 +322,8 @@ function workSuggestions(sales: Sale[]): string[] {
     count.set(w, { n: c.n + 1, last: Math.max(c.last, s.createdAt) });
   }
   const list = [...count.entries()].sort((a, b) => b[1].n - a[1].n || b[1].last - a[1].last).map(([w]) => w);
+  // 以前の売上管理アプリの候補（この端末に残っているもの）は管理者だけ
+  if (!withOldMemos) return list;
   try {
     const old = JSON.parse(localStorage.getItem(OLD_MEMOS_KEY) || '[]');
     if (Array.isArray(old)) for (const w of old) if (typeof w === 'string' && w.trim() && !list.includes(w.trim())) list.push(w.trim());
