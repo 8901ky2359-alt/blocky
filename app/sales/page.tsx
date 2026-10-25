@@ -5,7 +5,7 @@ import AuthGate from '@/components/fw/AuthGate';
 import Screen from '@/components/fw/Screen';
 import { Card, Chip, SaleRow, Section } from '@/components/fw/ui';
 import { ApiError, createSale, deleteSale, listClients, updateSale } from '@/lib/fw/api';
-import { CUTOFF_DAYS, closingDate, dayLabel, paymentDate, shortDate } from '@/lib/fw/billing';
+import { CUTOFF_DAYS, closingDate, consolidatedDate, dayLabel, paymentDate, shortDate } from '@/lib/fw/billing';
 import { useSales } from '@/lib/fw/useSales';
 import { Client, Sale, SaleInput, Terms, User, WORK_TYPES } from '@/lib/fw/types';
 import { todayStr, yen } from '@/lib/format';
@@ -260,7 +260,15 @@ function SalesInner({ user }: { user: User }) {
           </Field>
           {pay && (
             <p className="rounded-xl bg-fw-fill px-3 py-2 text-sm">
-              この売上は <b>{shortDate(closing)}締め</b> ・ <b>{shortDate(pay)}入金予定</b> です
+              この売上は <b>{shortDate(closing)}締め</b> ・{' '}
+              {consolidatedDate(pay) === pay ? (
+                <b>{shortDate(pay)}入金予定</b>
+              ) : (
+                <>
+                  {shortDate(pay)}決済予定 → <b>{shortDate(consolidatedDate(pay))}にまとめて入金</b>
+                </>
+              )}{' '}
+              です
             </p>
           )}
           <p className="text-xs text-fw-muted">一度入れた請求先は、上のボタンを押すだけで締め日・入金日まで入ります。</p>

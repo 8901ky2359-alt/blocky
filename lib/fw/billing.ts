@@ -54,12 +54,36 @@ export function paymentDate(closing: string, t: Terms): string {
   return dayOf(py, pm, t.payDay);
 }
 
+// 入金のまとめ：2026年10月以降、5日以外の日（25日・月末など）に決済予定だった分は、翌月5日にまとめて入金される。
+// 5日払いのものはこれまでどおり。それより前の分は元の入金日のまま
+export const CONSOLIDATE_FROM = '2026-10-01';
+export const CONSOLIDATED_DAY = 5;
+
+export function consolidatedDate(scheduled: string): string {
+  const [y, m, d] = scheduled.split('-').map(Number);
+  if (scheduled < CONSOLIDATE_FROM || d === CONSOLIDATED_DAY) return scheduled;
+  if (d < CONSOLIDATED_DAY) return dayOf(y, m, CONSOLIDATED_DAY);
+  const [ny, nm] = addMonths(y, m, 1);
+  return dayOf(ny, nm, CONSOLIDATED_DAY);
+}
+
+// まとめで入金日が動いたか（元の決済予定日を並べて見せる）
+export function isConsolidated(scheduled: string): boolean {
+  return consolidatedDate(scheduled) !== scheduled;
+}
+
 export function saleClosing(s: Sale): string {
   return closingDate(s.date, s.cutoff);
 }
 
-export function salePayment(s: Sale): string {
+// 元の決済予定日（請求先の「入金日」どおり）
+export function saleScheduled(s: Sale): string {
   return paymentDate(saleClosing(s), s);
+}
+
+// 実際に入金される日（まとめ後）
+export function salePayment(s: Sale): string {
+  return consolidatedDate(saleScheduled(s));
 }
 
 export function shortDate(date: string): string {
@@ -72,7 +96,8 @@ export function sum(sales: Sale[]): number {
 }
 
 export interface PaymentGroup {
-  payDate: string;
+  payDate: string; // 実際の入金日（まとめ後）
+  scheduled: string; // 元の決済予定日
   closing: string;
   cutoff: number;
   sales: Sale[];
@@ -101,7 +126,29 @@ export function amounts(sales: Sale[]): Amounts {
   return { count: sales.length, subtotal, total: withTax(subtotal) };
 }
 
-// 次回入金予定：未入金の売上を締め日のルールごとに分け、それぞれ一番早い入金日の分を合計する
+// 入金日（まとめ後）の売上を、元の決済予定日・締めごとに分ける
+export function paymentGroups(sales: Sale[]): PaymentGroup[] {
+  const map = new Map<string, Sale[]>();
+  for (const s of sales) {
+    const key = `${saleScheduled(s)}|${saleClosing(s)}|${s.cutoff}`;
+    map.set(key, [...(map.get(key) ?? []), s]);
+  }
+  return [...map.values()]
+    .map((list) => ({
+      payDate: salePayment(list[0]),
+      scheduled: saleScheduled(list[0]),
+      closing: saleClosing(list[0]),
+      cutoff: list[0].cutoff,
+      sales: list,
+      subtotal: sum(list),
+      total: withTax(sum(list)),
+    }))
+    .sort((a, b) =>
+      a.payDate < b.payDate ? -1 : a.payDate > b.payDate ? 1 : a.scheduled < b.scheduled ? -1 : a.scheduled > b.scheduled ? 1 : a.cutoff - b.cutoff,
+    );
+}
+
+// 次回入金予定：未入金の売上を締め日のルールごとに分け、それぞれ一番早い入金日（まとめ後）の分を合計する
 export function nextPayment(sales: Sale[]): NextPayment {
   const byRule = new Map<string, Map<string, Sale[]>>();
   for (const s of sales) {
@@ -112,20 +159,9 @@ export function nextPayment(sales: Sale[]): NextPayment {
     dates.set(pay, [...(dates.get(pay) ?? []), s]);
     byRule.set(rule, dates);
   }
-  const groups: PaymentGroup[] = [];
-  for (const dates of byRule.values()) {
-    const first = [...dates.keys()].sort()[0];
-    const list = dates.get(first)!;
-    groups.push({
-      payDate: first,
-      closing: saleClosing(list[0]),
-      cutoff: list[0].cutoff,
-      sales: list,
-      subtotal: sum(list),
-      total: withTax(sum(list)),
-    });
-  }
-  groups.sort((a, b) => (a.payDate < b.payDate ? -1 : a.payDate > b.payDate ? 1 : a.cutoff - b.cutoff));
+  const picked: Sale[] = [];
+  for (const dates of byRule.values()) picked.push(...dates.get([...dates.keys()].sort()[0])!);
+  const groups = paymentGroups(picked);
   const all = groups.flatMap((g) => g.sales);
   return {
     subtotal: sum(all),
@@ -145,7 +181,8 @@ export interface InvoiceGroup {
   clientName: string;
   closing: string;
   cutoff: number;
-  payDate: string;
+  payDate: string; // 実際の入金日（まとめ後）
+  scheduled: string; // 元の決済予定日
   sales: Sale[];
   subtotal: number;
   tax: number;
@@ -172,6 +209,7 @@ export function invoiceGroups(sales: Sale[]): InvoiceGroup[] {
         closing: saleClosing(sorted[0]),
         cutoff: sorted[0].cutoff,
         payDate: salePayment(sorted[0]),
+        scheduled: saleScheduled(sorted[0]),
         sales: sorted,
         subtotal,
         tax: total - subtotal,

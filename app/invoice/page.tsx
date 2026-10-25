@@ -332,7 +332,8 @@ function GroupList({ groups, showUser, onTogglePaid }: { groups: InvoiceGroup[];
               <span className="block truncate font-semibold">{g.clientName}</span>
               <span className="block text-xs text-fw-muted">
                 {showUser && `${g.userName} ・ `}
-                {shortDate(g.closing)} {cutoffLabel(g.cutoff)} ・ {shortDate(g.payDate)}入金 ・ {g.sales.length}件
+                {shortDate(g.closing)} {cutoffLabel(g.cutoff)} ・ {g.scheduled !== g.payDate && `${shortDate(g.scheduled)}決済→`}
+                {shortDate(g.payDate)}入金 ・ {g.sales.length}件
               </span>
             </span>
             <span className="shrink-0 text-right">

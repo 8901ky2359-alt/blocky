@@ -5,7 +5,7 @@ import AuthGate from '@/components/fw/AuthGate';
 import Screen from '@/components/fw/Screen';
 import Link from 'next/link';
 import { Card, Chip, SaleRow, Section, TaxedYen, WORK_TYPE_DOT, WORK_TYPE_TEXT } from '@/components/fw/ui';
-import { salePayment, sum } from '@/lib/fw/billing';
+import { cutoffLabel, isConsolidated, paymentGroups, salePayment, saleScheduled, shortDate, sum } from '@/lib/fw/billing';
 import { useSales } from '@/lib/fw/useSales';
 import { Sale, WORK_TYPES, WorkType } from '@/lib/fw/types';
 import { WEEK_LABELS, calendarCells, currentMonthKey, formatJpDate, formatJpMonth, manYen, shiftMonth, todayStr, yen } from '@/lib/format';
@@ -38,7 +38,7 @@ function CalendarInner() {
   }, [sales]);
   const scoped = useMemo(() => sales.filter((s) => person === 'all' || s.userId === person), [sales, person]);
 
-  // 日付ごとの売上と、入金予定（未入金の分）
+  // 日付ごとの売上と、入金予定（未入金の分。25日・月末の決済予定分は翌月5日にまとめて入金）
   const byDay = useMemo(() => {
     const m = new Map<string, Sale[]>();
     for (const s of scoped) m.set(s.date, [...(m.get(s.date) ?? []), s]);
@@ -50,6 +50,16 @@ function CalendarInner() {
       if (s.paid) continue;
       const d = salePayment(s);
       m.set(d, [...(m.get(d) ?? []), s]);
+    }
+    return m;
+  }, [scoped]);
+  // 元の決済予定日（まとめで入金日が動いた分だけ。これまでのサイクルの目安として薄く出す）
+  const schedByDay = useMemo(() => {
+    const m = new Map<string, Sale[]>();
+    for (const s of scoped) {
+      if (s.paid) continue;
+      const d = saleScheduled(s);
+      if (isConsolidated(d)) m.set(d, [...(m.get(d) ?? []), s]);
     }
     return m;
   }, [scoped]);
@@ -71,6 +81,7 @@ function CalendarInner() {
     (a, b) => WORK_TYPES.indexOf(a.workType) - WORK_TYPES.indexOf(b.workType) || a.createdAt - b.createdAt,
   );
   const dayPay = payByDay.get(day) ?? [];
+  const daySched = schedByDay.get(day) ?? [];
 
   return (
     <Screen title="カレンダー" back={{ href: '/', label: '総合管理画面' }}>
@@ -166,7 +177,14 @@ function CalendarInner() {
                     </span>
                   ) : null;
                 })}
-                {payByDay.has(d) && <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-fw-orange" aria-label="入金予定" />}
+                {payByDay.has(d) && (
+                  <span className="mt-0.5 rounded bg-fw-orange/15 px-0.5 text-[10px] font-bold leading-tight text-fw-orange tabular-nums" aria-label="入金予定">
+                    {manYen(withTax(sum(payByDay.get(d)!)))}
+                  </span>
+                )}
+                {schedByDay.has(d) && (
+                  <span className="mt-0.5 h-1.5 w-1.5 rounded-full border border-fw-muted" aria-label="決済予定（翌月5日にまとめて入金）" />
+                )}
               </button>
             ) : (
               <span key={`e${i}`} />
@@ -180,9 +198,10 @@ function CalendarInner() {
               ■{t === '作業員手配' ? '作業員手配（雇用）' : t}
             </span>
           ))}
+          <span className="font-semibold text-fw-orange">■入金予定（税込）</span>
           <span className="flex items-center gap-1">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-fw-orange" />
-            入金予定日
+            <span className="inline-block h-1.5 w-1.5 rounded-full border border-fw-muted" />
+            決済予定（翌月5日にまとめて入金）
           </span>
         </p>
       </Card>
@@ -199,12 +218,39 @@ function CalendarInner() {
         }
       >
         {dayPay.length > 0 && (
-          <Card className="mb-3 flex items-center justify-between p-4">
-            <span className="text-sm">
-              入金予定 <span className="text-fw-muted">{[...new Set(dayPay.map((s) => s.clientName))].join('・')}</span>
-            </span>
-            <span className="text-right">
-              <TaxedYen ex={sum(dayPay)} className="font-bold text-fw-orange" />
+          <Card className="mb-3 grid gap-2 p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold">入金予定</span>
+              <TaxedYen ex={sum(dayPay)} className="text-right font-bold text-fw-orange" />
+            </div>
+            {/* 元の決済予定ごとの内訳（25日・月末の分はここにまとめて入金） */}
+            {paymentGroups(dayPay).map((g) => (
+              <div key={`${g.scheduled}-${g.closing}-${g.cutoff}`} className="flex items-start justify-between gap-2 border-t border-fw-line pt-2 text-[13px]">
+                <span className="min-w-0">
+                  <span className="block">
+                    {isConsolidated(g.scheduled) ? `${shortDate(g.scheduled)} 決済予定分` : `${shortDate(g.scheduled)} 入金分`}
+                    <span className="text-fw-muted">
+                      {' '}
+                      ・ {shortDate(g.closing)} {cutoffLabel(g.cutoff)}
+                    </span>
+                  </span>
+                  <span className="block truncate text-[11px] text-fw-muted">{[...new Set(g.sales.map((s) => s.clientName))].join('・')}</span>
+                </span>
+                <TaxedYen ex={g.subtotal} inc={g.total} className="shrink-0 text-right" />
+              </div>
+            ))}
+          </Card>
+        )}
+        {daySched.length > 0 && (
+          <Card className="mb-3 grid gap-1 p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm">
+                決済予定 <span className="text-fw-muted">{[...new Set(daySched.map((s) => s.clientName))].join('・')}</span>
+              </span>
+              <TaxedYen ex={sum(daySched)} className="text-right font-semibold text-fw-muted" />
+            </div>
+            <span className="text-[12px] text-fw-muted">
+              この日の入金はなく、{shortDate(salePayment(daySched[0]))} にまとめて入金されます
             </span>
           </Card>
         )}

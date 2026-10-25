@@ -1,7 +1,7 @@
 // ホーム一番上：次回入金予定（合計を大きく、締め日別・承認済み/承認待ちは小さく。税込と税抜の両方）
 
 import { Sale } from '@/lib/fw/types';
-import { cutoffLabel, nextPayment, shortDate } from '@/lib/fw/billing';
+import { PaymentGroup, cutoffLabel, isConsolidated, nextPayment, shortDate } from '@/lib/fw/billing';
 import { yen } from '@/lib/format';
 
 export default function NextPaymentCard({ sales, label, tone }: { sales: Sale[]; label: string; tone: 'green' | 'blue' }) {
@@ -19,18 +19,32 @@ export default function NextPaymentCard({ sales, label, tone }: { sales: Sale[];
         <p className="text-[13px] opacity-85">まだ入金予定の売上はありません。「売上入力」から追加すると、ここに出ます。</p>
       ) : (
         <>
-          <div className="mt-1 grid gap-1 border-t border-white/25 pt-2 text-[12px]">
-            {np.groups.map((g) => (
-              <div key={`${g.payDate}-${g.cutoff}`} className="flex items-start justify-between gap-2 tabular-nums">
-                <span className="opacity-85">
-                  {shortDate(g.payDate)} 入金 ・ {shortDate(g.closing)} {cutoffLabel(g.cutoff)}
-                </span>
-                <span className="shrink-0 text-right">
-                  {yen(g.total)}
-                  <span className="block text-[11px] opacity-75">税抜 {yen(g.subtotal)}</span>
-                </span>
-              </div>
-            ))}
+          <div className="mt-1 grid gap-2 border-t border-white/25 pt-2 text-[12px]">
+            {byPayDate(np.groups).map(([payDate, list]) => {
+              const sub = list.reduce((n, g) => n + g.subtotal, 0);
+              const tot = list.reduce((n, g) => n + g.total, 0);
+              return (
+                <div key={payDate} className="grid gap-0.5 tabular-nums">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-bold">{shortDate(payDate)} 入金</span>
+                    <span className="shrink-0 text-right font-bold">
+                      {yen(tot)}
+                      <span className="block text-[11px] font-normal opacity-75">税抜 {yen(sub)}</span>
+                    </span>
+                  </div>
+                  {/* 元の決済予定（25日・月末など）ごとの内訳。まとめて入金される分は「→ 5日にまとめ」 */}
+                  {list.map((g) => (
+                    <div key={`${g.scheduled}-${g.closing}-${g.cutoff}`} className="flex items-start justify-between gap-2 pl-3 opacity-85">
+                      <span>
+                        {isConsolidated(g.scheduled) ? `${shortDate(g.scheduled)} 決済予定分` : `${shortDate(g.scheduled)} 入金分`} ・{' '}
+                        {shortDate(g.closing)} {cutoffLabel(g.cutoff)}
+                      </span>
+                      <span className="shrink-0 text-right">{yen(g.total)}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
           </div>
           <div className="grid grid-cols-2 gap-2 text-[12px] tabular-nums">
             {(
@@ -49,4 +63,11 @@ export default function NextPaymentCard({ sales, label, tone }: { sales: Sale[];
       )}
     </div>
   );
+}
+
+// 実際の入金日ごとにまとめる（25日・月末の決済予定分は翌月5日に合算）
+function byPayDate(groups: PaymentGroup[]): [string, PaymentGroup[]][] {
+  const m = new Map<string, PaymentGroup[]>();
+  for (const g of groups) m.set(g.payDate, [...(m.get(g.payDate) ?? []), g]);
+  return [...m.entries()];
 }
