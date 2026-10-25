@@ -7,15 +7,19 @@ import Link from 'next/link';
 import { Card, Chip, SaleRow, Section, TaxedYen, WORK_TYPE_DOT, WORK_TYPE_TEXT } from '@/components/fw/ui';
 import { cutoffLabel, isConsolidated, paymentGroups, salePayment, saleScheduled, shortDate, sum } from '@/lib/fw/billing';
 import { useSales } from '@/lib/fw/useSales';
-import { Sale, WORK_TYPES, WorkType } from '@/lib/fw/types';
+import { Sale, User, WORK_TYPES, WorkType } from '@/lib/fw/types';
 import { WEEK_LABELS, calendarCells, currentMonthKey, formatJpDate, formatJpMonth, manYen, shiftMonth, todayStr, yen } from '@/lib/format';
 import { withTax } from '@/lib/tax';
 
 export default function CalendarPage() {
-  return <AuthGate role="admin">{() => <CalendarInner />}</AuthGate>;
+  // 仲間も使える（サーバーから自分の売上しか届かないので、自分の分だけのカレンダーになる）
+  return <AuthGate>{(user) => <CalendarInner user={user} />}</AuthGate>;
 }
 
-function CalendarInner() {
+function CalendarInner({ user }: { user: User }) {
+  const isAdmin = user.role === 'admin';
+  // 仲間は請負・常駐のみ（作業員手配は総合管理画面だけ）
+  const types = isAdmin ? WORK_TYPES : WORK_TYPES.filter((t) => t !== '作業員手配');
   const { sales, loading } = useSales();
   const [month, setMonth] = useState(currentMonthKey());
   const [person, setPerson] = useState('all');
@@ -68,7 +72,7 @@ function CalendarInner() {
   const monthPaid = monthPay.filter((s) => s.paid);
   const monthUnpaid = monthPay.filter((s) => !s.paid);
   // 区分（常駐・請負・作業員手配）ごとの月合計と、請求先別の内訳
-  const byType = WORK_TYPES.map((t) => {
+  const byType = types.map((t) => {
     const list = monthSales.filter((s) => s.workType === t);
     const bills = new Map<string, Sale[]>();
     for (const s of list) bills.set(s.clientName, [...(bills.get(s.clientName) ?? []), s]);
@@ -86,7 +90,7 @@ function CalendarInner() {
   const daySched = schedByDay.get(day) ?? [];
 
   return (
-    <Screen title="カレンダー" back={{ href: '/', label: '総合管理画面' }}>
+    <Screen title="カレンダー" back={{ href: '/', label: isAdmin ? '総合管理画面' : '管理画面' }}>
       {people.length > 1 && (
         <div className="mx-4 mb-3 flex flex-wrap gap-2">
           <Chip on={person === 'all'} onClick={() => setPerson('all')}>
@@ -123,7 +127,7 @@ function CalendarInner() {
             ›
           </button>
         </div>
-        <div className="mb-3 grid grid-cols-3 gap-1 rounded-xl bg-fw-fill p-0.5 text-center">
+        <div className={`mb-3 grid ${types.length === 3 ? 'grid-cols-3' : 'grid-cols-2'} gap-1 rounded-xl bg-fw-fill p-0.5 text-center`}>
           {byType.map((t) => (
             <button
               key={t.type}
@@ -179,7 +183,7 @@ function CalendarInner() {
                   {Number(d.slice(8))}
                 </span>
                 {/* その日の売上を区分ごとの色で（常駐・請負・作業員手配） */}
-                {WORK_TYPES.map((t) => {
+                {types.map((t) => {
                   const list = (byDay.get(d) ?? []).filter((s) => s.workType === t);
                   return list.length ? (
                     <span key={t} className={`text-[10px] font-bold leading-tight tabular-nums ${WORK_TYPE_TEXT[t]}`}>
@@ -212,7 +216,7 @@ function CalendarInner() {
         </div>
         <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 px-1 text-[11px] text-fw-muted">
           <span>数字＝その日の売上（税抜）</span>
-          {WORK_TYPES.map((t) => (
+          {types.map((t) => (
             <span key={t} className={`font-semibold ${WORK_TYPE_TEXT[t]}`}>
               ■{t === '作業員手配' ? '作業員手配（雇用）' : t}
             </span>

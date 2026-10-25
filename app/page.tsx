@@ -53,6 +53,7 @@ function MemberHome({ user }: { user: User }) {
       <div className="mb-6 grid grid-cols-4 gap-y-4 px-4">
         <AppIcon href="/sales" label="売上入力" letter="売" color="bg-fw-green" />
         <AppIcon href="/invoice" label="請求書作成" letter="請" color="bg-fw-violet" />
+        <AppIcon href="/calendar" label="カレンダー" letter="暦" color="bg-fw-orange" />
       </div>
       <Recent sales={sales} loading={loading} error={error} title="自分の最近の入力" />
     </Screen>
