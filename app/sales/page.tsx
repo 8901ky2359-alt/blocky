@@ -71,6 +71,20 @@ function SalesInner({ user }: { user: User }) {
 
   const mine = useMemo(() => sales.filter((s) => s.userId === user.id), [sales, user.id]);
   const workOptions = useMemo(() => workSuggestions(sales), [sales]);
+  // 一度入れた現場・作業員・金額は、次からボタンを押すだけで入る（最近使った順）
+  const siteOptions = useMemo(() => recentValues(sales, (s) => s.site), [sales]);
+  const hiredOptions = useMemo(() => recentValues(sales, (s) => s.hiredName), [sales]);
+  const amountOptions = useMemo(() => recentValues(sales, (s) => (s.amount > 0 ? String(s.amount) : '')), [sales]);
+
+  // 現場を選んだとき、請求先がまだ空なら、その現場で前回使った請求先（締め日・入金日も）を入れる
+  function pickSite(site: string) {
+    const last = [...sales].filter((s) => s.site === site).sort((a, b) => b.createdAt - a.createdAt)[0];
+    setForm((f) =>
+      !f.clientName.trim() && last
+        ? { ...f, site, clientName: last.clientName, cutoff: last.cutoff, payOffset: last.payOffset, payDay: last.payDay }
+        : { ...f, site },
+    );
+  }
   const set = <K extends keyof SaleInput>(k: K, v: SaleInput[K]) => setForm((f) => ({ ...f, [k]: v }));
 
   function pickClient(c: Client) {
@@ -182,6 +196,7 @@ function SalesInner({ user }: { user: User }) {
           {form.workType === '作業員手配' && (
             <Field label="手配した作業員">
               <input id="hired" value={form.hiredName} onChange={(e) => set('hiredName', e.target.value)} placeholder="例: 鈴木" className="input" />
+              <Suggest options={hiredOptions} value={form.hiredName} onPick={(v) => set('hiredName', v)} />
             </Field>
           )}
           <Field label="日付">
@@ -189,22 +204,11 @@ function SalesInner({ user }: { user: User }) {
           </Field>
           <Field label="現場">
             <input id="site" value={form.site} onChange={(e) => set('site', e.target.value)} placeholder="例: つくば市 寺具" className="input" />
+            <Suggest options={siteOptions} value={form.site} onPick={pickSite} />
           </Field>
           <Field label="作業内容">
             <input id="work" value={form.work} onChange={(e) => set('work', e.target.value)} placeholder="例: 草刈り" className="input" />
-            {workOptions.length > 0 && (
-              <div className="flex flex-wrap gap-2 pt-1">
-                {workOptions
-                  // 入力中は文字を含む候補だけに絞る（候補をそのまま選んだ後は全部出す）
-                  .filter((w) => !form.work.trim() || workOptions.includes(form.work.trim()) || w.includes(form.work.trim()))
-                  .slice(0, 12)
-                  .map((w) => (
-                    <Chip key={w} on={w === form.work.trim()} onClick={() => set('work', w)}>
-                      {w}
-                    </Chip>
-                  ))}
-              </div>
-            )}
+            <Suggest options={workOptions} value={form.work} onPick={(v) => set('work', v)} />
           </Field>
           <Field label="金額（税抜）">
             <input
@@ -217,6 +221,13 @@ function SalesInner({ user }: { user: User }) {
               className="input text-lg font-bold tabular-nums"
             />
             {form.amount > 0 && <span className="text-sm text-fw-muted tabular-nums">税込 {yen(withTax(form.amount))}</span>}
+            <Suggest
+              options={amountOptions}
+              value={form.amount ? String(form.amount) : ''}
+              onPick={(v) => set('amount', Number(v))}
+              label={(v) => yen(Number(v))}
+              limit={8}
+            />
           </Field>
         </Card>
       </Section>
@@ -313,6 +324,44 @@ function workSuggestions(sales: Sale[]): string[] {
     /* 以前の候補が読めなくても続ける */
   }
   return list;
+}
+
+// 過去の売上から、値を最近使った順に重複なしで並べる
+function recentValues(sales: Sale[], pick: (s: Sale) => string): string[] {
+  const last = new Map<string, number>();
+  for (const s of sales) {
+    const v = pick(s).trim();
+    if (v) last.set(v, Math.max(last.get(v) ?? 0, s.createdAt));
+  }
+  return [...last.entries()].sort((a, b) => b[1] - a[1]).map(([v]) => v);
+}
+
+// 入力欄の下の候補ボタン。入力中は文字を含む候補だけに絞る（候補をそのまま選んだ後は全部出す）
+function Suggest({
+  options,
+  value,
+  onPick,
+  label = (v) => v,
+  limit = 12,
+}: {
+  options: string[];
+  value: string;
+  onPick: (v: string) => void;
+  label?: (v: string) => string;
+  limit?: number;
+}) {
+  const q = value.trim();
+  const shown = options.filter((o) => !q || options.includes(q) || o.includes(q)).slice(0, limit);
+  if (shown.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-2 pt-1">
+      {shown.map((o) => (
+        <Chip key={o} on={o === q} onClick={() => onPick(o)}>
+          {label(o)}
+        </Chip>
+      ))}
+    </div>
+  );
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
