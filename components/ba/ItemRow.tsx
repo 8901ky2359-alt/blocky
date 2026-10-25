@@ -2,7 +2,9 @@
 
 import { Item } from '@/lib/ba/types';
 import { dataUrlToFile, downloadFile } from '@/lib/ba/share';
+import { useState } from 'react';
 import PhotoSlot from './PhotoSlot';
+import PhotoPreview from './PhotoPreview';
 
 // 1箇所ぶん（左ビフォー／右アフター）
 export default function ItemRow({
@@ -24,6 +26,7 @@ export default function ItemRow({
 }) {
   const no = noProp ?? index + 1;
   const done = !!item.before && !!item.after;
+  const [preview, setPreview] = useState<'before' | 'after' | null>(null);
 
   function saveOne(kind: 'before' | 'after') {
     const shot = item[kind];
@@ -52,9 +55,11 @@ export default function ItemRow({
             onPickFile={(f) => onPickFile(kind, f)}
             onClear={() => onClear(kind)}
             onSave={() => saveOne(kind)}
+            onPreview={() => setPreview(kind)}
           />
         ))}
       </div>
+      {preview && <PhotoPreview no={no} item={item} initial={preview} onClose={() => setPreview(null)} />}
     </div>
   );
 }

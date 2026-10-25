@@ -19,7 +19,9 @@ export default function PhotoSlot({
   onPickFile,
   onClear,
   onSave,
+  onPreview,
 }: {
+  onPreview: () => void;
   kind: Kind;
   shot: Shot | null;
   busy?: boolean;
@@ -45,6 +47,14 @@ export default function PhotoSlot({
     savedT.current = window.setTimeout(() => setSaved(false), 2200);
   }
 
+  // 長押し（約0.45秒）でプレビュー。指が動いたり離れたりしたら取り消す
+  const pressT = useRef<number>();
+  const startPress = () => {
+    window.clearTimeout(pressT.current);
+    pressT.current = window.setTimeout(onPreview, 450);
+  };
+  const cancelPress = () => window.clearTimeout(pressT.current);
+
   const pick = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) onPickFile(e.target.files[0]);
     e.target.value = '';
@@ -57,7 +67,17 @@ export default function PhotoSlot({
       <div className="relative aspect-[5/4] overflow-hidden rounded-xl bg-fw-fill">
         {shot ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={shot.dataUrl} alt={s.label} className="h-full w-full object-cover" />
+          <img
+            src={shot.dataUrl}
+            alt={s.label}
+            draggable={false}
+            onPointerDown={startPress}
+            onPointerUp={cancelPress}
+            onPointerLeave={cancelPress}
+            onPointerCancel={cancelPress}
+            onContextMenu={(e) => e.preventDefault()}
+            className="h-full w-full select-none object-cover [-webkit-touch-callout:none]"
+          />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-1.5 p-2">
             <button

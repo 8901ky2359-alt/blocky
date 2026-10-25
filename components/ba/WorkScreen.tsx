@@ -132,7 +132,7 @@ export default function WorkScreen({
       </header>
 
       <p className="mx-4 mb-3 text-xs text-fw-muted">
-        スマホは縦向きのまま撮影できます。写真は真ん中を横長（5:4）で切り取り、高画質で保存します。
+        スマホは縦向きのまま撮影できます。写真は真ん中を横長（5:4）で切り取り、高画質で保存します。撮った写真は長押しで大きく表示できます。
       </p>
 
       <div className="grid gap-3 px-4">
