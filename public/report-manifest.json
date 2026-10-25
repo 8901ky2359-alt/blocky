@@ -1,7 +1,7 @@
 {
-  "name": "防草シート管理",
-  "short_name": "防草シート",
-  "description": "防草シート・除草の進捗管理／座標マップ／LINE報告",
+  "name": "ツールボックス",
+  "short_name": "ツールボックス",
+  "description": "防草シート管理・ビフォーアフターなど現場のツール",
   "start_url": "/report",
   "scope": "/report",
   "display": "standalone",
