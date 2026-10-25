@@ -38,7 +38,7 @@ function CalendarInner() {
   }, [sales]);
   const scoped = useMemo(() => sales.filter((s) => person === 'all' || s.userId === person), [sales, person]);
 
-  // 日付ごとの売上と、入金予定（未入金の分。25日・月末の決済予定分は翌月5日にまとめて入金）
+  // 日付ごとの売上と、入金（入金済みの過去分も含む。25日・月末の決済予定分は翌月5日にまとめて入金）
   const byDay = useMemo(() => {
     const m = new Map<string, Sale[]>();
     for (const s of scoped) m.set(s.date, [...(m.get(s.date) ?? []), s]);
@@ -47,7 +47,6 @@ function CalendarInner() {
   const payByDay = useMemo(() => {
     const m = new Map<string, Sale[]>();
     for (const s of scoped) {
-      if (s.paid) continue;
       const d = salePayment(s);
       m.set(d, [...(m.get(d) ?? []), s]);
     }
@@ -57,7 +56,6 @@ function CalendarInner() {
   const schedByDay = useMemo(() => {
     const m = new Map<string, Sale[]>();
     for (const s of scoped) {
-      if (s.paid) continue;
       const d = saleScheduled(s);
       if (isConsolidated(d)) m.set(d, [...(m.get(d) ?? []), s]);
     }
@@ -65,6 +63,10 @@ function CalendarInner() {
   }, [scoped]);
 
   const monthSales = scoped.filter((s) => s.date.startsWith(month));
+  // この月に入る（入った）お金：入金済みと入金予定に分ける
+  const monthPay = [...payByDay.entries()].filter(([d]) => d.startsWith(month)).flatMap(([, l]) => l);
+  const monthPaid = monthPay.filter((s) => s.paid);
+  const monthUnpaid = monthPay.filter((s) => !s.paid);
   // 区分（常駐・請負・作業員手配）ごとの月合計と、請求先別の内訳
   const byType = WORK_TYPES.map((t) => {
     const list = monthSales.filter((s) => s.workType === t);
@@ -108,6 +110,14 @@ function CalendarInner() {
             <span className="block text-[11px] text-fw-muted tabular-nums">
               税込 {yen(withTax(sum(monthSales)))} ・ 税抜 {yen(sum(monthSales))} ・ {monthSales.length}件
             </span>
+            {monthPay.length > 0 && (
+              <span className="block text-[11px] tabular-nums">
+                入金{monthPaid.length > 0 && <span className="text-fw-teal"> 済み {yen(withTax(sum(monthPaid)))}</span>}
+                {monthPaid.length > 0 && monthUnpaid.length > 0 && <span className="text-fw-muted"> ・</span>}
+                {monthUnpaid.length > 0 && <span className="text-fw-orange"> 予定 {yen(withTax(sum(monthUnpaid)))}</span>}
+                <span className="text-fw-muted">（税込）</span>
+              </span>
+            )}
           </span>
           <button onClick={() => setMonth(shiftMonth(month, 1))} className="px-3 py-1 text-2xl text-fw-green" aria-label="次の月">
             ›
@@ -177,11 +187,20 @@ function CalendarInner() {
                     </span>
                   ) : null;
                 })}
-                {payByDay.has(d) && (
-                  <span className="mt-0.5 rounded bg-fw-orange/15 px-0.5 text-[10px] font-bold leading-tight text-fw-orange tabular-nums" aria-label="入金予定">
-                    {manYen(withTax(sum(payByDay.get(d)!)))}
-                  </span>
-                )}
+                {payByDay.has(d) &&
+                  (() => {
+                    // 未入金が残っていればオレンジ（入金予定）、すべて入金済みなら青緑
+                    const list = payByDay.get(d)!;
+                    const done = list.every((s) => s.paid);
+                    return (
+                      <span
+                        className={`mt-0.5 rounded px-0.5 text-[10px] font-bold leading-tight tabular-nums ${done ? 'bg-fw-teal/15 text-fw-teal' : 'bg-fw-orange/15 text-fw-orange'}`}
+                        aria-label={done ? '入金済み' : '入金予定'}
+                      >
+                        {manYen(withTax(sum(list)))}
+                      </span>
+                    );
+                  })()}
                 {schedByDay.has(d) && (
                   <span className="mt-0.5 h-1.5 w-1.5 rounded-full border border-fw-muted" aria-label="決済予定（翌月5日にまとめて入金）" />
                 )}
@@ -199,6 +218,7 @@ function CalendarInner() {
             </span>
           ))}
           <span className="font-semibold text-fw-orange">■入金予定（税込）</span>
+          <span className="font-semibold text-fw-teal">■入金済み（税込）</span>
           <span className="flex items-center gap-1">
             <span className="inline-block h-1.5 w-1.5 rounded-full border border-fw-muted" />
             決済予定（翌月5日にまとめて入金）
@@ -220,8 +240,8 @@ function CalendarInner() {
         {dayPay.length > 0 && (
           <Card className="mb-3 grid gap-2 p-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-bold">入金予定</span>
-              <TaxedYen ex={sum(dayPay)} className="text-right font-bold text-fw-orange" />
+              <span className="text-sm font-bold">{dayPay.every((s) => s.paid) ? '入金済み' : dayPay.some((s) => s.paid) ? '入金（一部入金済み）' : '入金予定'}</span>
+              <TaxedYen ex={sum(dayPay)} className={`text-right font-bold ${dayPay.every((s) => s.paid) ? 'text-fw-teal' : 'text-fw-orange'}`} />
             </div>
             {/* 元の決済予定ごとの内訳（25日・月末の分はここにまとめて入金） */}
             {paymentGroups(dayPay).map((g) => (
@@ -234,7 +254,10 @@ function CalendarInner() {
                       ・ {shortDate(g.closing)} {cutoffLabel(g.cutoff)}
                     </span>
                   </span>
-                  <span className="block truncate text-[11px] text-fw-muted">{[...new Set(g.sales.map((s) => s.clientName))].join('・')}</span>
+                  <span className="block truncate text-[11px] text-fw-muted">
+                    {g.sales.every((s) => s.paid) && <b className="mr-1 text-fw-teal">✓入金済み</b>}
+                    {[...new Set(g.sales.map((s) => s.clientName))].join('・')}
+                  </span>
                 </span>
                 <TaxedYen ex={g.subtotal} inc={g.total} className="shrink-0 text-right" />
               </div>
@@ -250,7 +273,9 @@ function CalendarInner() {
               <TaxedYen ex={sum(daySched)} className="text-right font-semibold text-fw-muted" />
             </div>
             <span className="text-[12px] text-fw-muted">
-              この日の入金はなく、{shortDate(salePayment(daySched[0]))} にまとめて入金されます
+              {daySched.every((s) => s.paid)
+                ? `${shortDate(salePayment(daySched[0]))} にまとめて入金済みです`
+                : `この日の入金はなく、${shortDate(salePayment(daySched[0]))} にまとめて入金されます`}
             </span>
           </Card>
         )}
