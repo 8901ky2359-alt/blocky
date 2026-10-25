@@ -1,7 +1,8 @@
 'use client';
 
-// ビフォーアフターの撮影設定：最初に「看板を入れるか」と「枚数」を決める
+// ビフォーアフターの撮影設定：① 看板が必要か → （必要なら）看板の内容 → ② 枚数 → 撮影開始
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { SignSettings } from '@/lib/ba/types';
 import { SignColor } from '@/lib/signboard';
@@ -9,8 +10,17 @@ import { SignColor } from '@/lib/signboard';
 const PRESETS = [5, 10, 20, 30];
 const MAX = 999;
 
-export default function Setup({ onStart }: { onStart: (count: number, sign: SignSettings | null) => void }) {
-  const [withSign, setWithSign] = useState(true);
+type Step = 'sign' | 'signDetail' | 'count';
+
+export default function Setup({
+  onStart,
+  back,
+}: {
+  onStart: (count: number, sign: SignSettings | null) => void;
+  back?: { href: string; label: string };
+}) {
+  const [step, setStep] = useState<Step>('sign');
+  const [withSign, setWithSign] = useState(false);
   const [title, setTitle] = useState('除草');
   const [place, setPlace] = useState('');
   const [color, setColor] = useState<SignColor>('white');
@@ -19,6 +29,11 @@ export default function Setup({ onStart }: { onStart: (count: number, sign: Sign
   const [afterKind, setAfterKind] = useState('除草後');
   const [count, setCount] = useState(10);
   const clamp = (n: number) => Math.max(1, Math.min(MAX, Math.floor(n) || 1));
+
+  function chooseSign(need: boolean) {
+    setWithSign(need);
+    setStep(need ? 'signDetail' : 'count');
+  }
 
   function start() {
     onStart(
@@ -36,30 +51,50 @@ export default function Setup({ onStart }: { onStart: (count: number, sign: Sign
     );
   }
 
+  // 1つ前の手順へ（最初の手順ではツールボックスへ）
+  const prev: (() => void) | null =
+    step === 'signDetail' ? () => setStep('sign') : step === 'count' ? () => setStep(withSign ? 'signDetail' : 'sign') : null;
+
   return (
     <div className="mx-auto w-full max-w-[560px] pb-32">
-      <h1 className="px-4 pb-1 pt-[max(20px,env(safe-area-inset-top))] text-[28px] font-extrabold">ビフォーアフター</h1>
-      <p className="px-4 pb-4 text-sm text-fw-muted">撮影を始める前に、看板を入れるかと枚数を決めます。左がビフォー、右がアフターで番号ごとに並びます。</p>
-
-      <h2 className="px-8 pb-1.5 text-[13px] text-fw-muted">看板</h2>
-      <div className="mx-4 mb-5 grid grid-cols-2 gap-2">
-        {[
-          { on: true, label: '入れる', sub: '工事名の看板を写真に合成' },
-          { on: false, label: '入れない', sub: '写真だけ撮る' },
-        ].map((o) => (
-          <button
-            key={o.label}
-            onClick={() => setWithSign(o.on)}
-            className={`grid gap-0.5 rounded-2xl border-2 bg-fw-card px-3 py-3 text-center ${withSign === o.on ? 'border-fw-green text-fw-green' : 'border-transparent'}`}
-          >
-            <span className="font-bold">{o.label}</span>
-            <span className="text-[11px] text-fw-muted">{o.sub}</span>
+      <header className="flex min-h-[44px] items-center px-4 pt-[max(12px,env(safe-area-inset-top))]">
+        {prev ? (
+          <button onClick={prev} className="py-2 text-[15px] text-fw-green">
+            ‹ 戻る
           </button>
-        ))}
-      </div>
+        ) : back ? (
+          <Link href={back.href} className="py-2 text-[15px] text-fw-green">
+            ‹ {back.label}
+          </Link>
+        ) : null}
+      </header>
+      <h1 className="px-4 pb-1 pt-1 text-[28px] font-extrabold">ビフォーアフター</h1>
+      <p className="px-4 pb-5 text-sm text-fw-muted">
+        {step === 'sign' && '① 写真に看板を入れますか？'}
+        {step === 'signDetail' && '① 看板に入れる内容を決めます'}
+        {step === 'count' && '② 何組撮りますか？（ビフォーとアフターで1組）'}
+      </p>
 
-      {withSign && (
-        <div className="mx-4 mb-5 grid gap-3 rounded-2xl bg-fw-card p-4">
+      {step === 'sign' && (
+        <div className="mx-4 grid gap-3">
+          {[
+            { need: true, label: '看板が必要', sub: '工事名・場所・番号の看板を写真の左下に入れます' },
+            { need: false, label: '看板は不要', sub: '写真だけ撮ります' },
+          ].map((o) => (
+            <button
+              key={o.label}
+              onClick={() => chooseSign(o.need)}
+              className="grid gap-1 rounded-2xl bg-fw-card px-5 py-6 text-left shadow-sm active:scale-[.99]"
+            >
+              <span className="text-xl font-extrabold">{o.label}</span>
+              <span className="text-sm text-fw-muted">{o.sub}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {step === 'signDetail' && (
+        <div className="mx-4 grid gap-3 rounded-2xl bg-fw-card p-4">
           <Field label="工事名">
             <input id="sign-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="例: 除草" className="input" />
           </Field>
@@ -106,46 +141,57 @@ export default function Setup({ onStart }: { onStart: (count: number, sign: Sign
         </div>
       )}
 
-      <h2 className="px-8 pb-1.5 text-[13px] text-fw-muted">枚数（ビフォーとアフターで1組）</h2>
-      <div className="mx-4 mb-5 grid gap-3 rounded-2xl bg-fw-card p-4">
-        <div className="flex items-center justify-center gap-5">
-          <button onClick={() => setCount((c) => clamp(c - 1))} className="grid h-11 w-11 place-items-center rounded-full bg-fw-fill text-2xl" aria-label="減らす">
-            −
-          </button>
-          <input
-            id="count"
-            type="number"
-            inputMode="numeric"
-            value={count}
-            onChange={(e) => setCount(clamp(Number(e.target.value)))}
-            className="w-24 bg-transparent text-center text-4xl font-extrabold tabular-nums outline-none"
-            aria-label="枚数"
-          />
-          <button onClick={() => setCount((c) => clamp(c + 1))} className="grid h-11 w-11 place-items-center rounded-full bg-fw-fill text-2xl" aria-label="増やす">
-            ＋
-          </button>
-        </div>
-        <div className="flex justify-center gap-2">
-          {PRESETS.map((p) => (
-            <button
-              key={p}
-              onClick={() => setCount(p)}
-              className={`rounded-full px-3.5 py-1.5 text-sm font-semibold ${count === p ? 'bg-fw-green text-white' : 'bg-fw-fill'}`}
-            >
-              {p}
+      {step === 'count' && (
+        <div className="mx-4 grid gap-3 rounded-2xl bg-fw-card p-4">
+          <div className="flex items-center justify-center gap-5">
+            <button onClick={() => setCount((c) => clamp(c - 1))} className="grid h-11 w-11 place-items-center rounded-full bg-fw-fill text-2xl" aria-label="減らす">
+              −
             </button>
-          ))}
+            <input
+              id="count"
+              type="number"
+              inputMode="numeric"
+              value={count}
+              onChange={(e) => setCount(clamp(Number(e.target.value)))}
+              className="w-24 bg-transparent text-center text-4xl font-extrabold tabular-nums outline-none"
+              aria-label="枚数"
+            />
+            <button onClick={() => setCount((c) => clamp(c + 1))} className="grid h-11 w-11 place-items-center rounded-full bg-fw-fill text-2xl" aria-label="増やす">
+              ＋
+            </button>
+          </div>
+          <div className="flex justify-center gap-2">
+            {PRESETS.map((p) => (
+              <button
+                key={p}
+                onClick={() => setCount(p)}
+                className={`rounded-full px-3.5 py-1.5 text-sm font-semibold ${count === p ? 'bg-fw-green text-white' : 'bg-fw-fill'}`}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+          <p className="text-center text-xs text-fw-muted">
+            看板：{withSign ? `あり（${title || '工事名なし'}${place ? '・' + place : ''}）` : 'なし'} ／ あとから「箇所を追加」もできます
+          </p>
         </div>
-        <p className="text-center text-xs text-fw-muted">あとから「箇所を追加」もできます</p>
-      </div>
+      )}
 
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-fw-line bg-fw-card/95 backdrop-blur">
-        <div className="mx-auto max-w-[560px] px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-3">
-          <button onClick={start} className="w-full rounded-xl bg-fw-green py-3.5 font-bold text-white">
-            {count}組で撮影をはじめる
-          </button>
+      {step !== 'sign' && (
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-fw-line bg-fw-card/95 backdrop-blur">
+          <div className="mx-auto max-w-[560px] px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-3">
+            {step === 'signDetail' ? (
+              <button onClick={() => setStep('count')} className="w-full rounded-xl bg-fw-green py-3.5 font-bold text-white">
+                次へ（枚数を決める）
+              </button>
+            ) : (
+              <button onClick={start} className="w-full rounded-xl bg-fw-green py-3.5 font-bold text-white">
+                撮影開始（{count}組）
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

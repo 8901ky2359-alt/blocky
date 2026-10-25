@@ -2,15 +2,14 @@ import 'leaflet/dist/leaflet.css';
 import type { Metadata, Viewport } from 'next';
 
 export const metadata: Metadata = {
-  title: '防草シート管理',
-  description:
-    '工番・記号で検索、除草／防草シート／施工完了のステータス管理、座標を地図に表示してタップで進捗確認、LINE報告テキストを自動生成できる現場報告ツール。オフライン対応。',
+  title: 'ツールボックス',
+  description: '現場で使うツールの入口（防草シート管理・ビフォーアフター）',
   manifest: '/report-manifest.json',
   icons: {
     icon: '/report-icon.svg',
     apple: '/report-icon-180.png',
   },
-  appleWebApp: { capable: true, statusBarStyle: 'default', title: '防草シート管理' },
+  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'ツールボックス' },
 };
 
 export const viewport: Viewport = {

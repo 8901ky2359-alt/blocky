@@ -1,20 +1,21 @@
 'use client';
 
+// ビフォー／アフター1枠。「撮影」はスマホのカメラを起動、「アルバム」は1枚選んで取り込む
+
 import { useEffect, useRef, useState } from 'react';
 import { Shot } from '@/lib/ba/types';
 
 type Kind = 'before' | 'after';
 
-const STYLE: Record<Kind, { label: string; badge: string; ring: string }> = {
-  before: { label: 'BEFORE', badge: 'bg-blue-600', ring: 'ring-blue-200' },
-  after: { label: 'AFTER', badge: 'bg-emerald-600', ring: 'ring-emerald-200' },
+const STYLE: Record<Kind, { label: string; badge: string }> = {
+  before: { label: 'ビフォー', badge: 'bg-fw-blue' },
+  after: { label: 'アフター', badge: 'bg-fw-green' },
 };
 
 export default function PhotoSlot({
   kind,
   shot,
   busy,
-  onRequestCamera,
   onPickFile,
   onClear,
   onSave,
@@ -22,11 +23,11 @@ export default function PhotoSlot({
   kind: Kind;
   shot: Shot | null;
   busy?: boolean;
-  onRequestCamera: () => void;
   onPickFile: (file: File) => void;
   onClear: () => void;
   onSave: () => void;
 }) {
+  const camRef = useRef<HTMLInputElement>(null);
   const albRef = useRef<HTMLInputElement>(null);
   const s = STYLE[kind];
   const [saved, setSaved] = useState(false);
@@ -44,31 +45,32 @@ export default function PhotoSlot({
     savedT.current = window.setTimeout(() => setSaved(false), 2200);
   }
 
-  return (
-    <div className="flex-1">
-      <div className="mb-1.5">
-        <span className={`rounded-sm px-2 py-0.5 text-[11px] font-bold tracking-wide text-white ${s.badge}`}>
-          {s.label}
-        </span>
-      </div>
+  const pick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) onPickFile(e.target.files[0]);
+    e.target.value = '';
+  };
 
-      <div className={`relative aspect-[5/4] overflow-hidden rounded-sm bg-slate-100 ring-1 ${s.ring}`}>
+  return (
+    <div className="min-w-0 flex-1">
+      <span className={`mb-1.5 inline-block rounded-md px-2 py-0.5 text-[11px] font-bold text-white ${s.badge}`}>{s.label}</span>
+
+      <div className="relative aspect-[5/4] overflow-hidden rounded-xl bg-fw-fill">
         {shot ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={shot.dataUrl} alt={s.label} className="h-full w-full object-cover" />
         ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-2 p-2">
+          <div className="flex h-full flex-col items-center justify-center gap-1.5 p-2">
             <button
-              onClick={onRequestCamera}
+              onClick={() => camRef.current?.click()}
               disabled={busy}
-              className="w-full max-w-[92%] rounded-none bg-slate-900 py-2.5 text-xs font-semibold text-white disabled:opacity-50"
+              className="w-full rounded-lg bg-fw-ink py-2.5 text-xs font-bold text-fw-card disabled:opacity-50"
             >
-              📷 {busy ? '処理中…' : '撮影する'}
+              {busy ? '取り込み中…' : '📷 撮影'}
             </button>
             <button
               onClick={() => albRef.current?.click()}
               disabled={busy}
-              className="w-full max-w-[92%] rounded-none border border-slate-300 bg-white py-2.5 text-xs font-semibold text-slate-600 disabled:opacity-50"
+              className="w-full rounded-lg bg-fw-card py-2.5 text-xs font-semibold disabled:opacity-50"
             >
               🖼 アルバム
             </button>
@@ -77,42 +79,30 @@ export default function PhotoSlot({
       </div>
 
       {shot && (
-        <div className="mt-1.5 space-y-1.5">
+        <div className="mt-1.5 grid gap-1.5">
           <button
             onClick={doSave}
-            className={`w-full rounded-none py-2 text-xs font-bold text-white transition ${
-              saved ? 'bg-emerald-600' : 'bg-slate-900'
-            }`}
+            className={`w-full rounded-lg py-2 text-xs font-bold text-white ${saved ? 'bg-fw-green' : 'bg-fw-ink'}`}
           >
             {saved ? '✓ 保存しました' : '💾 この写真を保存'}
           </button>
-          <div className="grid grid-cols-2 gap-1.5">
-            <button
-              onClick={onRequestCamera}
-              className="rounded-none border border-slate-300 py-1.5 text-[11px] font-semibold text-slate-600"
-            >
+          <div className="grid grid-cols-3 gap-1">
+            <button onClick={() => camRef.current?.click()} className="rounded-lg bg-fw-fill py-1.5 text-[11px] font-semibold">
               撮り直し
             </button>
-            <button
-              onClick={onClear}
-              className="rounded-none border border-rose-200 py-1.5 text-[11px] font-semibold text-rose-500"
-            >
+            <button onClick={() => albRef.current?.click()} className="rounded-lg bg-fw-fill py-1.5 text-[11px] font-semibold">
+              アルバム
+            </button>
+            <button onClick={onClear} className="rounded-lg bg-fw-fill py-1.5 text-[11px] font-semibold text-fw-red">
               削除
             </button>
           </div>
         </div>
       )}
 
-      <input
-        ref={albRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(e) => {
-          if (e.target.files?.[0]) onPickFile(e.target.files[0]);
-          e.target.value = '';
-        }}
-      />
+      {/* capture でスマホ標準のカメラを起動（縦向きのまま撮影でOK。真ん中を横長5:4で切り出す） */}
+      <input ref={camRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={pick} />
+      <input ref={albRef} type="file" accept="image/*" className="hidden" onChange={pick} />
     </div>
   );
 }

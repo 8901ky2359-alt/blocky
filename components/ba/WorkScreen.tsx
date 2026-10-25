@@ -1,16 +1,14 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useRef, useState } from 'react';
 import { Project, Shot } from '@/lib/ba/types';
 import { toFiveFour } from '@/lib/ba/image';
 import { addSign } from '@/lib/ba/sign';
 import { dataUrlToFile, shareOrDownload } from '@/lib/ba/share';
-import { getQuality, qualityParams } from '@/lib/ba/quality';
+import { PHOTO_JPEG, PHOTO_MAX_W } from '@/lib/ba/quality';
 import ItemRow from './ItemRow';
-import Camera from './Camera';
 import ShareSheet from './ShareSheet';
-
-type Target = { index: number; kind: 'before' | 'after' };
 
 export default function WorkScreen({
   project,
@@ -18,7 +16,9 @@ export default function WorkScreen({
   onSetName,
   onReset,
   onAddItems,
+  back,
 }: {
+  back?: { href: string; label: string };
   project: Project;
   onSetShot: (index: number, kind: 'before' | 'after', shot: Shot | null) => void;
   onSetName: (name: string) => void;
@@ -28,11 +28,8 @@ export default function WorkScreen({
   const [toast, setToast] = useState<string | null>(null);
   const firstNo = project.sign?.startNo ?? 1;
   const [busy, setBusy] = useState<string | null>(null);
-  const [camTarget, setCamTarget] = useState<Target | null>(null);
   const [showShare, setShowShare] = useState(false);
   const [saving, setSaving] = useState(false);
-  const nativeRef = useRef<HTMLInputElement>(null);
-  const pendingRef = useRef<Target | null>(null);
   const toastT = useRef<number>();
 
   function notify(msg: string) {
@@ -45,8 +42,7 @@ export default function WorkScreen({
     const k = `${index}:${kind}`;
     setBusy(k);
     try {
-      const { maxW, jpeg } = qualityParams(getQuality());
-      let dataUrl = await toFiveFour(file, maxW, jpeg);
+      let dataUrl = await toFiveFour(file, PHOTO_MAX_W, PHOTO_JPEG);
       // 看板ありなら、左下に看板（ビフォー＝除草前／アフター＝除草後・同じ番号）を合成する
       const sign = project.sign;
       if (sign) {
@@ -54,7 +50,7 @@ export default function WorkScreen({
           dataUrl,
           { title: sign.title, place: sign.place, kind: kind === 'before' ? sign.beforeKind : sign.afterKind, no: sign.startNo + index },
           sign.color,
-          jpeg,
+          PHOTO_JPEG,
         );
       }
       onSetShot(index, kind, { dataUrl });
@@ -63,17 +59,6 @@ export default function WorkScreen({
     } finally {
       setBusy(null);
     }
-  }
-
-  function onCameraCapture(file: File) {
-    const t = camTarget;
-    setCamTarget(null);
-    if (t) handlePick(t.index, t.kind, file);
-  }
-  function onCameraFallback() {
-    pendingRef.current = camTarget;
-    setCamTarget(null);
-    nativeRef.current?.click();
   }
 
   // すべての写真を一括保存（iPhone: 共有シートの「画像を保存」で全枚数をまとめて保存 / PC: 一括ダウンロード）
@@ -109,44 +94,48 @@ export default function WorkScreen({
   );
 
   return (
-    <div className="min-h-[100dvh] pb-24">
-      <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
-        <div className="mx-auto max-w-md px-4 py-3">
-          <div className="flex items-center gap-2">
-            <input
-              value={project.name}
-              onChange={(e) => onSetName(e.target.value)}
-              placeholder="案件名・現場名（任意）"
-              className="min-w-0 flex-1 rounded-none border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-blue-400 focus:bg-white"
-            />
-            <button
-              onClick={onReset}
-              className="shrink-0 rounded-none border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-500"
-            >
-              新規
-            </button>
-          </div>
-          {project.sign && (
-            <p className="mt-2 truncate rounded-lg bg-slate-100 px-2.5 py-1 text-xs text-slate-600">
-              看板あり：{project.sign.title}
-              {project.sign.place && ` ・ ${project.sign.place}`} ・ {project.sign.beforeKind}／{project.sign.afterKind} ・ No.{firstNo}〜
-            </p>
+    <div className="mx-auto min-h-[100dvh] w-full max-w-[560px] pb-28">
+      <header className="sticky top-0 z-10 bg-fw-bg/95 px-4 pb-3 pt-[max(12px,env(safe-area-inset-top))] backdrop-blur">
+        <div className="flex min-h-[36px] items-center justify-between">
+          {back ? (
+            <Link href={back.href} className="text-[15px] text-fw-green">
+              ‹ {back.label}
+            </Link>
+          ) : (
+            <span />
           )}
-          <div className="mt-2 flex items-center gap-2">
-            <div className="h-1.5 flex-1 overflow-hidden rounded-none bg-slate-100">
-              <div
-                className="h-full bg-emerald-500 transition-all"
-                style={{ width: `${(doneCount / project.count) * 100}%` }}
-              />
-            </div>
-            <span className="shrink-0 text-xs font-semibold text-slate-500">
-              完了 {doneCount}/{project.count}
-            </span>
+          <button onClick={onReset} className="text-[15px] text-fw-green">
+            新しく始める
+          </button>
+        </div>
+        <input
+          id="ba-name"
+          value={project.name}
+          onChange={(e) => onSetName(e.target.value)}
+          placeholder="現場名（任意）"
+          className="input mt-1"
+        />
+        {project.sign && (
+          <p className="mt-2 truncate rounded-lg bg-fw-card px-2.5 py-1 text-xs text-fw-muted">
+            看板あり：{project.sign.title}
+            {project.sign.place && ` ・ ${project.sign.place}`} ・ {project.sign.beforeKind}／{project.sign.afterKind} ・ No.{firstNo}〜
+          </p>
+        )}
+        <div className="mt-2 flex items-center gap-2">
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-fw-fill">
+            <div className="h-full rounded-full bg-fw-green transition-all" style={{ width: `${(doneCount / project.count) * 100}%` }} />
           </div>
+          <span className="shrink-0 text-xs font-semibold text-fw-muted tabular-nums">
+            完了 {doneCount}/{project.count}
+          </span>
         </div>
       </header>
 
-      <div className="mx-auto max-w-md space-y-3 px-4 py-4">
+      <p className="mx-4 mb-3 text-xs text-fw-muted">
+        スマホは縦向きのまま撮影できます。写真は真ん中を横長（5:4）で切り取り、高画質で保存します。
+      </p>
+
+      <div className="grid gap-3 px-4">
         {project.items.map((it, i) => (
           <ItemRow
             key={i}
@@ -154,7 +143,6 @@ export default function WorkScreen({
             no={firstNo + i}
             item={it}
             busyKind={busy === `${i}:before` ? 'before' : busy === `${i}:after` ? 'after' : null}
-            onRequestCamera={(kind) => setCamTarget({ index: i, kind })}
             onPickFile={(kind, file) => handlePick(i, kind, file)}
             onClear={(kind) => onSetShot(i, kind, null)}
             notify={notify}
@@ -167,7 +155,7 @@ export default function WorkScreen({
             <button
               key={n}
               onClick={() => onAddItems(n)}
-              className="rounded-none border-2 border-dashed border-slate-300 py-3 text-sm font-bold text-slate-500 active:bg-slate-100"
+              className="rounded-xl border-2 border-dashed border-fw-line py-3 text-sm font-bold text-fw-muted"
             >
               ＋{n}箇所
             </button>
@@ -176,56 +164,30 @@ export default function WorkScreen({
       </div>
 
       {/* 下部の保存・共有バー */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto grid max-w-md grid-cols-2 gap-2 px-4 py-3">
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-fw-line bg-fw-card/95 backdrop-blur">
+        <div className="mx-auto grid max-w-[560px] grid-cols-2 gap-2 px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-3">
           <button
             onClick={saveAll}
             disabled={saving || totalShots === 0}
-            className="rounded-none border-2 border-slate-900 py-4 text-base font-bold text-slate-900 active:scale-[.99] disabled:border-slate-200 disabled:text-slate-300"
+            className="rounded-xl bg-fw-fill py-3.5 font-bold disabled:opacity-40"
           >
-            {saving ? '保存中…' : `📥 すべて保存（${totalShots}枚）`}
+            {saving ? '保存中…' : `すべて保存（${totalShots}枚）`}
           </button>
           <button
             onClick={() => setShowShare(true)}
-            className="rounded-none bg-slate-900 py-4 text-base font-bold text-white shadow-lg active:scale-[.99]"
+            disabled={totalShots === 0}
+            className="rounded-xl bg-fw-green py-3.5 font-bold text-white disabled:opacity-40"
           >
             共有する（{totalShots}枚）
           </button>
         </div>
       </div>
 
-      {/* アプリ内カメラ */}
-      {camTarget && (
-        <Camera
-          label={`${firstNo + camTarget.index}番 ${camTarget.kind === 'before' ? 'ビフォー' : 'アフター'}`}
-          onCapture={onCameraCapture}
-          onClose={() => setCamTarget(null)}
-          onFallback={onCameraFallback}
-        />
-      )}
-
       {/* 共有選択シート */}
-      {showShare && (
-        <ShareSheet project={project} onClose={() => setShowShare(false)} notify={notify} />
-      )}
-
-      {/* カメラ不可時の標準カメラ・フォールバック */}
-      <input
-        ref={nativeRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={(e) => {
-          const t = pendingRef.current;
-          pendingRef.current = null;
-          if (e.target.files?.[0] && t) handlePick(t.index, t.kind, e.target.files[0]);
-          e.target.value = '';
-        }}
-      />
+      {showShare && <ShareSheet project={project} onClose={() => setShowShare(false)} notify={notify} />}
 
       {toast && (
-        <div className="fixed inset-x-0 bottom-24 z-30 mx-auto w-fit max-w-[90%] rounded-sm bg-slate-900/90 px-4 py-2 text-center text-sm text-white shadow-lg">
+        <div className="fixed inset-x-0 bottom-28 z-30 mx-auto w-fit max-w-[90%] rounded-full bg-fw-ink/90 px-4 py-2 text-center text-sm text-fw-card">
           {toast}
         </div>
       )}

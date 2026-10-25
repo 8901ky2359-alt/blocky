@@ -4,12 +4,12 @@ import { Item } from '@/lib/ba/types';
 import { dataUrlToFile, downloadFile } from '@/lib/ba/share';
 import PhotoSlot from './PhotoSlot';
 
+// 1箇所ぶん（左ビフォー／右アフター）
 export default function ItemRow({
   index,
   no: noProp,
   item,
   busyKind,
-  onRequestCamera,
   onPickFile,
   onClear,
   notify,
@@ -18,7 +18,6 @@ export default function ItemRow({
   no?: number; // 表示する番号（看板ありのときは看板の番号）
   item: Item;
   busyKind: 'before' | 'after' | null;
-  onRequestCamera: (kind: 'before' | 'after') => void;
   onPickFile: (kind: 'before' | 'after', file: File) => void;
   onClear: (kind: 'before' | 'after') => void;
   notify: (msg: string) => void;
@@ -34,40 +33,27 @@ export default function ItemRow({
   }
 
   return (
-    <div className="rounded-sm border border-slate-200 bg-white p-3 shadow-sm">
+    <div className="rounded-2xl bg-fw-card p-3">
       <div className="mb-2 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="grid h-7 w-7 place-items-center rounded-sm bg-slate-900 text-sm font-bold text-white">
-            {no}
-          </span>
-          <span className="text-sm font-semibold text-slate-700">{no}番</span>
-        </div>
-        {done && (
-          <span className="rounded-sm bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">
-            ✓ 完了
-          </span>
-        )}
+        <span className="flex items-center gap-2">
+          <span className="grid h-7 min-w-7 place-items-center rounded-lg bg-fw-ink px-1.5 text-sm font-bold text-fw-card">{no}</span>
+          <span className="text-sm font-semibold">{no}番</span>
+        </span>
+        {done && <span className="rounded-full bg-fw-green/15 px-2 py-0.5 text-[11px] font-bold text-fw-green">✓ 完了</span>}
       </div>
 
       <div className="flex gap-2.5">
-        <PhotoSlot
-          kind="before"
-          shot={item.before}
-          busy={busyKind === 'before'}
-          onRequestCamera={() => onRequestCamera('before')}
-          onPickFile={(f) => onPickFile('before', f)}
-          onClear={() => onClear('before')}
-          onSave={() => saveOne('before')}
-        />
-        <PhotoSlot
-          kind="after"
-          shot={item.after}
-          busy={busyKind === 'after'}
-          onRequestCamera={() => onRequestCamera('after')}
-          onPickFile={(f) => onPickFile('after', f)}
-          onClear={() => onClear('after')}
-          onSave={() => saveOne('after')}
-        />
+        {(['before', 'after'] as const).map((kind) => (
+          <PhotoSlot
+            key={kind}
+            kind={kind}
+            shot={item[kind]}
+            busy={busyKind === kind}
+            onPickFile={(f) => onPickFile(kind, f)}
+            onClear={() => onClear(kind)}
+            onSave={() => saveOne(kind)}
+          />
+        ))}
       </div>
     </div>
   );
