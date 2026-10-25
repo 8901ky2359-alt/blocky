@@ -63,6 +63,7 @@ async function ensureSchema(env) {
       data TEXT NOT NULL DEFAULT '{}',
       updated_at INTEGER NOT NULL
     )`,
+    `CREATE TABLE IF NOT EXISTS fw_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
   ];
   for (const sql of stmts) await env.DB.prepare(sql).run();
   // 後から足した列（区分・作業員名）。既にあればエラーになるので無視する
@@ -135,10 +136,19 @@ async function verifyPassword(password, hashHex, saltHex) {
 
 // ---- トークン（HMAC署名） ----------------------------------------------
 
-function getSecret(env) {
-  // 本番では `wrangler secret put TIMESHEET_SESSION_SECRET` で設定推奨。
-  // 未設定でも動作するようフォールバックを用意（README参照）。
-  return env.TIMESHEET_SESSION_SECRET || 'blocky-timesheet-fallback-secret-please-set-a-real-one';
+let storedSecret = null;
+
+// ログイン情報の署名鍵。Cloudflare の Secret（TIMESHEET_SESSION_SECRET）があればそれを使う。
+// 無ければ初回にランダムな鍵を作って D1 に保存して使う（コードに書いた固定の鍵は使わない＝なりすまし防止）
+async function getSecret(env) {
+  if (env.TIMESHEET_SESSION_SECRET) return env.TIMESHEET_SESSION_SECRET;
+  if (storedSecret) return storedSecret;
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  const fresh = [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
+  await env.DB.prepare(`INSERT OR IGNORE INTO fw_meta (key, value) VALUES ('session_secret', ?1)`).bind(fresh).run();
+  const row = await env.DB.prepare(`SELECT value FROM fw_meta WHERE key = 'session_secret'`).first();
+  storedSecret = row.value;
+  return storedSecret;
 }
 
 async function hmacKey(secret) {
@@ -150,7 +160,7 @@ async function hmacKey(secret) {
 
 async function signToken(payload, env) {
   const body = b64urlEncodeBytes(new TextEncoder().encode(JSON.stringify(payload)));
-  const key = await hmacKey(getSecret(env));
+  const key = await hmacKey(await getSecret(env));
   const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body));
   return `${body}.${b64urlEncodeBytes(new Uint8Array(sig))}`;
 }
@@ -159,7 +169,7 @@ async function verifyToken(token, env) {
   if (!token || typeof token !== 'string' || !token.includes('.')) return null;
   const [body, sig] = token.split('.');
   try {
-    const key = await hmacKey(getSecret(env));
+    const key = await hmacKey(await getSecret(env));
     const ok = await crypto.subtle.verify('HMAC', key, b64urlDecodeToBytes(sig), new TextEncoder().encode(body));
     if (!ok) return null;
     const payload = JSON.parse(new TextDecoder().decode(b64urlDecodeToBytes(body)));

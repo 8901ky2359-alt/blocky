@@ -65,7 +65,7 @@ Cloudflare Workers + D1（`worker/`）
 `fw_profiles`）は初回アクセス時に自動で作られます。
 
 ログイン情報を署名する秘密鍵を Cloudflare の Secret に設定してください
-（未設定でも動きますが、本番では必ず専用の値にしてください）。
+（未設定のときは初回にランダムな鍵を作って D1 の `fw_meta` に保存して使います）。
 
 ```bash
 npx wrangler secret put TIMESHEET_SESSION_SECRET

@@ -105,6 +105,9 @@ async function handleSync(request, env) {
   const body = await request.json().catch(() => ({}));
   const space = String(body.space || '').trim();
   if (space.length < 4) return json({ error: 'invalid space' }, 400);
+  // ログイン不要で使えるのは防草シート管理の進捗（"…::report"）だけ。
+  // 以前の売上管理のデータ（合言葉そのままの space など）はここからは読み書きできない
+  if (!space.endsWith('::report')) return json({ error: 'forbidden' }, 403);
 
   const incoming = Array.isArray(body.entries) ? body.entries : [];
 
