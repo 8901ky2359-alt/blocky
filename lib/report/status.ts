@@ -1,6 +1,6 @@
 // ステータスの表示・色・LINE報告テキストの生成
 
-import { SiteSeed, SiteProgress, SiteType, stageOf } from './types';
+import { SiteSeed, SiteProgress, SiteType, Stage, stageOf } from './types';
 
 // 全体の状態区分（地図ピン色・フィルタ用）
 export type Overall = 'done' | 'weeded' | 'working' | 'none';
@@ -80,10 +80,18 @@ function sortKey(name: string): [number, number, string] {
   return [rank, Number.isFinite(num) ? num : 99999, n];
 }
 
-function byName(a: SiteSeed, b: SiteSeed): number {
+export function byName(a: SiteSeed, b: SiteSeed): number {
   const x = sortKey(a.name);
   const y = sortKey(b.name);
   return x[0] - y[0] || x[1] - y[1] || x[2].localeCompare(y[2]);
+}
+
+// 一覧の並び順（進捗順）：シート施工途中 → 除草のみ完了 → 除草途中 → 完工 → 未着手。同じ進捗の中は番号順
+const STAGE_ORDER: Record<Stage, number> = { sheeting: 0, weeded: 1, weeding: 2, done: 3, none: 4 };
+
+export function byProgress(get: (workNo: string) => SiteProgress) {
+  return (a: SiteSeed, b: SiteSeed): number =>
+    STAGE_ORDER[stageOf(get(a.workNo))] - STAGE_ORDER[stageOf(get(b.workNo))] || byName(a, b);
 }
 
 export function buildProgressReport(sites: SiteSeed[], get: (workNo: string) => SiteProgress): string {

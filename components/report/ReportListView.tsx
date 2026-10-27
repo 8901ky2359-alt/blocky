@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { SITES } from '@/lib/report/data';
 import { useReport } from '@/lib/report/useReport';
-import { isReportTarget } from '@/lib/report/status';
+import { byProgress, isReportTarget } from '@/lib/report/status';
 import { stageOf } from '@/lib/report/types';
 import SiteRow from './SiteRow';
 import ReportMap from './ReportMap';
@@ -38,7 +38,7 @@ export default function ReportListView() {
         s.name.toLowerCase().includes(kw) ||
         s.address.toLowerCase().includes(kw)
       );
-    });
+    }).sort(byProgress(get));
   }, [q, filter, area, get]);
 
   const renderKey = useMemo(
