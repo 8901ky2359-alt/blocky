@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import AuthGate from '@/components/fw/AuthGate';
 import Screen from '@/components/fw/Screen';
-import { Card, Chip, Section, Segmented, TaxedYen } from '@/components/fw/ui';
+import { Card, Chip, Section, Segmented, TaxedYen, useShowTax } from '@/components/fw/ui';
 import OutputSheet from '@/components/fw/OutputSheet';
 import ProfileSheet from '@/components/fw/ProfileSheet';
 import { getProfile, setPaid } from '@/lib/fw/api';
@@ -279,14 +279,15 @@ function TotalCard({
   split?: { label: string; ex: number; inc: number }[];
   facts?: [string, string][]; // 金額以外（件数など）
 }) {
+  const showTax = useShowTax();
   return (
     <Card className="mb-5 grid gap-1 p-4">
       <span className="text-[13px] text-fw-muted">{label}</span>
       <span className="tabular-nums">
-        <span className="text-3xl font-extrabold">{yen(total(groups))}</span>
-        <span className="ml-1.5 text-sm text-fw-muted">税込</span>
+        <span className="text-3xl font-extrabold">{yen(showTax ? total(groups) : subtotal(groups))}</span>
+        <span className="ml-1.5 text-sm text-fw-muted">{showTax ? '税込' : '税抜'}</span>
       </span>
-      <span className="text-sm text-fw-muted tabular-nums">税抜 {yen(subtotal(groups))}</span>
+      {showTax && <span className="text-sm text-fw-muted tabular-nums">税抜 {yen(subtotal(groups))}</span>}
       {(split.length > 0 || facts.length > 0) && (
         <div className="mt-1 grid grid-cols-3 gap-2 border-t border-fw-line pt-2 text-xs text-fw-muted">
           {facts.map(([k, v]) => (
@@ -322,6 +323,7 @@ function Row({ title, sub, groups }: { title: string; sub: string; groups: Invoi
 }
 
 function GroupList({ groups, showUser, onTogglePaid }: { groups: InvoiceGroup[]; showUser: boolean; onTogglePaid: (g: InvoiceGroup) => void }) {
+  const showTax = useShowTax();
   const [open, setOpen] = useState<string | null>(null);
   return (
     <Card>
@@ -353,8 +355,14 @@ function GroupList({ groups, showUser, onTogglePaid }: { groups: InvoiceGroup[];
                 </div>
               ))}
               <div className="mt-1 flex justify-between border-t border-fw-line pt-1 text-xs text-fw-muted">
-                <span>小計 {yen(g.subtotal)} ・ 消費税 {yen(g.tax)}</span>
-                <span>合計 {yen(g.total)}</span>
+                {showTax ? (
+                  <>
+                    <span>小計 {yen(g.subtotal)} ・ 消費税 {yen(g.tax)}</span>
+                    <span>合計 {yen(g.total)}</span>
+                  </>
+                ) : (
+                  <span>合計 {yen(g.subtotal)}（税抜）</span>
+                )}
               </div>
               <button onClick={() => onTogglePaid(g)} className="mt-2 rounded-xl bg-fw-card py-2 text-sm font-semibold text-fw-green">
                 {g.paid ? '入金済みを取り消す' : '入金済みにする'}

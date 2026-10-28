@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import AuthGate from '@/components/fw/AuthGate';
 import Screen from '@/components/fw/Screen';
 import Link from 'next/link';
-import { Card, Chip, SaleRow, Section, TaxedYen, WORK_TYPE_DOT, WORK_TYPE_TEXT } from '@/components/fw/ui';
+import { Card, Chip, SaleRow, Section, TaxedYen, WORK_TYPE_DOT, WORK_TYPE_TEXT, useShowTax } from '@/components/fw/ui';
 import { cutoffLabel, isConsolidated, paymentGroups, salePayment, saleScheduled, shortDate, sum } from '@/lib/fw/billing';
 import { useSales } from '@/lib/fw/useSales';
 import { Sale, User, WORK_TYPES, WorkType } from '@/lib/fw/types';
@@ -18,6 +18,10 @@ export default function CalendarPage() {
 
 function CalendarInner({ user }: { user: User }) {
   const isAdmin = user.role === 'admin';
+  // 入金額の表示：総合管理画面は税込、仲間は税抜
+  const showTax = useShowTax();
+  const money = (n: number) => (showTax ? withTax(n) : n);
+  const moneyLabel = showTax ? '税込' : '税抜';
   // 仲間は請負・常駐のみ（作業員手配は総合管理画面だけ）
   const types = isAdmin ? WORK_TYPES : WORK_TYPES.filter((t) => t !== '作業員手配');
   const { sales, loading } = useSales();
@@ -112,14 +116,14 @@ function CalendarInner({ user }: { user: User }) {
           <span className="text-center">
             <span className="block text-lg font-bold">{formatJpMonth(month)}</span>
             <span className="block text-[11px] text-fw-muted tabular-nums">
-              税込 {yen(withTax(sum(monthSales)))} ・ 税抜 {yen(sum(monthSales))} ・ {monthSales.length}件
+              {showTax && `税込 ${yen(withTax(sum(monthSales)))} ・ `}税抜 {yen(sum(monthSales))} ・ {monthSales.length}件
             </span>
             {monthPay.length > 0 && (
               <span className="block text-[11px] tabular-nums">
-                入金{monthPaid.length > 0 && <span className="text-fw-teal"> 済み {yen(withTax(sum(monthPaid)))}</span>}
+                入金{monthPaid.length > 0 && <span className="text-fw-teal"> 済み {yen(money(sum(monthPaid)))}</span>}
                 {monthPaid.length > 0 && monthUnpaid.length > 0 && <span className="text-fw-muted"> ・</span>}
-                {monthUnpaid.length > 0 && <span className="text-fw-orange"> 予定 {yen(withTax(sum(monthUnpaid)))}</span>}
-                <span className="text-fw-muted">（税込）</span>
+                {monthUnpaid.length > 0 && <span className="text-fw-orange"> 予定 {yen(money(sum(monthUnpaid)))}</span>}
+                <span className="text-fw-muted">（{moneyLabel}）</span>
               </span>
             )}
           </span>
@@ -154,7 +158,7 @@ function CalendarInner({ user }: { user: User }) {
                   <span className="shrink-0 text-right font-semibold tabular-nums">
                     {yen(sum(list))}
                     <span className="ml-1 font-normal text-fw-muted">
-                      税込 {yen(withTax(sum(list)))}（{list.length}件）
+                      {showTax && `税込 ${yen(withTax(sum(list)))}`}（{list.length}件）
                     </span>
                   </span>
                 </span>
@@ -201,7 +205,7 @@ function CalendarInner({ user }: { user: User }) {
                         className={`mt-0.5 rounded px-0.5 text-[10px] font-bold leading-tight tabular-nums ${done ? 'bg-fw-teal/15 text-fw-teal' : 'bg-fw-orange/15 text-fw-orange'}`}
                         aria-label={done ? '入金済み' : '入金予定'}
                       >
-                        {manYen(withTax(sum(list)))}
+                        {manYen(money(sum(list)))}
                       </span>
                     );
                   })()}
@@ -221,8 +225,8 @@ function CalendarInner({ user }: { user: User }) {
               ■{t === '作業員手配' ? '作業員手配（雇用）' : t}
             </span>
           ))}
-          <span className="font-semibold text-fw-orange">■入金予定（税込）</span>
-          <span className="font-semibold text-fw-teal">■入金済み（税込）</span>
+          <span className="font-semibold text-fw-orange">■入金予定（{moneyLabel}）</span>
+          <span className="font-semibold text-fw-teal">■入金済み（{moneyLabel}）</span>
           <span className="flex items-center gap-1">
             <span className="inline-block h-1.5 w-1.5 rounded-full border border-fw-muted" />
             決済予定（翌月5日にまとめて入金）

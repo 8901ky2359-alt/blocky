@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import AuthGate from '@/components/fw/AuthGate';
 import Screen from '@/components/fw/Screen';
-import { Card, Chip, SaleRow, Section } from '@/components/fw/ui';
+import { Card, Chip, SaleRow, Section, useShowTax } from '@/components/fw/ui';
 import { ApiError, createSale, deleteSale, listClients, updateSale } from '@/lib/fw/api';
 import { CUTOFF_DAYS, closingDate, consolidatedDate, dayLabel, paymentDate, shortDate } from '@/lib/fw/billing';
 import { useSales } from '@/lib/fw/useSales';
@@ -72,6 +72,7 @@ function SalesInner({ user }: { user: User }) {
 
   const mine = useMemo(() => sales.filter((s) => s.userId === user.id), [sales, user.id]);
   const isAdmin = user.role === 'admin';
+  const showTax = useShowTax();
   // 仲間は請負・常駐のみ（作業員手配は総合管理画面だけ）
   const workTypes = isAdmin ? WORK_TYPES : WORK_TYPES.filter((t) => t !== '作業員手配');
   // 候補は見えている売上から作る：仲間はサーバーから自分の分しか届かないので、自分が入れたものだけが出る
@@ -225,7 +226,7 @@ function SalesInner({ user }: { user: User }) {
               placeholder="例: 10000"
               className="input text-lg font-bold tabular-nums"
             />
-            {form.amount > 0 && <span className="text-sm text-fw-muted tabular-nums">税込 {yen(withTax(form.amount))}</span>}
+            {showTax && form.amount > 0 && <span className="text-sm text-fw-muted tabular-nums">税込 {yen(withTax(form.amount))}</span>}
             <Suggest
               options={amountOptions}
               value={form.amount ? String(form.amount) : ''}

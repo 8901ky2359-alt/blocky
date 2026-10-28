@@ -3,6 +3,7 @@
 // ログインゲート。ログインしていなければログイン画面を出し、role 指定時はその役割の人だけを通す。
 // ログアウトボタンは無く、開くたびにトークンを延長する。
 
+import { ShowTaxProvider } from './ui';
 import { useEffect, useState } from 'react';
 import { ApiError, me, setupStatus } from '@/lib/fw/api';
 import { clearSession, getStoredUser, getToken, setSession } from '@/lib/fw/session';
@@ -59,5 +60,5 @@ export default function AuthGate({
       </div>
     );
   }
-  return <>{children(user)}</>;
+  return <ShowTaxProvider value={user.role === 'admin'}>{children(user)}</ShowTaxProvider>;
 }

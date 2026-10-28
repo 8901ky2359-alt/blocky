@@ -1,12 +1,18 @@
 // 小さな共通部品
 
 import Link from 'next/link';
+import { createContext, useContext } from 'react';
 import { Sale, WorkType } from '@/lib/fw/types';
 import { yen } from '@/lib/format';
 import { shortDate } from '@/lib/fw/billing';
 import { withTax } from '@/lib/tax';
 
-// 金額を税込・税抜の両方で出す（main 側を大きく、もう一方を下に小さく）
+// 税込の金額を出すか（総合管理画面＝出す／仲間の画面＝税抜だけ）。AuthGate がログインした人の役割で決める
+const ShowTaxContext = createContext(true);
+export const ShowTaxProvider = ShowTaxContext.Provider;
+export const useShowTax = () => useContext(ShowTaxContext);
+
+// 金額を税込・税抜の両方で出す（main 側を大きく、もう一方を下に小さく）。仲間の画面では税抜だけ
 export function TaxedYen({
   ex,
   inc = withTax(ex),
@@ -20,6 +26,15 @@ export function TaxedYen({
   className?: string;
   subClassName?: string;
 }) {
+  const showTax = useShowTax();
+  if (!showTax) {
+    return (
+      <span className="inline-block tabular-nums">
+        <span className={`block ${className}`}>{yen(ex)}</span>
+        <span className={`block text-[11px] font-normal ${subClassName}`}>税抜</span>
+      </span>
+    );
+  }
   return (
     <span className="inline-block tabular-nums">
       <span className={`block ${className}`}>{yen(main === 'inc' ? inc : ex)}</span>
