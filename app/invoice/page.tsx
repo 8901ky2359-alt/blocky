@@ -7,7 +7,7 @@ import { Card, Chip, Section, Segmented, TaxedYen, useShowTax } from '@/componen
 import OutputSheet from '@/components/fw/OutputSheet';
 import ProfileSheet from '@/components/fw/ProfileSheet';
 import { getProfile, setPaid } from '@/lib/fw/api';
-import { InvoiceGroup, cutoffLabel, invoiceGroups, saleClosing, salePayment, shortDate } from '@/lib/fw/billing';
+import { InvoiceGroup, cutoffLabel, invoiceGroups, nextPayDate, saleClosing, salePayment, shortDate } from '@/lib/fw/billing';
 import { claudePrompt, lineText } from '@/lib/fw/invoiceText';
 import { useSales } from '@/lib/fw/useSales';
 import { Profile, User } from '@/lib/fw/types';
@@ -71,12 +71,8 @@ function InvoiceInner({ user }: { user: User }) {
   // 入金日ごとのページ：1ページ＝1つの入金日（11/5入金の分だけ、次のページは12/5入金の分だけ）
   const personSales = useMemo(() => sales.filter((s) => person === 'all' || s.userId === person), [sales, person]);
   const payDates = useMemo(() => [...new Set(personSales.map(salePayment))].sort(), [personSales]);
-  // 最初に開くのは、まだ入金されていない分のうち今日以降で一番近い入金日
-  const defaultPay = useMemo(() => {
-    const today = todayStr();
-    const unpaid = [...new Set(personSales.filter((s) => !s.paid).map(salePayment))].sort();
-    return unpaid.find((d) => d >= today) ?? unpaid[unpaid.length - 1] ?? payDates[payDates.length - 1] ?? null;
-  }, [personSales, payDates]);
+  // 最初に開くのは、ホームの「次回入金予定」と同じ入金日
+  const defaultPay = useMemo(() => nextPayDate(personSales) ?? payDates[payDates.length - 1] ?? null, [personSales, payDates]);
   const payDate = payPick && payDates.includes(payPick) ? payPick : defaultPay;
   const payIndex = payDate ? payDates.indexOf(payDate) : -1;
   const prevPay = payIndex > 0 ? payDates[payIndex - 1] : null;

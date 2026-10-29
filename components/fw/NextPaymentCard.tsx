@@ -1,4 +1,5 @@
-// ホーム一番上：次回入金予定（合計を大きく、締め日別・承認済み/承認待ちは小さく。総合管理画面は税込と税抜、仲間は税抜のみ）
+// ホーム一番上：次回入金予定（次の入金日の合計を大きく、決済予定別・承認済み/承認待ちは小さく、その次の入金日も1行で。
+// 総合管理画面は税込と税抜、仲間は税抜のみ。金額はカレンダーのその日・請求書作成のそのページと同じ）
 
 import { Sale } from '@/lib/fw/types';
 import { PaymentGroup, cutoffLabel, isConsolidated, nextPayment, shortDate } from '@/lib/fw/billing';
@@ -50,8 +51,17 @@ export default function NextPaymentCard({ sales, label, tone }: { sales: Sale[];
               );
             })}
           </div>
+          {np.following && (
+            <Link
+              href={`/invoice?tab=next&pay=${np.following.payDate}`}
+              className="flex items-center justify-between gap-2 border-t border-white/25 pt-2 text-[12px] tabular-nums opacity-85"
+            >
+              <span>その次 ・ {shortDate(np.following.payDate)} 入金 ›</span>
+              <span>{yen(showTax ? np.following.total : np.following.subtotal)}</span>
+            </Link>
+          )}
           <Link
-            href="/invoice?tab=next"
+            href={`/invoice?tab=next${np.payDate ? `&pay=${np.payDate}` : ''}`}
             className="rounded-xl bg-white/20 py-2 text-center text-[13px] font-bold active:bg-white/30"
           >
             この内容で請求書を作る ›

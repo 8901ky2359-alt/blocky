@@ -112,6 +112,8 @@ export interface Amounts {
 }
 
 export interface NextPayment {
+  payDate: string | null; // 次の入金日（まとめ後）
+  following: { payDate: string; subtotal: number; total: number } | null; // その次の入金日
   subtotal: number; // 税抜
   total: number; // 税込
   groups: PaymentGroup[];
@@ -148,22 +150,35 @@ export function paymentGroups(sales: Sale[]): PaymentGroup[] {
     );
 }
 
-// 次回入金予定：未入金の売上を締め日のルールごとに分け、それぞれ一番早い入金日（まとめ後）の分を合計する
-export function nextPayment(sales: Sale[]): NextPayment {
-  const byRule = new Map<string, Map<string, Sale[]>>();
-  for (const s of sales) {
-    if (s.paid) continue;
-    const rule = `${s.cutoff}-${s.payOffset}-${s.payDay}`;
-    const pay = salePayment(s);
-    const dates = byRule.get(rule) ?? new Map<string, Sale[]>();
-    dates.set(pay, [...(dates.get(pay) ?? []), s]);
-    byRule.set(rule, dates);
-  }
-  const picked: Sale[] = [];
-  for (const dates of byRule.values()) picked.push(...dates.get([...dates.keys()].sort()[0])!);
-  const groups = paymentGroups(picked);
+function localToday(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+// 未入金の入金日（まとめ後）を早い順に
+export function unpaidPayDates(sales: Sale[]): string[] {
+  return [...new Set(sales.filter((s) => !s.paid).map(salePayment))].sort();
+}
+
+// 次の入金日：未入金のうち今日以降で一番近い日（無ければ一番最後の未入金の日）。
+// ホーム・カレンダー・請求書作成で同じ日を使う
+export function nextPayDate(sales: Sale[], today = localToday()): string | null {
+  const dates = unpaidPayDates(sales);
+  return dates.find((d) => d >= today) ?? dates[dates.length - 1] ?? null;
+}
+
+// 次回入金予定：次の入金日に入る未入金の売上をすべて合計する（カレンダーのその日の金額と同じ）
+export function nextPayment(sales: Sale[], today = localToday()): NextPayment {
+  const payDate = nextPayDate(sales, today);
+  const unpaid = sales.filter((s) => !s.paid);
+  const groups = paymentGroups(payDate ? unpaid.filter((s) => salePayment(s) === payDate) : []);
   const all = groups.flatMap((g) => g.sales);
+  const dates = unpaidPayDates(sales);
+  const nextDate = payDate ? dates[dates.indexOf(payDate) + 1] : undefined;
+  const nextSales = nextDate ? unpaid.filter((s) => salePayment(s) === nextDate) : [];
   return {
+    payDate,
+    following: nextDate ? { payDate: nextDate, subtotal: sum(nextSales), total: paymentGroups(nextSales).reduce((n, g) => n + g.total, 0) } : null,
     subtotal: sum(all),
     total: groups.reduce((n, g) => n + g.total, 0),
     groups,
