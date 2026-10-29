@@ -173,7 +173,8 @@ export function nextPayment(sales: Sale[]): NextPayment {
   };
 }
 
-// 入力した人 × 請求先 × 締めごとのまとまり（1枚の請求書の単位。請求書は入力した本人の名前で出す）
+// 入力した人 × 請求先 × 締め × 決済予定日ごとのまとまり（1枚の請求書の単位。請求書は入力した本人の名前で出す）
+// 同じ請求先・同じ締めでも、翌月25日払いと翌月末払いのように決済予定日が違えば別の請求書にする
 export interface InvoiceGroup {
   key: string;
   userId: string;
@@ -193,7 +194,7 @@ export interface InvoiceGroup {
 export function invoiceGroups(sales: Sale[]): InvoiceGroup[] {
   const map = new Map<string, Sale[]>();
   for (const s of sales) {
-    const key = `${s.userId}|${s.clientName}|${saleClosing(s)}`;
+    const key = `${s.userId}|${s.clientName}|${saleClosing(s)}|${saleScheduled(s)}`;
     map.set(key, [...(map.get(key) ?? []), s]);
   }
   return [...map.entries()]
@@ -217,5 +218,12 @@ export function invoiceGroups(sales: Sale[]): InvoiceGroup[] {
         paid: sorted.every((s) => s.paid),
       };
     })
-    .sort((a, b) => (a.closing < b.closing ? -1 : a.closing > b.closing ? 1 : a.clientName.localeCompare(b.clientName, 'ja')));
+    // 請求先 → 締め日 → 決済予定日 の順に並べる（同じ請求先の請求書が続けて並ぶ）
+    .sort(
+      (a, b) =>
+        a.clientName.localeCompare(b.clientName, 'ja') ||
+        (a.closing < b.closing ? -1 : a.closing > b.closing ? 1 : 0) ||
+        (a.scheduled < b.scheduled ? -1 : a.scheduled > b.scheduled ? 1 : 0) ||
+        a.userName.localeCompare(b.userName, 'ja'),
+    );
 }

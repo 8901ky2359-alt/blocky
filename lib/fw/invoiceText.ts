@@ -24,7 +24,7 @@ export function lineText(groups: InvoiceGroup[], title: string, issuer: string):
   const lines: string[] = [`【${title} 請求のご連絡】`, ''];
   const showIssuer = mixed(groups);
   for (const g of groups) {
-    lines.push(`${g.clientName} 様（${cutoffLabel(g.cutoff)} ${shortDate(g.closing)}）${showIssuer ? ` 発行：${g.userName}` : ''}`);
+    lines.push(`${g.clientName} 様（${cutoffLabel(g.cutoff)} ${shortDate(g.closing)}・${payText(g)}）${showIssuer ? ` 発行：${g.userName}` : ''}`);
     for (const s of g.sales) lines.push(`${saleLine(s)} ${yen(s.amount)}`);
     lines.push(`小計 ${yen(g.subtotal)}`, `消費税 ${yen(g.tax)}`, `合計 ${yen(g.total)}`, '');
   }
@@ -57,6 +57,7 @@ export function claudePrompt(groups: InvoiceGroup[], profile: Profile, fallbackN
       ...(showIssuer ? [`発行者：${g.userName}（上の発行者情報は${issuer}のものです）`] : []),
       `宛名：${g.clientName} 様`,
       `締め日：${jpDate(g.closing)}（${cutoffLabel(g.cutoff)}）`,
+      ...(g.scheduled !== g.payDate ? [`決済予定日：${jpDate(g.scheduled)}`] : []),
       `お支払期限：${jpDate(g.payDate)}`,
       '明細（金額は税抜）：',
     );
@@ -70,4 +71,9 @@ export function claudePrompt(groups: InvoiceGroup[], profile: Profile, fallbackN
   });
   lines.push('各請求書はA4縦1枚の体裁に整え、発行日・請求番号・合計金額を見やすく記載してください。');
   return lines.join('\n');
+}
+
+// 決済予定日と入金日（翌月5日にまとめる分は「10/25決済→11/5入金」）
+function payText(g: InvoiceGroup): string {
+  return g.scheduled !== g.payDate ? `${shortDate(g.scheduled)}決済→${shortDate(g.payDate)}入金` : `${shortDate(g.payDate)}入金`;
 }
