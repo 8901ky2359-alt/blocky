@@ -2,6 +2,7 @@
 
 import { Sale } from '@/lib/fw/types';
 import { PaymentGroup, cutoffLabel, isConsolidated, nextPayment, shortDate } from '@/lib/fw/billing';
+import Link from 'next/link';
 import { yen } from '@/lib/format';
 import { useShowTax } from './ui';
 
@@ -49,6 +50,12 @@ export default function NextPaymentCard({ sales, label, tone }: { sales: Sale[];
               );
             })}
           </div>
+          <Link
+            href="/invoice?tab=next"
+            className="rounded-xl bg-white/20 py-2 text-center text-[13px] font-bold active:bg-white/30"
+          >
+            この内容で請求書を作る ›
+          </Link>
           <div className="grid grid-cols-2 gap-2 text-[12px] tabular-nums">
             {(
               [

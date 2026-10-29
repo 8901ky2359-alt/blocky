@@ -7,7 +7,7 @@ import { Card, Chip, Section, Segmented, TaxedYen, useShowTax } from '@/componen
 import OutputSheet from '@/components/fw/OutputSheet';
 import ProfileSheet from '@/components/fw/ProfileSheet';
 import { getProfile, setPaid } from '@/lib/fw/api';
-import { InvoiceGroup, cutoffLabel, invoiceGroups, saleClosing, shortDate } from '@/lib/fw/billing';
+import { InvoiceGroup, cutoffLabel, invoiceGroups, nextPayment, saleClosing, shortDate } from '@/lib/fw/billing';
 import { claudePrompt, lineText } from '@/lib/fw/invoiceText';
 import { useSales } from '@/lib/fw/useSales';
 import { Profile, User } from '@/lib/fw/types';
@@ -17,7 +17,7 @@ export default function InvoicePage() {
   return <AuthGate>{(user) => <InvoiceInner user={user} />}</AuthGate>;
 }
 
-type Tab = 'cutoff' | 'client' | 'all';
+type Tab = 'next' | 'cutoff' | 'client' | 'all';
 
 const EMPTY_PROFILE: Profile = { issuerName: '', tradeName: '', address: '', phone: '', bank: '', invoiceNo: '' };
 
@@ -29,11 +29,17 @@ function InvoiceInner({ user }: { user: User }) {
   const { sales, loading, reload } = useSales();
   const [month, setMonth] = useState(currentMonthKey());
   const [person, setPerson] = useState<string>('all');
-  const [tab, setTab] = useState<Tab>('cutoff');
+  const [tab, setTab] = useState<Tab>('next');
   const [offCutoffs, setOffCutoffs] = useState<number[]>([]); // 選択を外した締め日
   const [client, setClient] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile>(EMPTY_PROFILE);
   const [sheet, setSheet] = useState<'line' | 'claude' | 'profile' | null>(null);
+
+  // ホームの「この内容で請求書を作る」から来たとき（?tab=next）
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get('tab');
+    if (t === 'next' || t === 'cutoff' || t === 'client' || t === 'all') setTab(t);
+  }, []);
 
   useEffect(() => {
     getProfile()
@@ -56,6 +62,12 @@ function InvoiceInner({ user }: { user: User }) {
       ),
     [sales, person, month],
   );
+  // 次回入金予定の分（ホームの「次回入金予定」と同じ売上）を請求書のまとまりにする
+  const nextGroups = useMemo(
+    () => invoiceGroups(nextPayment(sales.filter((s) => person === 'all' || s.userId === person)).sales),
+    [sales, person],
+  );
+  const nextPayDates = [...new Set(nextGroups.map((g) => g.payDate))].sort();
   const cutoffs = useMemo(() => [...new Set(groups.map((g) => g.cutoff))].sort((a, b) => a - b), [groups]);
   const selectedCutoffs = cutoffs.filter((c) => !offCutoffs.includes(c));
   const clients = useMemo(() => {
@@ -66,14 +78,17 @@ function InvoiceInner({ user }: { user: User }) {
 
   // 出力に使う範囲（今見ているもの）
   const scope =
-    tab === 'cutoff'
+    tab === 'next'
+      ? nextGroups
+      : tab === 'cutoff'
       ? groups.filter((g) => selectedCutoffs.includes(g.cutoff))
       : tab === 'client' && client
         ? groups.filter((g) => g.clientName === client)
         : groups;
 
   const issuer = profile.issuerName || user.name;
-  const title = `${formatJpMonth(month)}締め分`;
+  const title =
+    tab === 'next' ? `${nextPayDates.map(shortDate).join('・') || '次回'}入金予定分` : `${formatJpMonth(month)}締め分`;
 
   async function togglePaid(g: InvoiceGroup) {
     await setPaid(g.sales.map((s) => s.id), !g.paid).catch(() => alert('変更できませんでした'));
@@ -108,15 +123,19 @@ function InvoiceInner({ user }: { user: User }) {
         </>
       }
     >
-      <div className="mx-4 mb-3 flex items-center justify-between">
-        <button onClick={() => setMonth(shiftMonth(month, -1))} className="px-3 py-1 text-2xl text-fw-green" aria-label="前の月">
-          ‹
-        </button>
-        <span className="text-lg font-bold">{title}</span>
-        <button onClick={() => setMonth(shiftMonth(month, 1))} className="px-3 py-1 text-2xl text-fw-green" aria-label="次の月">
-          ›
-        </button>
-      </div>
+      {tab === 'next' ? (
+        <p className="mx-4 mb-3 text-center text-lg font-bold">{title}</p>
+      ) : (
+        <div className="mx-4 mb-3 flex items-center justify-between">
+          <button onClick={() => setMonth(shiftMonth(month, -1))} className="px-3 py-1 text-2xl text-fw-green" aria-label="前の月">
+            ‹
+          </button>
+          <span className="text-lg font-bold">{title}</span>
+          <button onClick={() => setMonth(shiftMonth(month, 1))} className="px-3 py-1 text-2xl text-fw-green" aria-label="次の月">
+            ›
+          </button>
+        </div>
+      )}
 
       {isAdmin && people.length > 1 && (
         <div className="mx-4 mb-3 flex flex-wrap gap-2">
@@ -135,6 +154,7 @@ function InvoiceInner({ user }: { user: User }) {
         value={tab}
         onChange={setTab}
         options={[
+          { value: 'next', label: '次回入金' },
           { value: 'cutoff', label: '締め日別' },
           { value: 'client', label: '請求先別' },
           { value: 'all', label: '全体' },
@@ -143,6 +163,25 @@ function InvoiceInner({ user }: { user: User }) {
 
       {loading ? (
         <p className="p-6 text-center text-sm text-fw-muted">読み込み中…</p>
+      ) : tab === 'next' ? (
+        nextGroups.length === 0 ? (
+          <Card className="p-6 text-center text-sm text-fw-muted">次回入金予定の売上はありません</Card>
+        ) : (
+          <>
+            <TotalCard
+              label="次回入金予定の合計"
+              groups={nextGroups}
+              facts={[['件数', `${count(nextGroups)}件`]]}
+              split={nextPayDates.map((d) => {
+                const gs = nextGroups.filter((g) => g.payDate === d);
+                return { label: `${shortDate(d)}入金`, ex: subtotal(gs), inc: total(gs) };
+              })}
+            />
+            <Section title="請求書（押すと明細）">
+              <GroupList groups={nextGroups} showUser={isAdmin && person === 'all'} onTogglePaid={togglePaid} />
+            </Section>
+          </>
+        )
       ) : groups.length === 0 ? (
         <Card className="p-6 text-center text-sm text-fw-muted">この月に締まる売上はありません</Card>
       ) : tab === 'cutoff' ? (
