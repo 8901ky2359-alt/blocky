@@ -7,11 +7,11 @@ import { Card, Chip, Section, Segmented, TaxedYen, useShowTax } from '@/componen
 import OutputSheet from '@/components/fw/OutputSheet';
 import ProfileSheet from '@/components/fw/ProfileSheet';
 import { getProfile, setPaid } from '@/lib/fw/api';
-import { InvoiceGroup, cutoffLabel, invoiceGroups, nextPayment, saleClosing, shortDate } from '@/lib/fw/billing';
+import { InvoiceGroup, cutoffLabel, invoiceGroups, saleClosing, salePayment, shortDate } from '@/lib/fw/billing';
 import { claudePrompt, lineText } from '@/lib/fw/invoiceText';
 import { useSales } from '@/lib/fw/useSales';
 import { Profile, User } from '@/lib/fw/types';
-import { currentMonthKey, formatJpMonth, shiftMonth, yen } from '@/lib/format';
+import { currentMonthKey, formatJpMonth, shiftMonth, todayStr, yen } from '@/lib/format';
 
 export default function InvoicePage() {
   return <AuthGate>{(user) => <InvoiceInner user={user} />}</AuthGate>;
@@ -35,10 +35,15 @@ function InvoiceInner({ user }: { user: User }) {
   const [profile, setProfile] = useState<Profile>(EMPTY_PROFILE);
   const [sheet, setSheet] = useState<'line' | 'claude' | 'profile' | null>(null);
 
-  // ホームの「この内容で請求書を作る」から来たとき（?tab=next）
+  const [payPick, setPayPick] = useState<string | null>(null); // 入金日ページで選んでいる入金日
+
+  // ホームの「この内容で請求書を作る」から来たとき（?tab=next、入金日の指定は ?pay=YYYY-MM-DD）
   useEffect(() => {
-    const t = new URLSearchParams(window.location.search).get('tab');
+    const q = new URLSearchParams(window.location.search);
+    const t = q.get('tab');
     if (t === 'next' || t === 'cutoff' || t === 'client' || t === 'all') setTab(t);
+    const pay = q.get('pay');
+    if (pay && /^\d{4}-\d{2}-\d{2}$/.test(pay)) setPayPick(pay);
   }, []);
 
   useEffect(() => {
@@ -62,12 +67,23 @@ function InvoiceInner({ user }: { user: User }) {
       ),
     [sales, person, month],
   );
-  // 次回入金予定の分（ホームの「次回入金予定」と同じ売上）を請求書のまとまりにする
+  // 入金日ごとのページ：1ページ＝1つの入金日（11/5入金の分だけ、次のページは12/5入金の分だけ）
+  const personSales = useMemo(() => sales.filter((s) => person === 'all' || s.userId === person), [sales, person]);
+  const payDates = useMemo(() => [...new Set(personSales.map(salePayment))].sort(), [personSales]);
+  // 最初に開くのは、まだ入金されていない分のうち今日以降で一番近い入金日
+  const defaultPay = useMemo(() => {
+    const today = todayStr();
+    const unpaid = [...new Set(personSales.filter((s) => !s.paid).map(salePayment))].sort();
+    return unpaid.find((d) => d >= today) ?? unpaid[unpaid.length - 1] ?? payDates[payDates.length - 1] ?? null;
+  }, [personSales, payDates]);
+  const payDate = payPick && payDates.includes(payPick) ? payPick : defaultPay;
+  const payIndex = payDate ? payDates.indexOf(payDate) : -1;
+  const prevPay = payIndex > 0 ? payDates[payIndex - 1] : null;
+  const nextPay = payIndex >= 0 && payIndex < payDates.length - 1 ? payDates[payIndex + 1] : null;
   const nextGroups = useMemo(
-    () => invoiceGroups(nextPayment(sales.filter((s) => person === 'all' || s.userId === person)).sales),
-    [sales, person],
+    () => (payDate ? invoiceGroups(personSales.filter((s) => salePayment(s) === payDate)) : []),
+    [personSales, payDate],
   );
-  const nextPayDates = [...new Set(nextGroups.map((g) => g.payDate))].sort();
   const cutoffs = useMemo(() => [...new Set(groups.map((g) => g.cutoff))].sort((a, b) => a - b), [groups]);
   const selectedCutoffs = cutoffs.filter((c) => !offCutoffs.includes(c));
   const clients = useMemo(() => {
@@ -88,7 +104,7 @@ function InvoiceInner({ user }: { user: User }) {
 
   const issuer = profile.issuerName || user.name;
   const title =
-    tab === 'next' ? `${nextPayDates.map(shortDate).join('・') || '次回'}入金予定分` : `${formatJpMonth(month)}締め分`;
+    tab === 'next' ? (payDate ? `${shortDate(payDate)}入金予定分` : '入金予定分') : `${formatJpMonth(month)}締め分`;
 
   async function togglePaid(g: InvoiceGroup) {
     await setPaid(g.sales.map((s) => s.id), !g.paid).catch(() => alert('変更できませんでした'));
@@ -124,7 +140,30 @@ function InvoiceInner({ user }: { user: User }) {
       }
     >
       {tab === 'next' ? (
-        <p className="mx-4 mb-3 text-center text-lg font-bold">{title}</p>
+        <div className="mx-4 mb-3 flex items-center justify-between">
+          <button
+            onClick={() => prevPay && setPayPick(prevPay)}
+            disabled={!prevPay}
+            className="px-3 py-1 text-2xl text-fw-green disabled:opacity-25"
+            aria-label="前の入金日"
+          >
+            ‹
+          </button>
+          <span className="text-center">
+            <span className="block text-lg font-bold">{title}</span>
+            {payDate && payDate.slice(0, 4) !== todayStr().slice(0, 4) && (
+              <span className="block text-[11px] text-fw-muted">{payDate.slice(0, 4)}年</span>
+            )}
+          </span>
+          <button
+            onClick={() => nextPay && setPayPick(nextPay)}
+            disabled={!nextPay}
+            className="px-3 py-1 text-2xl text-fw-green disabled:opacity-25"
+            aria-label="次の入金日"
+          >
+            ›
+          </button>
+        </div>
       ) : (
         <div className="mx-4 mb-3 flex items-center justify-between">
           <button onClick={() => setMonth(shiftMonth(month, -1))} className="px-3 py-1 text-2xl text-fw-green" aria-label="前の月">
@@ -165,21 +204,44 @@ function InvoiceInner({ user }: { user: User }) {
         <p className="p-6 text-center text-sm text-fw-muted">読み込み中…</p>
       ) : tab === 'next' ? (
         nextGroups.length === 0 ? (
-          <Card className="p-6 text-center text-sm text-fw-muted">次回入金予定の売上はありません</Card>
+          <Card className="p-6 text-center text-sm text-fw-muted">入金予定の売上はありません</Card>
         ) : (
           <>
             <TotalCard
-              label="次回入金予定の合計"
+              label={`${title}の合計`}
               groups={nextGroups}
-              facts={[['件数', `${count(nextGroups)}件`]]}
-              split={nextPayDates.map((d) => {
-                const gs = nextGroups.filter((g) => g.payDate === d);
-                return { label: `${shortDate(d)}入金`, ex: subtotal(gs), inc: total(gs) };
-              })}
+              facts={[
+                ['請求書', `${nextGroups.length}枚`],
+                ['件数', `${count(nextGroups)}件`],
+              ]}
+              split={[
+                {
+                  label: '未入金',
+                  ex: subtotal(nextGroups.filter((g) => !g.paid)),
+                  inc: total(nextGroups.filter((g) => !g.paid)),
+                },
+              ]}
             />
             <Section title="請求書（押すと明細）">
               <GroupList groups={nextGroups} showUser={isAdmin && person === 'all'} onTogglePaid={togglePaid} />
             </Section>
+            {/* 前後の入金日のページへ */}
+            <div className="mx-4 mb-5 grid grid-cols-2 gap-2">
+              <button
+                onClick={() => prevPay && setPayPick(prevPay)}
+                disabled={!prevPay}
+                className="rounded-xl bg-fw-card py-3 text-sm font-bold text-fw-green disabled:opacity-30"
+              >
+                ‹ {prevPay ? `${shortDate(prevPay)}入金` : '前はありません'}
+              </button>
+              <button
+                onClick={() => nextPay && setPayPick(nextPay)}
+                disabled={!nextPay}
+                className="rounded-xl bg-fw-card py-3 text-sm font-bold text-fw-green disabled:opacity-30"
+              >
+                {nextPay ? `${shortDate(nextPay)}入金` : '次はありません'} ›
+              </button>
+            </div>
           </>
         )
       ) : groups.length === 0 ? (
