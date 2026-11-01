@@ -216,7 +216,7 @@ function SalesInner({ user }: { user: User }) {
             <input id="work" value={form.work} onChange={(e) => set('work', e.target.value)} placeholder="例: 草刈り" className="input" />
             <Suggest options={workOptions} value={form.work} onPick={(v) => set('work', v)} />
           </Field>
-          <Field label="金額（税抜）">
+          <Field label={showTax ? '金額（税抜）' : '金額'}>
             <input
               id="amount"
               type="number"

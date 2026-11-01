@@ -131,7 +131,7 @@ function InvoiceInner({ user }: { user: User }) {
                 <b>{pickedGroups.length}枚を選択中</b>
                 <span className="ml-1.5 text-fw-muted">
                   {[...new Set(pickedGroups.map((g) => g.clientName))].join('・')} ・ {yen(showTax ? total(pickedGroups) : subtotal(pickedGroups))}
-                  {showTax ? '（税込）' : '（税抜）'}
+                  {showTax && '（税込）'}
                 </span>
               </span>
               <button onClick={() => setPicked([])} className="shrink-0 pl-2 font-semibold text-fw-green">
@@ -358,7 +358,7 @@ function InvoiceInner({ user }: { user: User }) {
       {sheet === 'line' && (
         <OutputSheet
           title="LINE用の文章"
-          text={lineText(scope, title, issuer)}
+          text={lineText(scope, title, issuer, showTax)}
           kind="line"
           onClose={() => setSheet(null)}
         />
@@ -366,7 +366,7 @@ function InvoiceInner({ user }: { user: User }) {
       {sheet === 'claude' && (
         <OutputSheet
           title="Claude用プロンプト"
-          text={claudePrompt(scope, profile, user.name)}
+          text={claudePrompt(scope, profile, user.name, showTax)}
           kind="claude"
           onClose={() => setSheet(null)}
         />
@@ -403,7 +403,7 @@ function TotalCard({
       <span className="text-[13px] text-fw-muted">{label}</span>
       <span className="tabular-nums">
         <span className="text-3xl font-extrabold">{yen(showTax ? total(groups) : subtotal(groups))}</span>
-        <span className="ml-1.5 text-sm text-fw-muted">{showTax ? '税込' : '税抜'}</span>
+        {showTax && <span className="ml-1.5 text-sm text-fw-muted">税込</span>}
       </span>
       {showTax && <span className="text-sm text-fw-muted tabular-nums">税抜 {yen(subtotal(groups))}</span>}
       {(split.length > 0 || facts.length > 0) && (
@@ -496,7 +496,10 @@ function GroupList({
                     {shortDate(s.date)} {s.site} {s.work}
                     {s.status === 'pending' && <span className="ml-1 text-[11px] font-bold text-fw-orange">承認待ち</span>}
                   </span>
-                  <span className="shrink-0 tabular-nums">{yen(s.amount)}（税抜）</span>
+                  <span className="shrink-0 tabular-nums">
+                    {yen(s.amount)}
+                    {showTax && '（税抜）'}
+                  </span>
                 </div>
               ))}
               <div className="mt-1 flex justify-between border-t border-fw-line pt-1 text-xs text-fw-muted">
@@ -506,7 +509,7 @@ function GroupList({
                     <span>合計 {yen(g.total)}</span>
                   </>
                 ) : (
-                  <span>合計 {yen(g.subtotal)}（税抜）</span>
+                  <span>合計 {yen(g.subtotal)}</span>
                 )}
               </div>
               <button onClick={() => onTogglePaid(g)} className="mt-2 rounded-xl bg-fw-card py-2 text-sm font-semibold text-fw-green">

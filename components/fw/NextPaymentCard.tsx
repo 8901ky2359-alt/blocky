@@ -9,7 +9,7 @@ import { useShowTax } from './ui';
 
 export default function NextPaymentCard({ sales, label, tone }: { sales: Sale[]; label: string; tone: 'green' | 'blue' }) {
   const np = nextPayment(sales);
-  // 仲間の画面は税抜だけ（税込は総合管理画面のみ）
+  // 仲間の画面は入力した金額（税抜）だけで、税の表記は出さない（税込は総合管理画面のみ）
   const showTax = useShowTax();
   const bg = tone === 'green' ? 'from-[#2f8f4e] to-[#155a30]' : 'from-[#2c7fd6] to-[#1a4f99]';
   return (
@@ -17,7 +17,7 @@ export default function NextPaymentCard({ sales, label, tone }: { sales: Sale[];
       <span className="text-[13px] opacity-85">{label}</span>
       <span className="leading-none tabular-nums">
         <span className="text-[40px] font-extrabold">{yen(showTax ? np.total : np.subtotal)}</span>
-        <span className="ml-1.5 text-sm opacity-85">{showTax ? '税込' : '税抜'}</span>
+        {showTax && <span className="ml-1.5 text-sm opacity-85">税込</span>}
       </span>
       {showTax && <span className="text-[13px] tabular-nums opacity-85">税抜 {yen(np.subtotal)}</span>}
       {np.groups.length === 0 ? (

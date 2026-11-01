@@ -27,11 +27,11 @@ export function TaxedYen({
   subClassName?: string;
 }) {
   const showTax = useShowTax();
+  // 仲間の画面：入力した金額だけ（税抜・税込の表記は出さない）
   if (!showTax) {
     return (
       <span className="inline-block tabular-nums">
         <span className={`block ${className}`}>{yen(ex)}</span>
-        <span className={`block text-[11px] font-normal ${subClassName}`}>税抜</span>
       </span>
     );
   }

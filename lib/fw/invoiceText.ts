@@ -20,23 +20,26 @@ function mixed(groups: InvoiceGroup[]): boolean {
   return new Set(groups.map((g) => g.userId)).size > 1;
 }
 
-export function lineText(groups: InvoiceGroup[], title: string, issuer: string): string {
+// withTax=false（仲間の画面）のときは消費税を載せず、金額はすべて入力した金額のまま（税抜）で合計する
+export function lineText(groups: InvoiceGroup[], title: string, issuer: string, withTax = true): string {
   const lines: string[] = [`【${title} 請求のご連絡】`, ''];
   const showIssuer = mixed(groups);
   for (const g of groups) {
     lines.push(`${g.clientName} 様（${cutoffLabel(g.cutoff)} ${shortDate(g.closing)}・${payText(g)}）${showIssuer ? ` 発行：${g.userName}` : ''}`);
     for (const s of g.sales) lines.push(`${saleLine(s)} ${yen(s.amount)}`);
-    lines.push(`小計 ${yen(g.subtotal)}`, `消費税 ${yen(g.tax)}`, `合計 ${yen(g.total)}`, '');
+    if (withTax) lines.push(`小計 ${yen(g.subtotal)}`, `消費税 ${yen(g.tax)}`, `合計 ${yen(g.total)}`, '');
+    else lines.push(`合計 ${yen(g.subtotal)}`, '');
   }
   if (groups.length > 1) {
-    lines.push(`総合計 ${yen(groups.reduce((n, g) => n + g.total, 0))}（${groups.length}件の請求）`, '');
+    const grand = groups.reduce((n, g) => n + (withTax ? g.total : g.subtotal), 0);
+    lines.push(`総合計 ${yen(grand)}（${groups.length}件の請求）`, '');
   }
   lines.push('よろしくお願いいたします。');
   if (!showIssuer) lines.push(issuer);
   return lines.join('\n');
 }
 
-export function claudePrompt(groups: InvoiceGroup[], profile: Profile, fallbackName: string): string {
+export function claudePrompt(groups: InvoiceGroup[], profile: Profile, fallbackName: string, withTax = true): string {
   const issuer = profile.issuerName || fallbackName;
   const showIssuer = mixed(groups);
   const lines: string[] = [
@@ -59,17 +62,22 @@ export function claudePrompt(groups: InvoiceGroup[], profile: Profile, fallbackN
       `締め日：${jpDate(g.closing)}（${cutoffLabel(g.cutoff)}）`,
       ...(g.scheduled !== g.payDate ? [`決済予定日：${jpDate(g.scheduled)}`] : []),
       `お支払期限：${jpDate(g.payDate)}`,
-      '明細（金額は税抜）：',
+      withTax ? '明細（金額は税抜）：' : '明細：',
     );
     for (const s of g.sales) lines.push(`・${saleLine(s)} ${s.amount.toLocaleString('ja-JP')}円`);
-    lines.push(
-      `小計：${g.subtotal.toLocaleString('ja-JP')}円`,
-      `消費税（10%）：${g.tax.toLocaleString('ja-JP')}円`,
-      `合計：${g.total.toLocaleString('ja-JP')}円`,
-      '',
-    );
+    if (withTax) {
+      lines.push(
+        `小計：${g.subtotal.toLocaleString('ja-JP')}円`,
+        `消費税（10%）：${g.tax.toLocaleString('ja-JP')}円`,
+        `合計：${g.total.toLocaleString('ja-JP')}円`,
+        '',
+      );
+    } else {
+      lines.push(`合計：${g.subtotal.toLocaleString('ja-JP')}円`, '');
+    }
   });
   lines.push('各請求書はA4縦1枚の体裁に整え、発行日・請求番号・合計金額を見やすく記載してください。');
+  if (!withTax) lines.push('金額・合計は上の数字のまま記載し、ほかの金額は加えないでください。');
   return lines.join('\n');
 }
 

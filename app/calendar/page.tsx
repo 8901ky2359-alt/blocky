@@ -18,10 +18,10 @@ export default function CalendarPage() {
 
 function CalendarInner({ user }: { user: User }) {
   const isAdmin = user.role === 'admin';
-  // 入金額の表示：総合管理画面は税込、仲間は税抜
+  // 入金額の表示：総合管理画面は税込、仲間は入力した金額のまま（税の表記は出さない）
   const showTax = useShowTax();
   const money = (n: number) => (showTax ? withTax(n) : n);
-  const moneyLabel = showTax ? '税込' : '税抜';
+  const moneyNote = showTax ? '（税込）' : '';
   // 仲間は請負・常駐のみ（作業員手配は総合管理画面だけ）
   const types = isAdmin ? WORK_TYPES : WORK_TYPES.filter((t) => t !== '作業員手配');
   const { sales, loading } = useSales();
@@ -116,14 +116,15 @@ function CalendarInner({ user }: { user: User }) {
           <span className="text-center">
             <span className="block text-lg font-bold">{formatJpMonth(month)}</span>
             <span className="block text-[11px] text-fw-muted tabular-nums">
-              {showTax && `税込 ${yen(withTax(sum(monthSales)))} ・ `}税抜 {yen(sum(monthSales))} ・ {monthSales.length}件
+              {showTax ? `税込 ${yen(withTax(sum(monthSales)))} ・ 税抜 ` : '売上 '}
+              {yen(sum(monthSales))} ・ {monthSales.length}件
             </span>
             {monthPay.length > 0 && (
               <span className="block text-[11px] tabular-nums">
                 入金{monthPaid.length > 0 && <span className="text-fw-teal"> 済み {yen(money(sum(monthPaid)))}</span>}
                 {monthPaid.length > 0 && monthUnpaid.length > 0 && <span className="text-fw-muted"> ・</span>}
                 {monthUnpaid.length > 0 && <span className="text-fw-orange"> 予定 {yen(money(sum(monthUnpaid)))}</span>}
-                <span className="text-fw-muted">（{moneyLabel}）</span>
+                {moneyNote && <span className="text-fw-muted">{moneyNote}</span>}
               </span>
             )}
           </span>
@@ -219,14 +220,14 @@ function CalendarInner({ user }: { user: User }) {
           )}
         </div>
         <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 px-1 text-[11px] text-fw-muted">
-          <span>数字＝その日の売上（税抜）</span>
+          <span>数字＝その日の売上{showTax && '（税抜）'}</span>
           {types.map((t) => (
             <span key={t} className={`font-semibold ${WORK_TYPE_TEXT[t]}`}>
               ■{t === '作業員手配' ? '作業員手配（雇用）' : t}
             </span>
           ))}
-          <span className="font-semibold text-fw-orange">■入金予定（{moneyLabel}）</span>
-          <span className="font-semibold text-fw-teal">■入金済み（{moneyLabel}）</span>
+          <span className="font-semibold text-fw-orange">■入金予定{moneyNote}</span>
+          <span className="font-semibold text-fw-teal">■入金済み{moneyNote}</span>
           <span className="flex items-center gap-1">
             <span className="inline-block h-1.5 w-1.5 rounded-full border border-fw-muted" />
             決済予定（翌月5日にまとめて入金）
