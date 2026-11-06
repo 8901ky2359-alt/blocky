@@ -6,19 +6,26 @@ import { useMemo, useState } from 'react';
 import { SiteSeed, SiteProgress } from '@/lib/report/types';
 import { buildProgressReport } from '@/lib/report/status';
 
+// title / description / build を渡すと、進捗報告以外の文章（選んだ現場の共有など）にも使える
 export default function ReportSheet({
   sites,
   get,
   onClose,
+  title = '📋 進捗報告を作成',
+  description = '各現場の「作業の状況」から自動で作ります。送る前に直したいところがあれば、下の文章をそのまま書き換えられます。',
+  build,
 }: {
   sites: SiteSeed[];
   get: (workNo: string) => SiteProgress;
   onClose: () => void;
+  title?: string;
+  description?: string;
+  build?: () => string;
 }) {
   const [edited, setEdited] = useState<string | null>(null);
   const [msg, setMsg] = useState('');
 
-  const auto = useMemo(() => buildProgressReport(sites, get), [sites, get]);
+  const auto = useMemo(() => (build ? build() : buildProgressReport(sites, get)), [build, sites, get]);
   const text = edited ?? auto;
 
   async function share() {
@@ -51,14 +58,12 @@ export default function ReportSheet({
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-black/20" />
         <div className="mb-1 flex items-center justify-between">
-          <h3 className="text-lg font-bold">📋 進捗報告を作成</h3>
+          <h3 className="text-lg font-bold">{title}</h3>
           <button onClick={onClose} className="text-sm text-fw-green">
             閉じる
           </button>
         </div>
-        <p className="mb-3 text-xs text-slate-500">
-          各現場の「作業の状況」から自動で作ります。送る前に直したいところがあれば、下の文章をそのまま書き換えられます。
-        </p>
+        <p className="mb-3 text-xs text-slate-500">{description}</p>
 
         <textarea
           id="report-text"

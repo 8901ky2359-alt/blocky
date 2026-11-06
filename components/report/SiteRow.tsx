@@ -9,10 +9,14 @@ export default function SiteRow({
   site,
   p,
   onChange,
+  selected = false,
+  onToggleSelect,
 }: {
   site: SiteSeed;
   p: SiteProgress;
   onChange: (patch: Partial<SiteProgress>) => void;
+  selected?: boolean;
+  onToggleSelect?: () => void; // ◯を押してLINE共有する現場に選ぶ
 }) {
   const [open, setOpen] = useState(false);
   const type = typeOf(site, p);
@@ -33,7 +37,24 @@ export default function SiteRow({
       }`}
     >
       <div className="flex items-start gap-2 p-3">
-        <span className="mt-1 h-3 w-3 shrink-0 rounded-full" style={{ background: meta.color }} aria-hidden />
+        {onToggleSelect ? (
+          // 共有する現場を選ぶ◯（枠の色は進み具合の色）
+          <button
+            onClick={onToggleSelect}
+            aria-label={`${site.name}を選ぶ`}
+            aria-pressed={selected}
+            className="-m-1 shrink-0 p-1"
+          >
+            <span
+              className={`grid h-6 w-6 place-items-center rounded-full border-2 text-[13px] font-bold ${selected ? 'border-fw-green bg-fw-green text-white' : ''}`}
+              style={selected ? undefined : { borderColor: meta.color }}
+            >
+              {selected ? '✓' : ''}
+            </span>
+          </button>
+        ) : (
+          <span className="mt-1 h-3 w-3 shrink-0 rounded-full" style={{ background: meta.color }} aria-hidden />
+        )}
         <button onClick={() => setOpen((o) => !o)} className="min-w-0 flex-1 text-left">
           <div className="flex items-center gap-1.5">
             <span className="truncate text-sm font-bold text-slate-800">{site.name}</span>

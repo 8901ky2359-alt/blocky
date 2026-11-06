@@ -116,3 +116,24 @@ export function buildProgressReport(sites: SiteSeed[], get: (workNo: string) => 
   }
   return lines.join('\n');
 }
+
+// 選んだ現場をLINEで共有する文章：現場ごとに 名前・工番・状況・住所・地図・資料
+export function buildSiteShare(
+  sites: SiteSeed[],
+  get: (workNo: string) => SiteProgress,
+  pdfOf: (workNo: string) => string | undefined,
+): string {
+  const lines: string[] = [`【現場共有】${sites.length}件`];
+  for (const s of sites) {
+    const p = get(s.workNo);
+    const code = codeOf(s.workNo);
+    lines.push('', `■ ${s.name}${code ? `（工番 ${code}）` : ''}`);
+    lines.push(`状況：${statusLabel(typeOf(s, p), p)}`);
+    if (s.address && !s.address.startsWith('住所未登録')) lines.push(`住所：${s.address}`);
+    if (s.lat || s.lng) lines.push(`地図：${mapsUrl(s.lat, s.lng)}`);
+    if (s.hasKey) lines.push('鍵：あり');
+    const pdf = pdfOf(s.workNo);
+    if (pdf) lines.push(`資料：${pdf}`);
+  }
+  return lines.join('\n');
+}

@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { SITES } from '@/lib/report/data';
 import { useReport } from '@/lib/report/useReport';
-import { byProgress, isReportTarget } from '@/lib/report/status';
+import { buildSiteShare, byProgress, isReportTarget } from '@/lib/report/status';
+import { INSTRUCTION_PDFS } from '@/lib/report/instructionPdfs';
 import { stageOf } from '@/lib/report/types';
 import SiteRow from './SiteRow';
 import ReportMap from './ReportMap';
@@ -18,6 +19,17 @@ export default function ReportListView() {
   const [mode, setMode] = useState<'list' | 'map'>('list');
   const [area, setArea] = useState<string>('all');
   const [showSheet, setShowSheet] = useState(false);
+  // LINEで共有する現場（◯で選ぶ）。絞り込みを変えても選んだままにする
+  const [picked, setPicked] = useState<string[]>([]);
+  const [showShare, setShowShare] = useState(false);
+  const togglePick = (workNo: string) =>
+    setPicked((p) => (p.includes(workNo) ? p.filter((w) => w !== workNo) : [...p, workNo]));
+  // 選んだ現場（一覧と同じ並び順）
+  const pickedSites = useMemo(() => SITES.filter((s) => picked.includes(s.workNo)).sort(byProgress(get)), [picked, get]);
+  const buildShare = useCallback(
+    () => buildSiteShare(pickedSites, get, (w) => (INSTRUCTION_PDFS[w] ? window.location.origin + INSTRUCTION_PDFS[w] : undefined)),
+    [pickedSites, get],
+  );
 
   const areas = useMemo(() => Array.from(new Set(SITES.map((s) => s.area))), []);
   const doneCount = useMemo(() => SITES.filter((s) => get(s.workNo).done).length, [get]);
@@ -62,7 +74,7 @@ export default function ReportListView() {
   ];
 
   return (
-    <div className="space-y-3 pb-24">
+    <div className={`space-y-3 ${picked.length > 0 ? 'pb-40' : 'pb-24'}`}>
       {/* 進捗 */}
       <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
         <div className="flex items-baseline justify-between">
@@ -145,10 +157,17 @@ export default function ReportListView() {
         <ReportMap sites={shown} get={get} renderKey={renderKey} />
       ) : (
         <>
-          <p className="text-xs text-slate-400">{shown.length}件を表示</p>
+          <p className="text-xs text-slate-400">{shown.length}件を表示 ・ 左の◯で選ぶと、その現場をLINEで共有できます</p>
           <div className="space-y-2">
             {shown.map((s) => (
-              <SiteRow key={s.workNo} site={s} p={get(s.workNo)} onChange={(patch) => update(s.workNo, patch)} />
+              <SiteRow
+                key={s.workNo}
+                site={s}
+                p={get(s.workNo)}
+                onChange={(patch) => update(s.workNo, patch)}
+                selected={picked.includes(s.workNo)}
+                onToggleSelect={() => togglePick(s.workNo)}
+              />
             ))}
             {shown.length === 0 && (
               <p className="rounded-xl border border-dashed border-black/15 p-6 text-center text-sm text-black/50">
@@ -162,16 +181,45 @@ export default function ReportListView() {
       {/* 報告作成（固定ボタン） */}
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20">
         <div className="mx-auto max-w-[560px] px-4 pb-4">
-          <button
-            onClick={() => setShowSheet(true)}
-            className="pointer-events-auto w-full rounded-xl bg-fw-green py-3.5 text-sm font-black text-white shadow-lg shadow-fw-green/30"
-          >
-            📋 進捗報告を作成（LINE共有）
-          </button>
+          {picked.length > 0 ? (
+            <div className="pointer-events-auto grid gap-2 rounded-2xl border border-slate-200 bg-white/95 p-2 shadow-lg backdrop-blur">
+              <div className="flex items-center justify-between px-1 text-xs">
+                <span className="min-w-0 truncate text-slate-600">
+                  <b className="text-slate-800">{picked.length}件を選択中</b> ・ {pickedSites.map((s) => s.name).join('、')}
+                </span>
+                <button onClick={() => setPicked([])} className="shrink-0 pl-2 font-bold text-fw-green">
+                  選択を解除
+                </button>
+              </div>
+              <button
+                onClick={() => setShowShare(true)}
+                className="w-full rounded-xl bg-fw-green py-3 text-sm font-black text-white"
+              >
+                📤 選んだ{picked.length}件をLINEで共有
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowSheet(true)}
+              className="pointer-events-auto w-full rounded-xl bg-fw-green py-3.5 text-sm font-black text-white shadow-lg shadow-fw-green/30"
+            >
+              📋 進捗報告を作成（LINE共有）
+            </button>
+          )}
         </div>
       </div>
 
       {showSheet && <ReportSheet sites={SITES} get={get} onClose={() => setShowSheet(false)} />}
+      {showShare && (
+        <ReportSheet
+          sites={pickedSites}
+          get={get}
+          onClose={() => setShowShare(false)}
+          title={`📤 選んだ${pickedSites.length}件を共有`}
+          description="選んだ現場の名前・状況・住所・地図（と資料）をまとめます。送る前に下の文章をそのまま書き換えられます。"
+          build={buildShare}
+        />
+      )}
     </div>
   );
 }
