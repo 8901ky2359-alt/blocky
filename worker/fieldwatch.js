@@ -1,6 +1,6 @@
 // Field Watch API（ログイン・売上・請求先・承認・入金）
 // - 認証: メール+パスワード（PBKDF2ハッシュ）→ 署名付きトークン（HMAC-SHA256）
-// - データ: D1 (ts_users / fw_clients / fw_sales / fw_profiles)
+// - データ: D1 (ts_users / fw_clients / fw_sales / fw_profiles / fw_expenses / fw_receipts)
 // - ロール: admin（総合管理画面・全員分） / worker（管理画面・自分の分のみ）
 
 const ITERATIONS = 100000;
@@ -64,6 +64,31 @@ async function ensureSchema(env) {
       updated_at INTEGER NOT NULL
     )`,
     `CREATE TABLE IF NOT EXISTS fw_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
+    // 立替経費（山田が立て替えて請求先に請求するお金）。status: unbilled 未請求 / billed 請求済み / paid 入金済み
+    `CREATE TABLE IF NOT EXISTS fw_expenses (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      date TEXT NOT NULL,
+      amount INTEGER NOT NULL DEFAULT 0,
+      category TEXT NOT NULL DEFAULT '',
+      site TEXT NOT NULL DEFAULT '',
+      client_name TEXT NOT NULL DEFAULT '',
+      memo TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'unbilled',
+      billed_at INTEGER,
+      paid_at INTEGER,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      deleted INTEGER NOT NULL DEFAULT 0
+    )`,
+    // 領収書の写真（端末で縮小した JPEG の data URL。1枚ずつ別の行にして D1 の行サイズ上限に収める）
+    `CREATE TABLE IF NOT EXISTS fw_receipts (
+      id TEXT PRIMARY KEY,
+      expense_id TEXT NOT NULL,
+      data TEXT NOT NULL,
+      created_at INTEGER NOT NULL
+    )`,
+    `CREATE INDEX IF NOT EXISTS fw_receipts_expense_idx ON fw_receipts(expense_id)`,
   ];
   for (const sql of stmts) await env.DB.prepare(sql).run();
   // 後から足した列（区分・作業員名）。既にあればエラーになるので無視する
@@ -283,6 +308,42 @@ function readSaleInput(body) {
     return { error: 'invalid-terms' };
   }
   return { value: { date, site, work, amount, memo, clientName, cutoff, payOffset, payDay, workType, hiredName } };
+}
+
+const EXPENSE_STATUSES = ['unbilled', 'billed', 'paid'];
+const RECEIPT_MAX_CHARS = 1_400_000; // 縮小後の写真1枚の上限（D1の1行の上限より小さく）
+
+function expenseRow(e, receiptIds) {
+  return {
+    id: e.id,
+    date: e.date,
+    amount: e.amount,
+    category: e.category,
+    site: e.site,
+    clientName: e.client_name,
+    memo: e.memo,
+    status: e.status,
+    billedAt: e.billed_at || null,
+    paidAt: e.paid_at || null,
+    receipts: receiptIds || [],
+    createdAt: e.created_at,
+    updatedAt: e.updated_at,
+  };
+}
+
+// 立替経費の入力内容を検証して正規化する
+function readExpenseInput(body) {
+  const date = String(body.date || '').trim();
+  const amount = Math.round(Number(body.amount) || 0);
+  const category = String(body.category || '').trim().slice(0, 50);
+  const site = String(body.site || '').trim().slice(0, 200);
+  const clientName = String(body.clientName || '').trim().slice(0, 200);
+  const memo = String(body.memo || '').trim().slice(0, 500);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: 'invalid-date' };
+  if (amount <= 0) return { error: 'amount-required' };
+  if (!category) return { error: 'category-required' };
+  if (!clientName) return { error: 'client-required' };
+  return { value: { date, amount, category, site, clientName, memo } };
 }
 
 // 請求先を保存（同じ名前なら締め日・入金日を更新し、使用回数を増やす）
@@ -717,6 +778,112 @@ export async function handleFieldWatch(request, env, url) {
       .bind(auth.uid, JSON.stringify(data), Date.now())
       .run();
     return json({ profile: data });
+  }
+
+  // ---- 立替経費（総合管理画面のみ） ----
+  if (sub === '/expenses' || sub.startsWith('/expenses/') || sub.startsWith('/receipts/')) {
+    if (!isAdmin) return json({ error: 'forbidden' }, 403);
+    return handleExpenses(request, env, sub, method, auth);
+  }
+
+  return json({ error: 'not-found' }, 404);
+}
+
+async function handleExpenses(request, env, sub, method, auth) {
+  const now = Date.now();
+
+  if (sub === '/expenses' && method === 'GET') {
+    const { results } = await env.DB.prepare(
+      `SELECT * FROM fw_expenses WHERE deleted = 0 ORDER BY date DESC, created_at DESC`,
+    ).all();
+    const { results: recs } = await env.DB.prepare(`SELECT id, expense_id FROM fw_receipts ORDER BY created_at`).all();
+    const byExpense = new Map();
+    for (const r of recs || []) byExpense.set(r.expense_id, [...(byExpense.get(r.expense_id) || []), r.id]);
+    return json({ expenses: (results || []).map((e) => expenseRow(e, byExpense.get(e.id))) });
+  }
+
+  if (sub === '/expenses' && method === 'POST') {
+    const { value: v, error } = readExpenseInput(await request.json().catch(() => ({})));
+    if (error) return json({ error }, 400);
+    const id = newId();
+    await env.DB.prepare(
+      `INSERT INTO fw_expenses (id, user_id, date, amount, category, site, client_name, memo, status, created_at, updated_at)
+       VALUES (?1,?2,?3,?4,?5,?6,?7,?8,'unbilled',?9,?9)`,
+    )
+      .bind(id, auth.uid, v.date, v.amount, v.category, v.site, v.clientName, v.memo, now)
+      .run();
+    const row = await env.DB.prepare(`SELECT * FROM fw_expenses WHERE id = ?1`).bind(id).first();
+    return json({ expense: expenseRow(row, []) });
+  }
+
+  // 請求済み・入金済みにする（まとめて）
+  if (sub === '/expenses/status' && method === 'POST') {
+    const body = await request.json().catch(() => ({}));
+    const ids = Array.isArray(body.ids) ? body.ids.map(String).slice(0, 500) : [];
+    const status = String(body.status || '');
+    if (!EXPENSE_STATUSES.includes(status)) return json({ error: 'invalid-status' }, 400);
+    const stmts = ids.map((id) =>
+      env.DB.prepare(
+        `UPDATE fw_expenses SET status=?1,
+           billed_at = CASE WHEN ?1 = 'unbilled' THEN NULL ELSE COALESCE(billed_at, ?2) END,
+           paid_at = CASE WHEN ?1 = 'paid' THEN COALESCE(paid_at, ?2) ELSE NULL END,
+           updated_at=?2
+         WHERE id=?3 AND deleted=0`,
+      ).bind(status, now, id),
+    );
+    if (stmts.length) await env.DB.batch(stmts);
+    return json({ ok: true });
+  }
+
+  const receiptAdd = sub.match(/^\/expenses\/([^/]+)\/receipts$/);
+  if (receiptAdd && method === 'POST') {
+    const exp = await env.DB.prepare(`SELECT id FROM fw_expenses WHERE id = ?1 AND deleted = 0`).bind(receiptAdd[1]).first();
+    if (!exp) return json({ error: 'not-found' }, 404);
+    const body = await request.json().catch(() => ({}));
+    const data = String(body.data || '');
+    if (!/^data:image\/(jpeg|png|webp);base64,/.test(data)) return json({ error: 'invalid-image' }, 400);
+    if (data.length > RECEIPT_MAX_CHARS) return json({ error: 'image-too-large' }, 400);
+    const id = newId();
+    await env.DB.prepare(`INSERT INTO fw_receipts (id, expense_id, data, created_at) VALUES (?1,?2,?3,?4)`)
+      .bind(id, exp.id, data, now)
+      .run();
+    await env.DB.prepare(`UPDATE fw_expenses SET updated_at=?1 WHERE id=?2`).bind(now, exp.id).run();
+    return json({ id });
+  }
+
+  const receiptMatch = sub.match(/^\/receipts\/([^/]+)$/);
+  if (receiptMatch && method === 'GET') {
+    const row = await env.DB.prepare(`SELECT data FROM fw_receipts WHERE id = ?1`).bind(receiptMatch[1]).first();
+    if (!row) return json({ error: 'not-found' }, 404);
+    return json({ data: row.data });
+  }
+  if (receiptMatch && method === 'DELETE') {
+    await env.DB.prepare(`DELETE FROM fw_receipts WHERE id = ?1`).bind(receiptMatch[1]).run();
+    return json({ ok: true });
+  }
+
+  const expMatch = sub.match(/^\/expenses\/([^/]+)$/);
+  if (expMatch && (method === 'PUT' || method === 'DELETE')) {
+    const id = expMatch[1];
+    const row = await env.DB.prepare(`SELECT * FROM fw_expenses WHERE id = ?1 AND deleted = 0`).bind(id).first();
+    if (!row) return json({ error: 'not-found' }, 404);
+    if (method === 'DELETE') {
+      await env.DB.batch([
+        env.DB.prepare(`UPDATE fw_expenses SET deleted=1, updated_at=?1 WHERE id=?2`).bind(now, id),
+        env.DB.prepare(`DELETE FROM fw_receipts WHERE expense_id = ?1`).bind(id),
+      ]);
+      return json({ ok: true });
+    }
+    const { value: v, error } = readExpenseInput(await request.json().catch(() => ({})));
+    if (error) return json({ error }, 400);
+    await env.DB.prepare(
+      `UPDATE fw_expenses SET date=?1, amount=?2, category=?3, site=?4, client_name=?5, memo=?6, updated_at=?7 WHERE id=?8`,
+    )
+      .bind(v.date, v.amount, v.category, v.site, v.clientName, v.memo, now, id)
+      .run();
+    const updated = await env.DB.prepare(`SELECT * FROM fw_expenses WHERE id = ?1`).bind(id).first();
+    const { results: recs } = await env.DB.prepare(`SELECT id FROM fw_receipts WHERE expense_id = ?1 ORDER BY created_at`).bind(id).all();
+    return json({ expense: expenseRow(updated, (recs || []).map((r) => r.id)) });
   }
 
   return json({ error: 'not-found' }, 404);

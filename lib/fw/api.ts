@@ -2,7 +2,7 @@
 
 // Field Watch API（サーバー側D1が正データ。ログイン後はトークンをAuthorizationヘッダで送る）
 
-import { Client, Profile, Sale, SaleInput, User } from './types';
+import { Client, Expense, ExpenseInput, ExpenseStatus, Profile, Sale, SaleInput, User } from './types';
 import { getToken } from './session';
 
 const BASE = '/api/fw';
@@ -75,3 +75,16 @@ export const importLegacy = () => call<LegacySummary & { imported: number }>('/l
 export const getProfile = () => call<{ profile: Partial<Profile> }>('/profile');
 export const saveProfile = (p: Profile) =>
   call<{ profile: Profile }>('/profile', { method: 'PUT', body: JSON.stringify(p) });
+
+// 立替経費（総合管理画面のみ）
+export const listExpenses = () => call<{ expenses: Expense[] }>('/expenses');
+export const createExpense = (input: ExpenseInput) => call<{ expense: Expense }>('/expenses', post(input));
+export const updateExpense = (id: string, input: ExpenseInput) =>
+  call<{ expense: Expense }>(`/expenses/${id}`, { method: 'PUT', body: JSON.stringify(input) });
+export const deleteExpense = (id: string) => call<{ ok: true }>(`/expenses/${id}`, { method: 'DELETE' });
+export const setExpenseStatus = (ids: string[], status: ExpenseStatus) =>
+  call<{ ok: true }>('/expenses/status', post({ ids, status }));
+export const addReceipt = (expenseId: string, data: string) =>
+  call<{ id: string }>(`/expenses/${expenseId}/receipts`, post({ data }));
+export const getReceipt = (id: string) => call<{ data: string }>(`/receipts/${id}`);
+export const deleteReceipt = (id: string) => call<{ ok: true }>(`/receipts/${id}`, { method: 'DELETE' });

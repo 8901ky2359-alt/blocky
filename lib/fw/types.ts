@@ -61,3 +61,25 @@ export interface Profile {
   bank: string;
   invoiceNo: string;
 }
+
+// 立替経費（山田が立て替えて請求先に請求するお金）
+export type ExpenseStatus = 'unbilled' | 'billed' | 'paid'; // 未請求 / 請求済み / 入金済み
+
+export interface ExpenseInput {
+  date: string; // YYYY-MM-DD
+  amount: number; // 支払った金額（領収書の金額そのまま）
+  category: string; // 高速代・資材など
+  site: string;
+  clientName: string; // 請求先（その都度選ぶか入力）
+  memo: string;
+}
+
+export interface Expense extends ExpenseInput {
+  id: string;
+  status: ExpenseStatus;
+  billedAt: number | null;
+  paidAt: number | null;
+  receipts: string[]; // 領収書の写真のID
+  createdAt: number;
+  updatedAt: number;
+}

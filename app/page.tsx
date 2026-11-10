@@ -39,6 +39,7 @@ function AdminHome({ user }: { user: User }) {
         <AppIcon href="/review" label="仲間の入力" letter="入" color="bg-fw-teal" badge={pending} />
         <AppIcon href="/members" label="仲間" letter="人" color="bg-fw-blue" />
         <AppIcon href="/calendar" label="カレンダー" letter="暦" color="bg-fw-orange" />
+        <AppIcon href="/expenses" label="立替経費" letter="経" color="bg-fw-red" />
       </div>
       <Recent sales={sales} loading={loading} error={error} showUser title="最近の入力" />
     </Screen>
