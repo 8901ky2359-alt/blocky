@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { SiteSeed, SiteProgress, SiteType, Stage, stageOf, stagePatch } from '@/lib/report/types';
 import { OVERALL_META, overallOf, statusLabel, isReportTarget, typeOf, mapsUrl, codeOf } from '@/lib/report/status';
 import { INSTRUCTION_PDFS } from '@/lib/report/instructionPdfs';
@@ -11,7 +11,9 @@ export default function SiteRow({
   onChange,
   selected = false,
   onToggleSelect,
+  leadOptions = [],
 }: {
+  leadOptions?: string[]; // これまでに入力された担当者の名前（タップで入る候補）
   site: SiteSeed;
   p: SiteProgress;
   onChange: (patch: Partial<SiteProgress>) => void;
@@ -91,6 +93,10 @@ export default function SiteRow({
               {type === '除草のみ' ? '除草のみ' : '防草シートあり'}
             </span>
             {p.nextWeek && <span className="rounded bg-blue-100 px-1.5 py-0.5 font-bold text-blue-700">次週</span>}
+            {p.weedLead && <span className="rounded bg-violet-100 px-1.5 py-0.5 font-bold text-violet-700">除草 {p.weedLead}</span>}
+            {p.sheetLead && type === 'シートあり' && (
+              <span className="rounded bg-violet-100 px-1.5 py-0.5 font-bold text-violet-700">シート {p.sheetLead}</span>
+            )}
           </div>
         </button>
         {hasCoords && (
@@ -136,6 +142,17 @@ export default function SiteRow({
                   {t === '除草のみ' ? '除草のみ（シートなし）' : '防草シートまで'}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* 担当者（その作業を頭で回している人） */}
+          <div>
+            <p className="mb-1 text-[11px] font-bold text-slate-600">担当者</p>
+            <div className="space-y-2">
+              <LeadField label="除草" value={p.weedLead} options={leadOptions} onSave={(v) => onChange({ weedLead: v })} />
+              {type === 'シートあり' && (
+                <LeadField label="シート貼り" value={p.sheetLead} options={leadOptions} onSave={(v) => onChange({ sheetLead: v })} />
+              )}
             </div>
           </div>
 
@@ -192,6 +209,74 @@ export default function SiteRow({
               🗺 Googleマップで開く（{site.lat.toFixed(5)}, {site.lng.toFixed(5)}）
             </a>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 担当者の入力欄。打った名前は入力欄を離れたときに保存（1文字ごとに同期しない）。
+// 下の候補（これまでに入れた名前）をタップするとすぐ入る
+function LeadField({
+  label,
+  value,
+  options,
+  onSave,
+}: {
+  label: string;
+  value?: string;
+  options: string[];
+  onSave: (v: string | undefined) => void;
+}) {
+  const [text, setText] = useState(value ?? '');
+  useEffect(() => setText(value ?? ''), [value]);
+  const save = (v: string) => {
+    const t = v.trim();
+    if (t !== (value ?? '')) onSave(t || undefined);
+  };
+  const q = text.trim();
+  const shown = options.filter((o) => !q || o === q || options.includes(q) || o.includes(q)).slice(0, 10);
+  return (
+    <div className="rounded-lg border border-slate-200 p-2">
+      <div className="flex items-center gap-2">
+        <span className="w-16 shrink-0 text-[12px] font-bold text-slate-600">{label}</span>
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onBlur={() => save(text)}
+          onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+          placeholder="名前（例: 山田）"
+          className="min-w-0 flex-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-sm outline-none focus:border-fw-green"
+        />
+        {value && (
+          <button
+            onClick={() => {
+              setText('');
+              onSave(undefined);
+            }}
+            className="shrink-0 text-xs text-slate-400"
+            aria-label={`${label}の担当者を消す`}
+          >
+            消す
+          </button>
+        )}
+      </div>
+      {shown.length > 0 && (
+        <div className="mt-1.5 flex flex-wrap gap-1.5">
+          {shown.map((o) => (
+            <button
+              key={o}
+              // 入力欄の onBlur より先に選べるように mousedown で止める
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                setText(o);
+                save(o);
+              }}
+              className={`rounded-full px-2.5 py-1 text-[12px] font-bold ${o === value ? 'bg-fw-green text-white' : 'bg-slate-100 text-slate-600'}`}
+            >
+              {o}
+            </button>
+          ))}
         </div>
       )}
     </div>

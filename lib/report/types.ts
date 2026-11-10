@@ -28,6 +28,8 @@ export type SiteProgress = {
   weedDone: boolean; // 除草作業が完了（stage から自動で合わせる。古い端末との互換用）
   done: boolean; // 完工（stage から自動で合わせる）
   nextWeek: boolean; // 次週予定
+  weedLead?: string; // 除草の担当者（現場の作業を頭で回している人）
+  sheetLead?: string; // シート貼りの担当者
   updatedAt: number;
 };
 
@@ -62,6 +64,8 @@ export function normalizeProgress(raw: any): SiteProgress {
       weedDone: !!raw.weedDone,
       done: !!raw.done,
       nextWeek: !!raw.nextWeek,
+      weedLead: typeof raw.weedLead === 'string' && raw.weedLead.trim() ? raw.weedLead.trim() : undefined,
+      sheetLead: typeof raw.sheetLead === 'string' && raw.sheetLead.trim() ? raw.sheetLead.trim() : undefined,
       updatedAt: Number(raw.updatedAt) || 0,
     };
   }

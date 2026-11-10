@@ -131,9 +131,29 @@ export function buildSiteShare(
     lines.push(`状況：${statusLabel(typeOf(s, p), p)}`);
     if (s.address && !s.address.startsWith('住所未登録')) lines.push(`住所：${s.address}`);
     if (s.lat || s.lng) lines.push(`地図：${mapsUrl(s.lat, s.lng)}`);
+    const leads = leadText(s, p);
+    if (leads) lines.push(`担当：${leads}`);
     if (s.hasKey) lines.push('鍵：あり');
     const pdf = pdfOf(s.workNo);
     if (pdf) lines.push(`資料：${pdf}`);
   }
   return lines.join('\n');
+}
+
+// 担当者の表示（除草 山田・シート貼り 佐藤）。除草のみの現場はシート貼りを出さない
+export function leadText(site: SiteSeed, p: SiteProgress): string {
+  const parts: string[] = [];
+  if (p.weedLead) parts.push(`除草 ${p.weedLead}`);
+  if (p.sheetLead && typeOf(site, p) === 'シートあり') parts.push(`シート貼り ${p.sheetLead}`);
+  return parts.join('・');
+}
+
+// これまでに入力された担当者の名前（よく使う順）。入力欄の下にタップで入る候補として出す
+export function leadNames(sites: SiteSeed[], get: (workNo: string) => SiteProgress): string[] {
+  const count = new Map<string, number>();
+  for (const s of sites) {
+    const p = get(s.workNo);
+    for (const n of [p.weedLead, p.sheetLead]) if (n) count.set(n, (count.get(n) ?? 0) + 1);
+  }
+  return [...count.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ja')).map(([n]) => n);
 }

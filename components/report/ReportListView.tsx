@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { SITES } from '@/lib/report/data';
 import { useReport } from '@/lib/report/useReport';
-import { buildSiteShare, byProgress, isReportTarget } from '@/lib/report/status';
+import { buildSiteShare, byProgress, isReportTarget, leadNames } from '@/lib/report/status';
 import { INSTRUCTION_PDFS } from '@/lib/report/instructionPdfs';
 import { stageOf } from '@/lib/report/types';
 import SiteRow from './SiteRow';
@@ -18,6 +18,7 @@ export default function ReportListView() {
   const [filter, setFilter] = useState<Filter>('all');
   const [mode, setMode] = useState<'list' | 'map'>('list');
   const [area, setArea] = useState<string>('all');
+  const [lead, setLead] = useState<string>('all'); // 担当者で絞り込み
   const [showSheet, setShowSheet] = useState(false);
   // LINEで共有する現場（◯で選ぶ）。絞り込みを変えても選んだままにする
   const [picked, setPicked] = useState<string[]>([]);
@@ -32,6 +33,7 @@ export default function ReportListView() {
   );
 
   const areas = useMemo(() => Array.from(new Set(SITES.map((s) => s.area))), []);
+  const leads = useMemo(() => leadNames(SITES, get), [get]);
   const doneCount = useMemo(() => SITES.filter((s) => get(s.workNo).done).length, [get]);
   const targetCount = useMemo(() => SITES.filter((s) => isReportTarget(get(s.workNo))).length, [get]);
 
@@ -40,6 +42,7 @@ export default function ReportListView() {
     return SITES.filter((s) => {
       if (area !== 'all' && s.area !== area) return false;
       const p = get(s.workNo);
+      if (lead !== 'all' && p.weedLead !== lead && p.sheetLead !== lead) return false;
       if (filter === 'none' && stageOf(p) !== 'none') return false;
       if (filter === 'target' && !isReportTarget(p)) return false;
       if (filter === 'done' && !p.done) return false;
@@ -48,10 +51,12 @@ export default function ReportListView() {
       return (
         s.workNo.toLowerCase().includes(kw) ||
         s.name.toLowerCase().includes(kw) ||
-        s.address.toLowerCase().includes(kw)
+        s.address.toLowerCase().includes(kw) ||
+        !!p.weedLead?.toLowerCase().includes(kw) ||
+        !!p.sheetLead?.toLowerCase().includes(kw)
       );
     }).sort(byProgress(get));
-  }, [q, filter, area, get]);
+  }, [q, filter, area, lead, get]);
 
   const renderKey = useMemo(
     () =>
@@ -112,14 +117,27 @@ export default function ReportListView() {
 
       {/* エリア */}
       <div className="flex items-center gap-2">
-        <select value={area} onChange={(e) => setArea(e.target.value)} className="input flex-1 py-2 text-sm">
-          <option value="all">エリア（すべて）</option>
-          {areas.map((a) => (
-            <option key={a} value={a}>
-              {a}
-            </option>
-          ))}
-        </select>
+        {/* エリアと担当者の絞り込み（担当者は誰かが入力してから出る） */}
+        <div className={`grid min-w-0 flex-1 gap-2 ${leads.length > 0 ? 'grid-cols-2' : ''}`}>
+          <select value={area} onChange={(e) => setArea(e.target.value)} className="input py-2 text-sm">
+            <option value="all">全エリア</option>
+            {areas.map((a) => (
+              <option key={a} value={a}>
+                {a}
+              </option>
+            ))}
+          </select>
+          {leads.length > 0 && (
+            <select value={lead} onChange={(e) => setLead(e.target.value)} className="input py-2 text-sm">
+              <option value="all">全担当者</option>
+              {leads.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
         <div className="flex shrink-0 overflow-hidden rounded-full border border-slate-200 bg-white">
           <button
             onClick={() => setMode('list')}
@@ -167,6 +185,7 @@ export default function ReportListView() {
                 onChange={(patch) => update(s.workNo, patch)}
                 selected={picked.includes(s.workNo)}
                 onToggleSelect={() => togglePick(s.workNo)}
+                leadOptions={leads}
               />
             ))}
             {shown.length === 0 && (
