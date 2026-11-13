@@ -3,7 +3,19 @@
 import { useCallback, useMemo, useState } from 'react';
 import { SITES } from '@/lib/report/data';
 import { useReport } from '@/lib/report/useReport';
-import { buildSiteShare, byProgress, isReportTarget, leadNames } from '@/lib/report/status';
+import {
+  LAND_LABELS,
+  LandRange,
+  SORT_LABELS,
+  SortKey,
+  buildSiteShare,
+  byProgress,
+  inLandRange,
+  isReportTarget,
+  leadNames,
+  sorterOf,
+  typeOf,
+} from '@/lib/report/status';
 import { INSTRUCTION_PDFS } from '@/lib/report/instructionPdfs';
 import { stageOf } from '@/lib/report/types';
 import SiteRow from './SiteRow';
@@ -11,6 +23,14 @@ import ReportMap from './ReportMap';
 import ReportSheet from './ReportSheet';
 
 type Filter = 'all' | 'none' | 'target' | 'done' | 'next';
+type Flag = 'priority' | 'key' | 'pdf' | 'sheet' | 'weedOnly';
+const FLAG_LABELS: Record<Flag, string> = {
+  priority: '優先',
+  key: '鍵あり',
+  pdf: '資料あり',
+  sheet: 'シートあり',
+  weedOnly: '除草のみ',
+};
 
 export default function ReportListView() {
   const { loading, get, update } = useReport();
@@ -19,6 +39,19 @@ export default function ReportListView() {
   const [mode, setMode] = useState<'list' | 'map'>('list');
   const [area, setArea] = useState<string>('all');
   const [lead, setLead] = useState<string>('all'); // 担当者で絞り込み
+  const [sort, setSort] = useState<SortKey>('progress');
+  const [land, setLand] = useState<LandRange>('all');
+  // その他の条件（押すたびに付け外し）
+  const [flags, setFlags] = useState<Flag[]>([]);
+  const toggleFlag = (f: Flag) => setFlags((x) => (x.includes(f) ? x.filter((y) => y !== f) : [...x, f]));
+  const narrowed = area !== 'all' || lead !== 'all' || land !== 'all' || flags.length > 0 || sort !== 'progress';
+  const resetNarrow = () => {
+    setArea('all');
+    setLead('all');
+    setLand('all');
+    setFlags([]);
+    setSort('progress');
+  };
   const [showSheet, setShowSheet] = useState(false);
   // LINEで共有する現場（◯で選ぶ）。絞り込みを変えても選んだままにする
   const [picked, setPicked] = useState<string[]>([]);
@@ -43,6 +76,12 @@ export default function ReportListView() {
       if (area !== 'all' && s.area !== area) return false;
       const p = get(s.workNo);
       if (lead !== 'all' && p.weedLead !== lead && p.sheetLead !== lead) return false;
+      if (!inLandRange(s, land)) return false;
+      if (flags.includes('priority') && !s.priority) return false;
+      if (flags.includes('key') && !s.hasKey) return false;
+      if (flags.includes('pdf') && !INSTRUCTION_PDFS[s.workNo]) return false;
+      if (flags.includes('sheet') && typeOf(s, p) !== 'シートあり') return false;
+      if (flags.includes('weedOnly') && typeOf(s, p) !== '除草のみ') return false;
       if (filter === 'none' && stageOf(p) !== 'none') return false;
       if (filter === 'target' && !isReportTarget(p)) return false;
       if (filter === 'done' && !p.done) return false;
@@ -55,8 +94,11 @@ export default function ReportListView() {
         !!p.weedLead?.toLowerCase().includes(kw) ||
         !!p.sheetLead?.toLowerCase().includes(kw)
       );
-    }).sort(byProgress(get));
-  }, [q, filter, area, lead, get]);
+    }).sort(sorterOf(sort, get));
+  }, [q, filter, area, lead, land, flags, sort, get]);
+  // 表示中の広さの合計（不明は数に入れず、件数だけ出す）
+  const shownLand = shown.reduce((n, s) => n + (s.land > 0 ? s.land : 0), 0);
+  const unknownLand = shown.filter((s) => !(s.land > 0)).length;
 
   const renderKey = useMemo(
     () =>
@@ -154,6 +196,45 @@ export default function ReportListView() {
         </div>
       </div>
 
+      {/* 並べ替え・広さ */}
+      <div className="grid grid-cols-2 gap-2">
+        <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} className="input py-2 text-sm" aria-label="並べ替え">
+          {(Object.keys(SORT_LABELS) as SortKey[]).map((k) => (
+            <option key={k} value={k}>
+              並び：{SORT_LABELS[k]}
+            </option>
+          ))}
+        </select>
+        <select value={land} onChange={(e) => setLand(e.target.value as LandRange)} className="input py-2 text-sm" aria-label="広さで絞り込み">
+          {(Object.keys(LAND_LABELS) as LandRange[]).map((k) => (
+            <option key={k} value={k}>
+              {LAND_LABELS[k]}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* その他の条件 */}
+      <div className="flex gap-1.5 overflow-x-auto pb-1">
+        {(Object.keys(FLAG_LABELS) as Flag[]).map((f) => (
+          <button
+            key={f}
+            onClick={() => toggleFlag(f)}
+            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${
+              flags.includes(f) ? 'bg-slate-700 text-white' : 'border border-dashed border-slate-300 bg-white text-slate-500'
+            }`}
+          >
+            {flags.includes(f) ? '✓ ' : ''}
+            {FLAG_LABELS[f]}
+          </button>
+        ))}
+        {narrowed && (
+          <button onClick={resetNarrow} className="shrink-0 px-2 py-1.5 text-xs font-bold text-fw-green">
+            条件をリセット
+          </button>
+        )}
+      </div>
+
       {/* フィルタ */}
       <div className="flex gap-1.5 overflow-x-auto pb-1">
         {chips.map((c) => (
@@ -175,7 +256,10 @@ export default function ReportListView() {
         <ReportMap sites={shown} get={get} renderKey={renderKey} />
       ) : (
         <>
-          <p className="text-xs text-slate-400">{shown.length}件を表示 ・ 左の◯で選ぶと、その現場をLINEで共有できます</p>
+          <p className="text-xs text-slate-400">
+            <b className="text-slate-600">{shown.length}件</b>を表示 ・ 広さ合計 {Math.round(shownLand).toLocaleString('ja-JP')}㎡
+            {unknownLand > 0 && `（不明${unknownLand}件）`} ・ 左の◯で選ぶとLINEで共有できます
+          </p>
           <div className="space-y-2">
             {shown.map((s) => (
               <SiteRow

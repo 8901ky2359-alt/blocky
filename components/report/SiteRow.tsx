@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { SiteSeed, SiteProgress, SiteType, Stage, stageOf, stagePatch } from '@/lib/report/types';
-import { OVERALL_META, overallOf, statusLabel, isReportTarget, typeOf, mapsUrl, codeOf } from '@/lib/report/status';
+import { OVERALL_META, overallOf, statusLabel, isReportTarget, typeOf, mapsUrl, codeOf, landText } from '@/lib/report/status';
 import { INSTRUCTION_PDFS } from '@/lib/report/instructionPdfs';
 
 export default function SiteRow({
@@ -82,7 +82,7 @@ export default function SiteRow({
             )}
           </div>
           <p className="mt-0.5 text-[11px] text-slate-400">
-            工番 {codeOf(site.workNo) || 'なし'}・{site.area}
+            工番 {codeOf(site.workNo) || 'なし'}・{site.area}・<span className={site.land > 0 ? 'font-bold text-slate-600' : ''}>広さ {landText(site)}</span>
           </p>
           <p className="mt-0.5 truncate text-xs text-slate-500">📍 {site.address}</p>
           <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px]">

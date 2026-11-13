@@ -216,7 +216,7 @@ export const SITES: SiteSeed[] = [
   { workNo: '802578', name: 'LOHAS-55', address: '茨城県稲敷郡美浦村布佐光仏1887-2､1888-1､1888-2', area: '美浦村', hasKey: true, lat: 36.000112, lng: 140.283256, land: 3175, priority: false },
   { workNo: '800566', name: 'WEST-L-241', address: '茨城県稲敷郡美浦村布佐七曲り1654-1', area: '美浦村', hasKey: true, lat: 36.007573, lng: 140.279251, land: 1450, priority: false },
   { workNo: '802169', name: 'WEST-L-1354', address: '茨城県稲敷郡美浦村布佐七曲り1724-4､1725', area: '美浦村', hasKey: true, lat: 36.010774, lng: 140.277456, land: 1800, priority: false },
-  { workNo: '801684', name: 'WEST-L-1010', address: '茨城県稲敷郡美浦村布佐鍛治内1440-2,1442-1,梶内1450-1', area: '美浦村', hasKey: true, lat: 36.009260, lng: 140.280708, land: 1.599, priority: false },
+  { workNo: '801684', name: 'WEST-L-1010', address: '茨城県稲敷郡美浦村布佐鍛治内1440-2,1442-1,梶内1450-1', area: '美浦村', hasKey: true, lat: 36.009260, lng: 140.280708, land: 1599, priority: false },
   { workNo: '801758', name: 'WEST-L-1059', address: '茨城県稲敷市下君山栗山3293,3294', area: '稲敷市', hasKey: false, lat: 35.931973, lng: 140.276501, land: 1403, priority: false },
   { workNo: '801594', name: 'WEST-L-925', address: '茨城県稲敷市下君山栗山3295', area: '稲敷市', hasKey: false, lat: 35.932194, lng: 140.276278, land: 1242, priority: false },
   { workNo: '801491', name: 'WEST-L-854', address: '茨城県稲敷市下君山山王3316-1', area: '稲敷市', hasKey: true, lat: 35.934922, lng: 140.275826, land: 1093, priority: false },

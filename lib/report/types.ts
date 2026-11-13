@@ -9,7 +9,7 @@ export type SiteSeed = {
   hasKey: boolean; // 鍵の有無
   lat: number;
   lng: number;
-  land: number; // 地積(㎡)
+  land: number; // 地積(㎡)。0 は不明（施工リスト外など）
   priority: boolean; // 優先(クレーム入電など)
 };
 

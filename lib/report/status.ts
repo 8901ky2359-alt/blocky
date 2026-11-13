@@ -133,6 +133,7 @@ export function buildSiteShare(
     if (s.lat || s.lng) lines.push(`地図：${mapsUrl(s.lat, s.lng)}`);
     const leads = leadText(s, p);
     if (leads) lines.push(`担当：${leads}`);
+    lines.push(`広さ：${landText(s)}`);
     if (s.hasKey) lines.push('鍵：あり');
     const pdf = pdfOf(s.workNo);
     if (pdf) lines.push(`資料：${pdf}`);
@@ -156,4 +157,55 @@ export function leadNames(sites: SiteSeed[], get: (workNo: string) => SiteProgre
     for (const n of [p.weedLead, p.sheetLead]) if (n) count.set(n, (count.get(n) ?? 0) + 1);
   }
   return [...count.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ja')).map(([n]) => n);
+}
+
+// 広さ（地積）の表示。0 は不明
+export function landText(site: SiteSeed): string {
+  return site.land > 0 ? `${Math.round(site.land).toLocaleString('ja-JP')}㎡` : '不明';
+}
+
+// 一覧の並べ替え
+export type SortKey = 'progress' | 'name' | 'landDesc' | 'landAsc' | 'area';
+export const SORT_LABELS: Record<SortKey, string> = {
+  progress: '進捗順',
+  name: '番号順',
+  landDesc: '広い順',
+  landAsc: '狭い順',
+  area: 'エリア順',
+};
+
+export function sorterOf(key: SortKey, get: (workNo: string) => SiteProgress) {
+  // 広さが不明な現場は、広い順・狭い順のどちらでも最後
+  const land = (s: SiteSeed, dir: 1 | -1) => (s.land > 0 ? s.land * dir : Number.MAX_SAFE_INTEGER);
+  switch (key) {
+    case 'name':
+      return byName;
+    case 'landDesc':
+      return (a: SiteSeed, b: SiteSeed) => land(a, -1) - land(b, -1) || byName(a, b);
+    case 'landAsc':
+      return (a: SiteSeed, b: SiteSeed) => land(a, 1) - land(b, 1) || byName(a, b);
+    case 'area':
+      return (a: SiteSeed, b: SiteSeed) => a.area.localeCompare(b.area, 'ja') || byName(a, b);
+    default:
+      return byProgress(get);
+  }
+}
+
+// 広さでの絞り込み
+export type LandRange = 'all' | 'small' | 'mid' | 'large' | 'unknown';
+export const LAND_LABELS: Record<LandRange, string> = {
+  all: '全部の広さ',
+  small: '〜1,000㎡',
+  mid: '1,000〜2,000㎡',
+  large: '2,000㎡〜',
+  unknown: '広さ不明',
+};
+
+export function inLandRange(site: SiteSeed, r: LandRange): boolean {
+  const v = site.land;
+  if (r === 'unknown') return !(v > 0);
+  if (r === 'small') return v > 0 && v < 1000;
+  if (r === 'mid') return v >= 1000 && v < 2000;
+  if (r === 'large') return v >= 2000;
+  return true;
 }
