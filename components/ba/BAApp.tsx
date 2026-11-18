@@ -5,7 +5,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Project, Shot, SignSettings, emptyItems } from '@/lib/ba/types';
-import { clearProject, loadProject, saveProject } from '@/lib/ba/db';
+import { clearProject, deletePhoto, loadProject, saveProject } from '@/lib/ba/db';
+import { makeThumb } from '@/lib/ba/process';
 import Setup from '@/components/ba/Setup';
 import WorkScreen from '@/components/ba/WorkScreen';
 
@@ -16,10 +17,12 @@ export default function BAApp({ back }: { back?: { href: string; label: string }
 
   // 復帰
   useEffect(() => {
-    loadProject().then((p) => {
+    loadProject(makeThumb).then((p) => {
       setProject(p);
       setLoaded(true);
     });
+    // 写真がたまっても端末に勝手に消されないように、保存領域を「残す」扱いにしてもらう
+    navigator.storage?.persist?.().catch(() => {});
   }, []);
 
   // サービスワーカー登録（オフライン対応）
@@ -43,6 +46,12 @@ export default function BAApp({ back }: { back?: { href: string; label: string }
     (index: number, kind: 'before' | 'after', shot: Shot | null) => {
       setProject((cur) => {
         if (!cur) return cur;
+        // 撮り直し・削除のときは前の写真を消す
+        const prev = cur.items[index]?.[kind];
+        if (prev && prev.id !== shot?.id) {
+          deletePhoto(prev.id);
+          if (prev.thumb) URL.revokeObjectURL(prev.thumb);
+        }
         const items = cur.items.map((it, i) => (i === index ? { ...it, [kind]: shot } : it));
         const next = { ...cur, items, updatedAt: Date.now() };
         saveProject(next).catch(() => {});
@@ -76,6 +85,9 @@ export default function BAApp({ back }: { back?: { href: string; label: string }
   function reset() {
     if (!confirm('新しい案件を始めますか？（今の写真はこの端末から消えます。共有・保存は済ませてください）')) {
       return;
+    }
+    for (const it of project?.items ?? []) {
+      for (const s of [it.before, it.after]) if (s?.thumb) URL.revokeObjectURL(s.thumb);
     }
     clearProject().finally(() => setProject(null));
   }

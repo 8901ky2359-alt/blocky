@@ -3,8 +3,9 @@
 import { useMemo, useState } from 'react';
 import { Project } from '@/lib/ba/types';
 import { buildCompareImage, dataUrlToFile, shareOrDownload } from '@/lib/ba/share';
+import { getFull } from '@/lib/ba/db';
 
-type Cell = { i: number; kind: 'before' | 'after'; url: string };
+type Cell = { i: number; kind: 'before' | 'after'; id: string; url: string };
 
 export default function ShareSheet({
   project,
@@ -19,8 +20,8 @@ export default function ShareSheet({
   const cells = useMemo<Cell[]>(() => {
     const list: Cell[] = [];
     project.items.forEach((it, i) => {
-      if (it.before) list.push({ i, kind: 'before', url: it.before.dataUrl });
-      if (it.after) list.push({ i, kind: 'after', url: it.after.dataUrl });
+      if (it.before) list.push({ i, kind: 'before', id: it.before.id, url: it.before.thumb ?? '' });
+      if (it.after) list.push({ i, kind: 'after', id: it.after.id, url: it.after.thumb ?? '' });
     });
     return list;
   }, [project.items]);
@@ -61,9 +62,11 @@ export default function ShareSheet({
     if (selectedCells.length === 0) return;
     setBusy(true);
     try {
-      const files = selectedCells.map((c) =>
-        dataUrlToFile(c.url, `${p}${firstNo + c.i}_${c.kind}.jpg`),
-      );
+      // 元の画質の写真を1枚ずつ読み出す（一覧の小さい画像ではなく）
+      const files: File[] = [];
+      for (const c of selectedCells) {
+        files.push(new File([await getFull(c.id)], `${p}${firstNo + c.i}_${c.kind}.jpg`, { type: 'image/jpeg' }));
+      }
       const r = await shareOrDownload(files, numbersText(selectedCells.map((c) => firstNo + c.i)));
       if (r === 'downloaded') notify(`${files.length}枚を保存しました（共有非対応のため）`);
       else if (r === 'failed') notify('共有できませんでした');
@@ -87,12 +90,15 @@ export default function ShareSheet({
       const files: File[] = [];
       for (const i of nums) {
         const it = project.items[i];
-        const url = await buildCompareImage(
-          it.before!.dataUrl,
-          it.after!.dataUrl,
-          `${project.name ? project.name + '　' : ''}${firstNo + i}番`,
-        );
-        files.push(dataUrlToFile(url, `${p}${firstNo + i}_比較.jpg`));
+        const b = URL.createObjectURL(await getFull(it.before!.id));
+        const a = URL.createObjectURL(await getFull(it.after!.id));
+        try {
+          const url = await buildCompareImage(b, a, `${project.name ? project.name + '　' : ''}${firstNo + i}番`);
+          files.push(dataUrlToFile(url, `${p}${firstNo + i}_比較.jpg`));
+        } finally {
+          URL.revokeObjectURL(b);
+          URL.revokeObjectURL(a);
+        }
       }
       const r = await shareOrDownload(files, numbersText(nums.map((i) => firstNo + i)));
       if (r === 'downloaded') notify(`${files.length}枚の比較画像を保存しました`);
@@ -147,7 +153,7 @@ export default function ShareSheet({
                     }`}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={c.url} alt="" className="aspect-[5/4] w-full object-cover" />
+                    <img src={c.url} alt="" loading="lazy" decoding="async" className="aspect-[5/4] w-full object-cover" />
                     <span
                       className={`absolute left-1 top-1 rounded-sm px-1 py-0.5 text-[9px] font-bold text-white ${
                         isB ? 'bg-blue-600' : 'bg-emerald-600'

@@ -3,9 +3,9 @@
 import Link from 'next/link';
 import { useMemo, useRef, useState } from 'react';
 import { Project, Shot } from '@/lib/ba/types';
-import { toFiveFour } from '@/lib/ba/image';
-import { addSign } from '@/lib/ba/sign';
-import { dataUrlToFile, shareOrDownload } from '@/lib/ba/share';
+import { processShot } from '@/lib/ba/process';
+import { getFull, putPhoto } from '@/lib/ba/db';
+import { shareOrDownload } from '@/lib/ba/share';
 import { PHOTO_JPEG, PHOTO_MAX_W } from '@/lib/ba/quality';
 import ItemRow from './ItemRow';
 import ShareSheet from './ShareSheet';
@@ -41,21 +41,32 @@ export default function WorkScreen({
   async function handlePick(index: number, kind: 'before' | 'after', file: File) {
     const k = `${index}:${kind}`;
     setBusy(k);
+    let photo: { full: Blob; thumb: Blob };
     try {
-      let dataUrl = await toFiveFour(file, PHOTO_MAX_W, PHOTO_JPEG);
       // 看板ありなら、左下に看板（ビフォー＝除草前／アフター＝除草後・同じ番号）を合成する
       const sign = project.sign;
-      if (sign) {
-        dataUrl = await addSign(
-          dataUrl,
-          { title: sign.title, place: sign.place, kind: kind === 'before' ? sign.beforeKind : sign.afterKind, no: sign.startNo + index },
-          sign.color,
-          PHOTO_JPEG,
-        );
-      }
-      onSetShot(index, kind, { dataUrl });
+      photo = await processShot(
+        file,
+        PHOTO_MAX_W,
+        PHOTO_JPEG,
+        sign
+          ? {
+              fields: { title: sign.title, place: sign.place, kind: kind === 'before' ? sign.beforeKind : sign.afterKind, no: sign.startNo + index },
+              color: sign.color,
+            }
+          : null,
+      );
     } catch {
       notify('写真を読み込めませんでした');
+      setBusy(null);
+      return;
+    }
+    try {
+      // この1枚だけを端末に保存（保存が終わってから一覧に出す）
+      const id = await putPhoto(photo.full, photo.thumb);
+      onSetShot(index, kind, { id, thumb: URL.createObjectURL(photo.thumb) });
+    } catch {
+      notify('保存できませんでした（端末の空き容量を確認してください）');
     } finally {
       setBusy(null);
     }
@@ -64,17 +75,20 @@ export default function WorkScreen({
   // すべての写真を一括保存（iPhone: 共有シートの「画像を保存」で全枚数をまとめて保存 / PC: 一括ダウンロード）
   async function saveAll() {
     const prefix = project.name ? `${project.name}_` : '';
-    const files: File[] = [];
-    project.items.forEach((it, i) => {
-      if (it.before) files.push(dataUrlToFile(it.before.dataUrl, `${prefix}${firstNo + i}_before.jpg`));
-      if (it.after) files.push(dataUrlToFile(it.after.dataUrl, `${prefix}${firstNo + i}_after.jpg`));
-    });
-    if (files.length === 0) {
+    if (totalShots === 0) {
       notify('保存できる写真がありません');
       return;
     }
     setSaving(true);
     try {
+      // 元の画質の写真を1枚ずつ読み出す
+      const files: File[] = [];
+      for (const [i, it] of project.items.entries()) {
+        for (const kind of ['before', 'after'] as const) {
+          const s = it[kind];
+          if (s) files.push(new File([await getFull(s.id)], `${prefix}${firstNo + i}_${kind}.jpg`, { type: 'image/jpeg' }));
+        }
+      }
       const r = await shareOrDownload(files);
       if (r === 'downloaded') notify(`${files.length}枚を保存しました`);
       else if (r === 'failed') notify('保存できませんでした');

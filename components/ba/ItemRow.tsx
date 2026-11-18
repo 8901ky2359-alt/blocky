@@ -1,7 +1,8 @@
 'use client';
 
 import { Item } from '@/lib/ba/types';
-import { dataUrlToFile, downloadFile } from '@/lib/ba/share';
+import { downloadFile } from '@/lib/ba/share';
+import { getFull } from '@/lib/ba/db';
 import { useState } from 'react';
 import PhotoSlot from './PhotoSlot';
 import PhotoPreview from './PhotoPreview';
@@ -28,11 +29,15 @@ export default function ItemRow({
   const done = !!item.before && !!item.after;
   const [preview, setPreview] = useState<'before' | 'after' | null>(null);
 
-  function saveOne(kind: 'before' | 'after') {
+  async function saveOne(kind: 'before' | 'after') {
     const shot = item[kind];
     if (!shot) return;
-    downloadFile(dataUrlToFile(shot.dataUrl, `${no}_${kind}.jpg`));
-    notify('写真を保存しました');
+    try {
+      downloadFile(new File([await getFull(shot.id)], `${no}_${kind}.jpg`, { type: 'image/jpeg' }));
+      notify('写真を保存しました');
+    } catch {
+      notify('写真を読み出せませんでした');
+    }
   }
 
   return (

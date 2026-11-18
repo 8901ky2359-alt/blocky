@@ -2,8 +2,11 @@
 
 import type { SignColor } from '../signboard';
 
+// 写真は1枚ずつ IndexedDB に保存し、ここには ID だけ持つ（100枚を超えても保存が重くならないように）。
+// thumb は一覧に出す小さい画像の object URL（端末の中だけ・保存はしない）
 export interface Shot {
-  dataUrl: string; // 5:4 に整形・圧縮済みのJPEG
+  id: string;
+  thumb?: string;
 }
 
 export interface Item {

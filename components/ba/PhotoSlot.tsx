@@ -38,7 +38,7 @@ export default function PhotoSlot({
   // 写真が変わったら保存完了表示をリセット
   useEffect(() => {
     setSaved(false);
-  }, [shot?.dataUrl]);
+  }, [shot?.id]);
 
   function doSave() {
     onSave();
@@ -68,7 +68,9 @@ export default function PhotoSlot({
         {shot ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={shot.dataUrl}
+            src={shot.thumb}
+            loading="lazy"
+            decoding="async"
             alt={s.label}
             draggable={false}
             onPointerDown={startPress}

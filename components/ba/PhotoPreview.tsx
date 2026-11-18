@@ -2,8 +2,9 @@
 
 // 写真の全画面プレビュー（同じ番号のビフォー／アフターを切り替えられる）。どこかをタップで閉じる
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Item } from '@/lib/ba/types';
+import { getFull } from '@/lib/ba/db';
 
 type Kind = 'before' | 'after';
 const LABEL: Record<Kind, string> = { before: 'ビフォー', after: 'アフター' };
@@ -11,6 +12,24 @@ const LABEL: Record<Kind, string> = { before: 'ビフォー', after: 'アフタ�
 export default function PhotoPreview({ no, item, initial, onClose }: { no: number; item: Item; initial: Kind; onClose: () => void }) {
   const [kind, setKind] = useState<Kind>(initial);
   const shot = item[kind];
+  // まず一覧用の小さい画像を出し、元の画質を読み込めたら差し替える
+  const [fullUrl, setFullUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!shot) return;
+    let url: string | null = null;
+    let alive = true;
+    getFull(shot.id)
+      .then((b) => {
+        url = URL.createObjectURL(b);
+        if (alive) setFullUrl(url);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+      setFullUrl(null);
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [shot]);
   // 長押しの指を離した直後のタップでは閉じない
   const openedAt = useRef(Date.now());
   const close = () => {
@@ -40,7 +59,7 @@ export default function PhotoPreview({ no, item, initial, onClose }: { no: numbe
       <div className="flex min-h-0 flex-1 items-center justify-center p-2">
         {shot ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={shot.dataUrl} alt={`${no}番 ${LABEL[kind]}`} className="max-h-full max-w-full object-contain" />
+          <img src={fullUrl ?? shot.thumb} alt={`${no}番 ${LABEL[kind]}`} className="max-h-full max-w-full object-contain" />
         ) : (
           <p className="text-sm text-white/60">{LABEL[kind]}の写真はまだありません</p>
         )}
